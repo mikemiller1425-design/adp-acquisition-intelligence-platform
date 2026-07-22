@@ -2,10 +2,10 @@ import {
   contactChannelPermissions,
   organizationCommunicationRestrictions,
   suppressionEntries,
+  type RepositoryExecutor,
 } from '@adp/database';
-import { and, eq, gt, isNull, lte, or } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type { SQLWrapper } from 'drizzle-orm';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { randomUUID } from 'node:crypto';
 
 import type {
@@ -20,7 +20,7 @@ import type {
   SuppressionInput,
 } from '../domain/ports.js';
 
-type Db = PostgresJsDatabase;
+type Db = RepositoryExecutor;
 
 function one<T>(rows: T[]): T | null {
   return rows[0] ?? null;
@@ -62,12 +62,14 @@ function mapSuppression(row: typeof suppressionEntries.$inferSelect): Suppressio
 export class PostgresPermissionRepository implements PermissionRepository {
   constructor(private readonly db: Db) {}
 
-  async assertContactChannelPermission(input: ContactPermissionInput): Promise<ContactChannelPermission> {
+  async assertContactChannelPermission(
+    input: ContactPermissionInput,
+  ): Promise<ContactChannelPermission> {
     const id = randomUUID();
     const rows = await this.db.transaction(async (tx) => {
-      await tx
+      const superseded = await tx
         .update(contactChannelPermissions)
-        .set({ supersededById: id })
+        .set({ supersededById: sql`${contactChannelPermissions.id}` })
         .where(
           and(
             eq(contactChannelPermissions.contactId, input.contactId),
@@ -75,8 +77,24 @@ export class PostgresPermissionRepository implements PermissionRepository {
             isNull(contactChannelPermissions.supersededById),
             isNull(contactChannelPermissions.revokedAt),
           ),
-        );
-      return tx.insert(contactChannelPermissions).values({ id, ...input }).returning();
+        )
+        .returning({ id: contactChannelPermissions.id });
+      const inserted = await tx
+        .insert(contactChannelPermissions)
+        .values({ id, ...input })
+        .returning();
+      if (superseded.length > 0) {
+        await tx
+          .update(contactChannelPermissions)
+          .set({ supersededById: id })
+          .where(
+            inArray(
+              contactChannelPermissions.id,
+              superseded.map((record) => record.id),
+            ),
+          );
+      }
+      return inserted;
     });
     return mapContactPermission(rows[0] as typeof contactChannelPermissions.$inferSelect);
   }
@@ -86,9 +104,9 @@ export class PostgresPermissionRepository implements PermissionRepository {
   ): Promise<OrganizationCommunicationRestriction> {
     const id = randomUUID();
     const rows = await this.db.transaction(async (tx) => {
-      await tx
+      const superseded = await tx
         .update(organizationCommunicationRestrictions)
-        .set({ supersededById: id })
+        .set({ supersededById: sql`${organizationCommunicationRestrictions.id}` })
         .where(
           and(
             eq(organizationCommunicationRestrictions.organizationId, input.organizationId),
@@ -98,8 +116,24 @@ export class PostgresPermissionRepository implements PermissionRepository {
             isNull(organizationCommunicationRestrictions.supersededById),
             isNull(organizationCommunicationRestrictions.revokedAt),
           ),
-        );
-      return tx.insert(organizationCommunicationRestrictions).values({ id, ...input }).returning();
+        )
+        .returning({ id: organizationCommunicationRestrictions.id });
+      const inserted = await tx
+        .insert(organizationCommunicationRestrictions)
+        .values({ id, ...input })
+        .returning();
+      if (superseded.length > 0) {
+        await tx
+          .update(organizationCommunicationRestrictions)
+          .set({ supersededById: id })
+          .where(
+            inArray(
+              organizationCommunicationRestrictions.id,
+              superseded.map((record) => record.id),
+            ),
+          );
+      }
+      return inserted;
     });
     return mapOrgRestriction(rows[0] as typeof organizationCommunicationRestrictions.$inferSelect);
   }
@@ -107,13 +141,15 @@ export class PostgresPermissionRepository implements PermissionRepository {
   async upsertSuppression(input: SuppressionInput): Promise<SuppressionEntry> {
     const id = randomUUID();
     const rows = await this.db.transaction(async (tx) => {
-      await tx
+      const superseded = await tx
         .update(suppressionEntries)
-        .set({ supersededById: id })
+        .set({ supersededById: sql`${suppressionEntries.id}` })
         .where(
           and(
             eq(suppressionEntries.scope, input.scope),
-            input.channel === null ? isNull(suppressionEntries.channel) : eq(suppressionEntries.channel, input.channel),
+            input.channel === null
+              ? isNull(suppressionEntries.channel)
+              : eq(suppressionEntries.channel, input.channel),
             input.contactId === null
               ? isNull(suppressionEntries.contactId)
               : eq(suppressionEntries.contactId, input.contactId),
@@ -126,8 +162,24 @@ export class PostgresPermissionRepository implements PermissionRepository {
             isNull(suppressionEntries.supersededById),
             isNull(suppressionEntries.revokedAt),
           ),
-        );
-      return tx.insert(suppressionEntries).values({ id, ...input }).returning();
+        )
+        .returning({ id: suppressionEntries.id });
+      const inserted = await tx
+        .insert(suppressionEntries)
+        .values({ id, ...input })
+        .returning();
+      if (superseded.length > 0) {
+        await tx
+          .update(suppressionEntries)
+          .set({ supersededById: id })
+          .where(
+            inArray(
+              suppressionEntries.id,
+              superseded.map((record) => record.id),
+            ),
+          );
+      }
+      return inserted;
     });
     return mapSuppression(rows[0] as typeof suppressionEntries.$inferSelect);
   }
@@ -197,7 +249,10 @@ export class PostgresPermissionRepository implements PermissionRepository {
       .where(
         and(
           or(isNull(suppressionEntries.channel), eq(suppressionEntries.channel, input.channel)),
-          or(eq(suppressionEntries.contactId, input.contactId), isNull(suppressionEntries.contactId)),
+          or(
+            eq(suppressionEntries.contactId, input.contactId),
+            isNull(suppressionEntries.contactId),
+          ),
           or(
             eq(suppressionEntries.organizationId, input.organizationId),
             isNull(suppressionEntries.organizationId),

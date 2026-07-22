@@ -41,9 +41,15 @@ export type SuppressionInput = PermissionMutationInput & {
 
 export type PermissionRepository = {
   assertContactChannelPermission(input: ContactPermissionInput): Promise<ContactChannelPermission>;
-  setOrganizationRestriction(input: OrganizationRestrictionInput): Promise<OrganizationCommunicationRestriction>;
+  setOrganizationRestriction(
+    input: OrganizationRestrictionInput,
+  ): Promise<OrganizationCommunicationRestriction>;
   upsertSuppression(input: SuppressionInput): Promise<SuppressionEntry>;
-  revokeSuppression(id: string, revokedAt: Date, capturedByUserId: string | null): Promise<SuppressionEntry | null>;
+  revokeSuppression(
+    id: string,
+    revokedAt: Date,
+    capturedByUserId: string | null,
+  ): Promise<SuppressionEntry | null>;
   findEffectiveContactChannelPermissions(input: {
     contactId: string;
     channel: Channel;

@@ -15,9 +15,9 @@ import {
   territories,
   userRoles,
   users,
+  type RepositoryExecutor,
 } from '@adp/database';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 import type {
   AccountAssignmentRepository,
@@ -52,7 +52,7 @@ import type {
   User,
 } from '../domain/types.js';
 
-type Db = PostgresJsDatabase;
+type Db = RepositoryExecutor;
 
 const nowSql = sql`now()`;
 
@@ -115,7 +115,11 @@ export class PostgresOrganizationRepository implements OrganizationRepository {
   constructor(private readonly db: Db) {}
 
   async findById(id: string): Promise<Organization | null> {
-    const rows = await this.db.select().from(organizations).where(eq(organizations.id, id)).limit(1);
+    const rows = await this.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, id))
+      .limit(1);
     const row = one(rows);
     return row === null ? null : mapOrganization(row);
   }
@@ -231,7 +235,11 @@ export class PostgresContactRepository implements ContactRepository {
         recordVersion: sql`${contacts.recordVersion} + 1`,
       })
       .where(
-        and(eq(contacts.id, id), eq(contacts.recordVersion, expectedRecordVersion), eq(contacts.status, 'active')),
+        and(
+          eq(contacts.id, id),
+          eq(contacts.recordVersion, expectedRecordVersion),
+          eq(contacts.status, 'active'),
+        ),
       )
       .returning();
     const row = one(rows);
@@ -243,7 +251,11 @@ export class PostgresLocationRepository implements LocationRepository {
   constructor(private readonly db: Db) {}
 
   async findById(id: string): Promise<Location | null> {
-    const rows = await this.db.select().from(organizationLocations).where(eq(organizationLocations.id, id)).limit(1);
+    const rows = await this.db
+      .select()
+      .from(organizationLocations)
+      .where(eq(organizationLocations.id, id))
+      .limit(1);
     const row = one(rows);
     return row === null ? null : mapLocation(row);
   }
@@ -292,7 +304,10 @@ export class PostgresTerritoryRepository implements TerritoryRepository {
 export class PostgresAccountAssignmentRepository implements AccountAssignmentRepository {
   constructor(private readonly db: Db) {}
 
-  async findCurrent(organizationId: string, assignmentRole: string): Promise<AccountAssignment | null> {
+  async findCurrent(
+    organizationId: string,
+    assignmentRole: string,
+  ): Promise<AccountAssignment | null> {
     const rows = await this.db
       .select()
       .from(accountAssignments)
@@ -328,7 +343,9 @@ export class PostgresAccountAssignmentRepository implements AccountAssignmentRep
     return row === null ? null : mapAssignment(row);
   }
 
-  async create(input: Parameters<AccountAssignmentRepository['create']>[0]): Promise<AccountAssignment> {
+  async create(
+    input: Parameters<AccountAssignmentRepository['create']>[0],
+  ): Promise<AccountAssignment> {
     const rows = await this.db.insert(accountAssignments).values(input).returning();
     return mapAssignment(rows[0] as typeof accountAssignments.$inferSelect);
   }
@@ -484,7 +501,9 @@ export class PostgresIdentityRepository implements IdentityRepository {
     return mapRole(rows[0] as typeof roles.$inferSelect);
   }
 
-  async upsertPermission(input: Parameters<IdentityRepository['upsertPermission']>[0]): Promise<Permission> {
+  async upsertPermission(
+    input: Parameters<IdentityRepository['upsertPermission']>[0],
+  ): Promise<Permission> {
     const rows = await this.db
       .insert(permissions)
       .values(input)

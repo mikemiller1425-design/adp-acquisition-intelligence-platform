@@ -201,7 +201,11 @@ export class ConsentPermissionService {
     },
     evaluation: PermissionEvaluation,
   ): Promise<PermissionEvaluation> {
-    if (!evaluation.allowed && command.auditBlockedDecision !== undefined && this.audit !== undefined) {
+    if (
+      !evaluation.allowed &&
+      command.auditBlockedDecision !== undefined &&
+      this.audit !== undefined
+    ) {
       await this.audit.append({
         actorUserId: command.auditBlockedDecision.actorUserId,
         action: 'outreach_blocked_by_permission',

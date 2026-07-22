@@ -64,7 +64,8 @@ export class OrganizationService {
     if (current.recordVersion !== command.expectedRecordVersion) {
       throw versionConflict('Organization', command.organizationId, command.expectedRecordVersion);
     }
-    if (command.patch.displayName !== undefined) assertNonBlank(command.patch.displayName, 'displayName');
+    if (command.patch.displayName !== undefined)
+      assertNonBlank(command.patch.displayName, 'displayName');
     if (command.patch.normalizedName !== undefined) {
       assertNonBlank(command.patch.normalizedName, 'normalizedName');
     }
@@ -116,7 +117,8 @@ export class ContactService {
     assertNonBlank(input.displayName, 'displayName');
     const organization = await this.organizations.findById(input.organizationId);
     if (organization === null) throw notFound('Organization', input.organizationId);
-    if (organization.recordStatus === 'archived') throw archived('Organization', input.organizationId);
+    if (organization.recordStatus === 'archived')
+      throw archived('Organization', input.organizationId);
     return this.contacts.create(input);
   }
 
@@ -131,7 +133,8 @@ export class ContactService {
     if (current.recordVersion !== command.expectedRecordVersion) {
       throw versionConflict('Contact', command.contactId, command.expectedRecordVersion);
     }
-    if (command.patch.displayName !== undefined) assertNonBlank(command.patch.displayName, 'displayName');
+    if (command.patch.displayName !== undefined)
+      assertNonBlank(command.patch.displayName, 'displayName');
 
     const updated = await this.contacts.updateIfVersion(
       command.contactId,

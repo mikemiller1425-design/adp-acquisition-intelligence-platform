@@ -1,10 +1,6 @@
 import { AppError } from '@adp/platform';
 
-import type {
-  NoteRepository,
-  TagRepository,
-  TaskRepository,
-} from '../domain/ports.js';
+import type { NoteRepository, TagRepository, TaskRepository } from '../domain/ports.js';
 import type { Note, SubjectType, Tag, Task } from '../domain/types.js';
 
 function notFound(resource: string, id: string): AppError {
@@ -37,7 +33,11 @@ export class TaskService {
     const task = await this.tasks.findById(command.taskId);
     if (task === null) throw notFound('Task', command.taskId);
     if (task.archivedAt !== null) {
-      throw new AppError({ code: 'CONFLICT', message: 'Task is archived', details: { id: command.taskId } });
+      throw new AppError({
+        code: 'CONFLICT',
+        message: 'Task is archived',
+        details: { id: command.taskId },
+      });
     }
     const updated = await this.tasks.updateStatus(
       command.taskId,

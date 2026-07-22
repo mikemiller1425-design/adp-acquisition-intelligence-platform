@@ -1,6 +1,5 @@
-import { operationalStateTransitions, organizations } from '@adp/database';
+import { operationalStateTransitions, organizations, type RepositoryExecutor } from '@adp/database';
 import { and, eq, sql } from 'drizzle-orm';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 import type { OperationalDimension } from '../domain/operational-state.js';
 import type {
@@ -10,7 +9,7 @@ import type {
   OrganizationStateWriter,
 } from '../domain/ports.js';
 
-type Db = PostgresJsDatabase;
+type Db = RepositoryExecutor;
 
 function one<T>(rows: T[]): T | null {
   return rows[0] ?? null;
@@ -28,7 +27,9 @@ function mapOrganizationState(row: typeof organizations.$inferSelect): Organizat
   };
 }
 
-function mapTransition(row: typeof operationalStateTransitions.$inferSelect): OperationalStateTransition {
+function mapTransition(
+  row: typeof operationalStateTransitions.$inferSelect,
+): OperationalStateTransition {
   return {
     ...row,
     subjectType: 'organization',
@@ -48,7 +49,11 @@ export class PostgresOrganizationStateWriter implements OrganizationStateWriter 
   constructor(private readonly db: Db) {}
 
   async findOrganizationState(organizationId: string): Promise<OrganizationState | null> {
-    const rows = await this.db.select().from(organizations).where(eq(organizations.id, organizationId)).limit(1);
+    const rows = await this.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(1);
     const row = one(rows);
     return row === null ? null : mapOrganizationState(row);
   }
@@ -77,7 +82,7 @@ export class PostgresOrganizationStateWriter implements OrganizationStateWriter 
     const rows = await this.db
       .update(organizations)
       .set({
-        prospectStage: input.toValue as typeof organizations.prospectStage.enumValues[number],
+        prospectStage: input.toValue as (typeof organizations.prospectStage.enumValues)[number],
         recordVersion: sql`${organizations.recordVersion} + 1`,
         updatedAt: sql`now()`,
       })
@@ -93,7 +98,7 @@ export class PostgresOrganizationStateWriter implements OrganizationStateWriter 
     const rows = await this.db
       .update(organizations)
       .set({
-        researchStatus: input.toValue as typeof organizations.researchStatus.enumValues[number],
+        researchStatus: input.toValue as (typeof organizations.researchStatus.enumValues)[number],
         recordVersion: sql`${organizations.recordVersion} + 1`,
         updatedAt: sql`now()`,
       })
@@ -109,7 +114,7 @@ export class PostgresOrganizationStateWriter implements OrganizationStateWriter 
     const rows = await this.db
       .update(organizations)
       .set({
-        outreachStatus: input.toValue as typeof organizations.outreachStatus.enumValues[number],
+        outreachStatus: input.toValue as (typeof organizations.outreachStatus.enumValues)[number],
         recordVersion: sql`${organizations.recordVersion} + 1`,
         updatedAt: sql`now()`,
       })
@@ -125,7 +130,8 @@ export class PostgresOrganizationStateWriter implements OrganizationStateWriter 
     const rows = await this.db
       .update(organizations)
       .set({
-        dataFreshnessStatus: input.toValue as typeof organizations.dataFreshnessStatus.enumValues[number],
+        dataFreshnessStatus:
+          input.toValue as (typeof organizations.dataFreshnessStatus.enumValues)[number],
         recordVersion: sql`${organizations.recordVersion} + 1`,
         updatedAt: sql`now()`,
       })
@@ -144,9 +150,7 @@ export class PostgresOrganizationStateWriter implements OrganizationStateWriter 
   }
 }
 
-export class PostgresOperationalStateTransitionRepository
-  implements OperationalStateTransitionRepository
-{
+export class PostgresOperationalStateTransitionRepository implements OperationalStateTransitionRepository {
   constructor(private readonly db: Db) {}
 
   async findByCorrelationId(input: {

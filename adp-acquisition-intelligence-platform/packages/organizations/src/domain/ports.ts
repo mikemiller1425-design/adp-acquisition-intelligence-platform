@@ -39,8 +39,17 @@ export type UpdateOrganizationInput = {
 export type OrganizationRepository = {
   findById(id: string): Promise<Organization | null>;
   create(input: CreateOrganizationInput): Promise<Organization>;
-  updateIfVersion(id: string, expectedRecordVersion: number, input: UpdateOrganizationInput): Promise<Organization | null>;
-  archiveIfVersion(id: string, expectedRecordVersion: number, archivedByUserId: string | null, at: Date): Promise<Organization | null>;
+  updateIfVersion(
+    id: string,
+    expectedRecordVersion: number,
+    input: UpdateOrganizationInput,
+  ): Promise<Organization | null>;
+  archiveIfVersion(
+    id: string,
+    expectedRecordVersion: number,
+    archivedByUserId: string | null,
+    at: Date,
+  ): Promise<Organization | null>;
 };
 
 export type CreateContactInput = {
@@ -75,32 +84,66 @@ export type UpdateContactInput = {
 export type ContactRepository = {
   findById(id: string): Promise<Contact | null>;
   create(input: CreateContactInput): Promise<Contact>;
-  updateIfVersion(id: string, expectedRecordVersion: number, input: UpdateContactInput): Promise<Contact | null>;
-  archiveIfVersion(id: string, expectedRecordVersion: number, archivedByUserId: string | null, at: Date): Promise<Contact | null>;
+  updateIfVersion(
+    id: string,
+    expectedRecordVersion: number,
+    input: UpdateContactInput,
+  ): Promise<Contact | null>;
+  archiveIfVersion(
+    id: string,
+    expectedRecordVersion: number,
+    archivedByUserId: string | null,
+    at: Date,
+  ): Promise<Contact | null>;
 };
 
 export type LocationRepository = {
   findById(id: string): Promise<Location | null>;
-  create(input: Omit<Location, 'id' | 'createdAt' | 'updatedAt' | 'archivedAt' | 'locationStatus'> & { locationStatus?: Location['locationStatus'] }): Promise<Location>;
+  create(
+    input: Omit<Location, 'id' | 'createdAt' | 'updatedAt' | 'archivedAt' | 'locationStatus'> & {
+      locationStatus?: Location['locationStatus'];
+    },
+  ): Promise<Location>;
   archive(id: string, archivedByUserId: string | null, at: Date): Promise<Location | null>;
 };
 
 export type TerritoryRepository = {
   findById(id: string): Promise<Territory | null>;
-  create(input: Pick<Territory, 'code' | 'name'> & Partial<Pick<Territory, 'description' | 'parentTerritoryId' | 'createdByUserId'>>): Promise<Territory>;
+  create(
+    input: Pick<Territory, 'code' | 'name'> &
+      Partial<Pick<Territory, 'description' | 'parentTerritoryId' | 'createdByUserId'>>,
+  ): Promise<Territory>;
   archive(id: string, updatedByUserId: string | null, at: Date): Promise<Territory | null>;
 };
 
 export type AccountAssignmentRepository = {
   findCurrent(organizationId: string, assignmentRole: string): Promise<AccountAssignment | null>;
-  closeCurrent(organizationId: string, assignmentRole: string, effectiveTo: Date): Promise<AccountAssignment | null>;
-  create(input: Omit<AccountAssignment, 'id' | 'createdAt' | 'effectiveTo'> & { effectiveTo?: Date | null }): Promise<AccountAssignment>;
+  closeCurrent(
+    organizationId: string,
+    assignmentRole: string,
+    effectiveTo: Date,
+  ): Promise<AccountAssignment | null>;
+  create(
+    input: Omit<AccountAssignment, 'id' | 'createdAt' | 'effectiveTo'> & {
+      effectiveTo?: Date | null;
+    },
+  ): Promise<AccountAssignment>;
 };
 
 export type TaskRepository = {
   findById(id: string): Promise<Task | null>;
-  create(input: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'archivedAt' | 'completedAt' | 'status'> & { status?: Task['status']; completedAt?: Date | null }): Promise<Task>;
-  updateStatus(id: string, status: Task['status'], updatedByUserId: string | null, at: Date): Promise<Task | null>;
+  create(
+    input: Omit<
+      Task,
+      'id' | 'createdAt' | 'updatedAt' | 'archivedAt' | 'completedAt' | 'status'
+    > & { status?: Task['status']; completedAt?: Date | null },
+  ): Promise<Task>;
+  updateStatus(
+    id: string,
+    status: Task['status'],
+    updatedByUserId: string | null,
+    at: Date,
+  ): Promise<Task | null>;
   archive(id: string, updatedByUserId: string | null, at: Date): Promise<Task | null>;
 };
 
@@ -112,9 +155,17 @@ export type NoteRepository = {
 
 export type TagRepository = {
   findById(id: string): Promise<Tag | null>;
-  create(input: Pick<Tag, 'key' | 'name'> & Partial<Pick<Tag, 'description' | 'color' | 'createdByUserId'>>): Promise<Tag>;
+  create(
+    input: Pick<Tag, 'key' | 'name'> &
+      Partial<Pick<Tag, 'description' | 'color' | 'createdByUserId'>>,
+  ): Promise<Tag>;
   retire(id: string, at: Date): Promise<Tag | null>;
-  tagSubject(tagId: string, subjectType: SubjectType, subjectId: string, createdByUserId: string | null): Promise<void>;
+  tagSubject(
+    tagId: string,
+    subjectType: SubjectType,
+    subjectId: string,
+    createdByUserId: string | null,
+  ): Promise<void>;
 };
 
 export type IdentityRepository = {
@@ -124,7 +175,11 @@ export type IdentityRepository = {
   upsertRole(input: Pick<Role, 'key' | 'name'> & Partial<Pick<Role, 'description'>>): Promise<Role>;
   upsertPermission(input: Pick<Permission, 'key' | 'description'>): Promise<Permission>;
   assignRoleToUser(userId: string, roleId: string, assignedByUserId: string | null): Promise<void>;
-  grantPermissionToRole(roleId: string, permissionId: string, grantedByUserId: string | null): Promise<void>;
+  grantPermissionToRole(
+    roleId: string,
+    permissionId: string,
+    grantedByUserId: string | null,
+  ): Promise<void>;
   listPermissionKeysForUser(userId: string): Promise<string[]>;
 };
 

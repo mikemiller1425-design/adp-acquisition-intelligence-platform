@@ -118,3 +118,13 @@ opportunities.opportunity_stage + transitions
 ## Backup and audit
 
 Define encrypted backups, retention, recovery point/time objectives, restore tests, and audit export. Production release is blocked until restore has been rehearsed. See [Testing Master Plan](../12-testing/TESTING_MASTER_PLAN.md).
+
+## Prompt 2 implementation notes
+
+Prompt 2 implements the canonical Phase 1 foundation tables in `packages/database/src/schema/*` and migrations under `packages/database/migrations`.
+
+- `0000_parched_electro.sql` creates the Prompt 2 table set, enums, constraints, foreign keys, and indexes.
+- `0001_integrity_guards.sql` adds database-level protection for hard-delete rejection, append-only audit/transition history, and immutable consent material fields.
+- Organization/contact archive behavior is exposed through application services; direct hard deletion of canonical organization/contact rows is rejected.
+- Consent corrections use supersession. Material permission/restriction/suppression fields are not rewritten in place.
+- Operational-state multi-write flows are transaction-compatible through `DatabaseClient.withTransaction` and transaction-scoped repository executors.

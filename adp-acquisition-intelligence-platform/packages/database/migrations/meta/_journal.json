@@ -8,6 +8,13 @@
       "when": 1784753600017,
       "tag": "0000_parched_electro",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784753920000,
+      "tag": "0001_integrity_guards",
+      "breakpoints": true
     }
   ]
 }

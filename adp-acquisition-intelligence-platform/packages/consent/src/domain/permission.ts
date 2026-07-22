@@ -127,7 +127,9 @@ export function mostRestrictiveState(states: readonly PermissionState[]): Permis
   );
 }
 
-export function sortMostRestrictiveFirst<T extends { state: PermissionState }>(records: readonly T[]): T[] {
+export function sortMostRestrictiveFirst<T extends { state: PermissionState }>(
+  records: readonly T[],
+): T[] {
   return [...records].sort(
     (left, right) => permissionPrecedenceRank[right.state] - permissionPrecedenceRank[left.state],
   );

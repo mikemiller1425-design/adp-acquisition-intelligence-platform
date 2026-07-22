@@ -1,9 +1,6 @@
 import { AppError } from '@adp/platform';
 
-import type {
-  AccountAssignmentRepository,
-  TerritoryRepository,
-} from '../domain/ports.js';
+import type { AccountAssignmentRepository, TerritoryRepository } from '../domain/ports.js';
 import type { AccountAssignment, Territory } from '../domain/types.js';
 
 function notFound(resource: string, id: string): AppError {

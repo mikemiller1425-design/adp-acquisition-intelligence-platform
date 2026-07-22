@@ -47,20 +47,16 @@ export type OutreachStatus = (typeof outreachStatuses)[number];
 export type DataFreshnessStatus = (typeof dataFreshnessStatuses)[number];
 
 export type OperationalDimension =
-  | 'prospect_stage'
-  | 'research_status'
-  | 'outreach_status'
-  | 'data_freshness_status';
+  'prospect_stage' | 'research_status' | 'outreach_status' | 'data_freshness_status';
 
 export type OperationalStateValue =
-  | ProspectStage
-  | ResearchStatus
-  | OutreachStatus
-  | DataFreshnessStatus;
+  ProspectStage | ResearchStatus | OutreachStatus | DataFreshnessStatus;
 
 export type TransitionRule = 'Y' | 'R' | 'S';
 
-type Matrix<TState extends string> = Partial<Record<TState, Partial<Record<TState, TransitionRule>>>>;
+type Matrix<TState extends string> = Partial<
+  Record<TState, Partial<Record<TState, TransitionRule>>>
+>;
 
 const terminalProspectStages = [
   'nurture',
@@ -163,7 +159,9 @@ export function ruleForTransition(
     case 'outreach_status':
       return outreachStatusMatrix[from as OutreachStatus]?.[to as OutreachStatus] ?? null;
     case 'data_freshness_status':
-      return dataFreshnessStatusMatrix[from as DataFreshnessStatus]?.[to as DataFreshnessStatus] ?? null;
+      return (
+        dataFreshnessStatusMatrix[from as DataFreshnessStatus]?.[to as DataFreshnessStatus] ?? null
+      );
   }
 }
 

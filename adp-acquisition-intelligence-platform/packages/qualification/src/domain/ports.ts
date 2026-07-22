@@ -57,7 +57,9 @@ export type OperationalStateTransitionRepository = {
     dimension: OperationalDimension;
     commandCorrelationId: string;
   }): Promise<OperationalStateTransition | null>;
-  insert(input: Omit<OperationalStateTransition, 'id' | 'createdAt'>): Promise<OperationalStateTransition>;
+  insert(
+    input: Omit<OperationalStateTransition, 'id' | 'createdAt'>,
+  ): Promise<OperationalStateTransition>;
 };
 
 export type OperationalStateAuditPort = {

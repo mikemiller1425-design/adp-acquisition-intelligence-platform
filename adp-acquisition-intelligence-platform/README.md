@@ -7,9 +7,11 @@ Phase 1 acquisition intelligence workspace — documentation plus engineering fo
 ```bash
 cd adp-acquisition-intelligence-platform
 pnpm install --frozen-lockfile
-pnpm validate
 docker compose up -d postgres
 cp .env.example .env
+pnpm db:migrate
+pnpm db:seed
+pnpm validate
 ```
 
 Health smokes:
@@ -19,6 +21,11 @@ pnpm --filter @adp/api smoke:health
 pnpm --filter @adp/worker smoke:health
 pnpm --filter @adp/web smoke:health
 ```
+
+Database development:
+
+- [Database setup](docs/development/DATABASE_SETUP.md)
+- [Migration guide](docs/development/MIGRATION_GUIDE.md)
 
 ## Documentation
 

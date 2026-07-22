@@ -1,9 +1,6 @@
 import { AppError } from '@adp/platform';
 
-import {
-  columnForDimension,
-  ruleForTransition,
-} from '../domain/operational-state.js';
+import { columnForDimension, ruleForTransition } from '../domain/operational-state.js';
 import type {
   DataFreshnessStatus,
   OperationalDimension,
@@ -48,19 +45,27 @@ export class OperationalStateService {
     private readonly outbox?: OperationalStateOutboxPort,
   ) {}
 
-  async transitionProspectStage(command: TransitionCommand<ProspectStage>): Promise<TransitionResult> {
+  async transitionProspectStage(
+    command: TransitionCommand<ProspectStage>,
+  ): Promise<TransitionResult> {
     return this.transition('prospect_stage', command);
   }
 
-  async transitionResearchStatus(command: TransitionCommand<ResearchStatus>): Promise<TransitionResult> {
+  async transitionResearchStatus(
+    command: TransitionCommand<ResearchStatus>,
+  ): Promise<TransitionResult> {
     return this.transition('research_status', command);
   }
 
-  async transitionOutreachStatus(command: TransitionCommand<OutreachStatus>): Promise<TransitionResult> {
+  async transitionOutreachStatus(
+    command: TransitionCommand<OutreachStatus>,
+  ): Promise<TransitionResult> {
     return this.transition('outreach_status', command);
   }
 
-  async recomputeDataFreshness(command: TransitionCommand<DataFreshnessStatus>): Promise<TransitionResult> {
+  async recomputeDataFreshness(
+    command: TransitionCommand<DataFreshnessStatus>,
+  ): Promise<TransitionResult> {
     return this.transition('data_freshness_status', command);
   }
 
@@ -99,7 +104,8 @@ export class OperationalStateService {
     if (fromValue === command.to) {
       throw new AppError({
         code: 'VALIDATION_FAILED',
-        message: 'No-op state transitions are rejected; reuse the original correlation id for retries',
+        message:
+          'No-op state transitions are rejected; reuse the original correlation id for retries',
         details: { organizationId: command.organizationId, dimension, value: command.to },
       });
     }
@@ -109,7 +115,12 @@ export class OperationalStateService {
       throw new AppError({
         code: 'VALIDATION_FAILED',
         message: 'Operational state transition is not allowed by the matrix',
-        details: { organizationId: command.organizationId, dimension, fromValue, toValue: command.to },
+        details: {
+          organizationId: command.organizationId,
+          dimension,
+          fromValue,
+          toValue: command.to,
+        },
       });
     }
     this.assertRuleAllowed(rule, dimension, command);
@@ -161,7 +172,12 @@ export class OperationalStateService {
       eventType: 'operational_state.transitioned',
       idempotencyKey:
         command.commandCorrelationId ?? `${command.organizationId}:${dimension}:${transition.id}`,
-      payload: { organizationId: command.organizationId, dimension, fromValue, toValue: command.to },
+      payload: {
+        organizationId: command.organizationId,
+        dimension,
+        fromValue,
+        toValue: command.to,
+      },
       metadata: { transitionId: transition.id },
     });
 

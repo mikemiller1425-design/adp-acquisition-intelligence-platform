@@ -129,7 +129,9 @@ export async function withTransaction<T>(
   return db.transaction((tx) => work(tx));
 }
 
-export async function checkDatabaseHealth(client: Pick<DatabaseClient, 'ping'>): Promise<DatabaseHealth> {
+export async function checkDatabaseHealth(
+  client: Pick<DatabaseClient, 'ping'>,
+): Promise<DatabaseHealth> {
   const startedAt = process.hrtime.bigint();
   const checkedAt = new Date().toISOString();
 
@@ -164,7 +166,8 @@ export function mapDatabaseError(error: unknown): DbConstraintError | undefined 
       return new DbConstraintError({
         kind: 'unique',
         message: 'Database unique constraint violated',
-        constraint: readStringProperty(error, 'constraint_name') ?? readStringProperty(error, 'constraint'),
+        constraint:
+          readStringProperty(error, 'constraint_name') ?? readStringProperty(error, 'constraint'),
         table: readStringProperty(error, 'table_name') ?? readStringProperty(error, 'table'),
         detail: readStringProperty(error, 'detail'),
         cause: error,
@@ -173,7 +176,8 @@ export function mapDatabaseError(error: unknown): DbConstraintError | undefined 
       return new DbConstraintError({
         kind: 'foreign_key',
         message: 'Database foreign key constraint violated',
-        constraint: readStringProperty(error, 'constraint_name') ?? readStringProperty(error, 'constraint'),
+        constraint:
+          readStringProperty(error, 'constraint_name') ?? readStringProperty(error, 'constraint'),
         table: readStringProperty(error, 'table_name') ?? readStringProperty(error, 'table'),
         detail: readStringProperty(error, 'detail'),
         cause: error,
@@ -182,7 +186,8 @@ export function mapDatabaseError(error: unknown): DbConstraintError | undefined 
       return new DbConstraintError({
         kind: 'check',
         message: 'Database check constraint violated',
-        constraint: readStringProperty(error, 'constraint_name') ?? readStringProperty(error, 'constraint'),
+        constraint:
+          readStringProperty(error, 'constraint_name') ?? readStringProperty(error, 'constraint'),
         table: readStringProperty(error, 'table_name') ?? readStringProperty(error, 'table'),
         detail: readStringProperty(error, 'detail'),
         cause: error,

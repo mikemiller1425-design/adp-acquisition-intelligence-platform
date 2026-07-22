@@ -22,7 +22,9 @@ class MemoryPermissionRepository implements PermissionRepository {
   orgRestrictions: OrganizationCommunicationRestriction[] = [];
   suppressions: SuppressionEntry[] = [];
 
-  async assertContactChannelPermission(input: ContactPermissionInput): Promise<ContactChannelPermission> {
+  async assertContactChannelPermission(
+    input: ContactPermissionInput,
+  ): Promise<ContactChannelPermission> {
     const record: ContactChannelPermission = {
       id: `permission-${this.contactPermissions.length + 1}`,
       supersededById: null,
@@ -255,7 +257,12 @@ describe('ConsentPermissionService', () => {
     const repository = new MemoryPermissionRepository();
     repository.contactPermissions.push(
       { ...permissionInput('allowed'), id: 'allowed', createdAt: baseTime, supersededById: null },
-      { ...permissionInput('restricted'), id: 'restricted', createdAt: baseTime, supersededById: null },
+      {
+        ...permissionInput('restricted'),
+        id: 'restricted',
+        createdAt: baseTime,
+        supersededById: null,
+      },
     );
     const service = new ConsentPermissionService(repository);
 

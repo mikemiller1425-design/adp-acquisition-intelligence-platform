@@ -3,16 +3,43 @@ import postgres from 'postgres';
 import { createDatabaseClient, type DatabaseClient } from '../index.js';
 import { runMigrations } from '../migrate.js';
 
-export const DEFAULT_TEST_DATABASE_URL =
-  'postgres://adp:adp@localhost:5432/adp_acquisition_test';
+export const DEFAULT_TEST_DATABASE_URL = 'postgres://adp:adp@localhost:5432/adp_acquisition_test';
 
 export interface TestDatabaseSetupOptions {
   databaseUrl?: string;
   reset?: boolean;
 }
 
+export interface TestDatabaseLock {
+  release: () => Promise<void>;
+}
+
+const TEST_DATABASE_LOCK_ID = 20_260_722;
+
 export function getTestDatabaseUrl(): string {
   return process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL ?? DEFAULT_TEST_DATABASE_URL;
+}
+
+export async function acquireTestDatabaseLock(
+  databaseUrl = getTestDatabaseUrl(),
+): Promise<TestDatabaseLock> {
+  assertTestDatabaseUrl(databaseUrl);
+  const sql = postgres(databaseUrl, { max: 1 });
+  let released = false;
+
+  await sql`select pg_advisory_lock(${TEST_DATABASE_LOCK_ID})`;
+
+  return {
+    async release(): Promise<void> {
+      if (released) return;
+      released = true;
+      try {
+        await sql`select pg_advisory_unlock(${TEST_DATABASE_LOCK_ID})`;
+      } finally {
+        await sql.end({ timeout: 5 });
+      }
+    },
+  };
 }
 
 export async function resetTestDatabase(databaseUrl = getTestDatabaseUrl()): Promise<void> {

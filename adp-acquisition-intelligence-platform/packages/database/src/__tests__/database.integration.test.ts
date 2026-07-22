@@ -2,10 +2,12 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
-import { count } from 'drizzle-orm';
-import { describe, expect, it } from 'vitest';
+import { count, eq } from 'drizzle-orm';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  auditEvents,
+  checkDatabaseHealth,
   contacts,
   mapDatabaseError,
   organizationLocations,
@@ -13,9 +15,11 @@ import {
   users,
 } from '../index.js';
 import {
+  acquireTestDatabaseLock,
   createTestDatabaseClient,
   getTestDatabaseUrl,
   migrateTestDatabase,
+  type TestDatabaseLock,
 } from '../testing/setup.js';
 
 const execFileAsync = promisify(execFile);
@@ -23,6 +27,16 @@ const packageRoot = fileURLToPath(new URL('../..', import.meta.url));
 const testDatabaseUrl = getTestDatabaseUrl();
 
 describe.sequential('database integration tooling', () => {
+  let lock: TestDatabaseLock;
+
+  beforeAll(async () => {
+    lock = await acquireTestDatabaseLock(testDatabaseUrl);
+  }, 120_000);
+
+  afterAll(async () => {
+    await lock?.release();
+  });
+
   it('applies migrations on an empty database', async () => {
     await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
     const client = createTestDatabaseClient(testDatabaseUrl);
@@ -132,7 +146,9 @@ describe.sequential('database integration tooling', () => {
     const client = createTestDatabaseClient(testDatabaseUrl);
     try {
       const userCount = first(await client.db.select({ value: count() }).from(users)).value;
-      const organizationCount = first(await client.db.select({ value: count() }).from(organizations)).value;
+      const organizationCount = first(
+        await client.db.select({ value: count() }).from(organizations),
+      ).value;
       const pendingOutboxCount = first(
         await client.sql<{ count: number }[]>`
           select count(*)::int as count
@@ -144,6 +160,147 @@ describe.sequential('database integration tooling', () => {
       expect(userCount).toBeGreaterThanOrEqual(4);
       expect(organizationCount).toBeGreaterThanOrEqual(3);
       expect(pendingOutboxCount).toBeGreaterThanOrEqual(1);
+    } finally {
+      await client.close();
+    }
+  });
+
+  it('commits or rolls back transaction work as one unit', async () => {
+    await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
+    const client = createTestDatabaseClient(testDatabaseUrl);
+
+    try {
+      const committed = await client.withTransaction(async (tx) => {
+        const rows = await tx
+          .insert(organizations)
+          .values({
+            displayName: 'Committed Transaction Advisors',
+            normalizedName: 'committed transaction advisors',
+            normalizedDomain: 'committed-transaction.example.com',
+          })
+          .returning({ id: organizations.id });
+        return first(rows).id;
+      });
+
+      await expect(
+        client.withTransaction(async (tx) => {
+          await tx.insert(organizations).values({
+            displayName: 'Rolled Back Transaction Advisors',
+            normalizedName: 'rolled back transaction advisors',
+            normalizedDomain: 'rolled-back-transaction.example.com',
+          });
+          throw new Error('force rollback');
+        }),
+      ).rejects.toThrow('force rollback');
+
+      const committedCount = first(
+        await client.db
+          .select({ value: count() })
+          .from(organizations)
+          .where(eq(organizations.id, committed)),
+      ).value;
+      const rolledBackCount = first(
+        await client.db
+          .select({ value: count() })
+          .from(organizations)
+          .where(eq(organizations.normalizedDomain, 'rolled-back-transaction.example.com')),
+      ).value;
+
+      expect(committedCount).toBe(1);
+      expect(rolledBackCount).toBe(0);
+    } finally {
+      await client.close();
+    }
+  });
+
+  it('rejects forbidden hard deletion for canonical rows', async () => {
+    await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
+    const client = createTestDatabaseClient(testDatabaseUrl);
+
+    try {
+      const organization = first(
+        await client.db
+          .insert(organizations)
+          .values({
+            displayName: 'No Delete Advisors',
+            normalizedName: 'no delete advisors',
+            normalizedDomain: 'no-delete.example.com',
+          })
+          .returning({ id: organizations.id }),
+      );
+
+      await expect(
+        client.db.delete(organizations).where(eq(organizations.id, organization.id)),
+      ).rejects.toSatisfy((error: unknown) =>
+        errorText(error).includes('hard delete is forbidden'),
+      );
+
+      const remaining = first(
+        await client.db
+          .select({ value: count() })
+          .from(organizations)
+          .where(eq(organizations.id, organization.id)),
+      ).value;
+      expect(remaining).toBe(1);
+    } finally {
+      await client.close();
+    }
+  });
+
+  it('keeps audit events append-only', async () => {
+    await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
+    const client = createTestDatabaseClient(testDatabaseUrl);
+
+    try {
+      const audit = first(
+        await client.db
+          .insert(auditEvents)
+          .values({
+            actorType: 'system',
+            actorUserId: null,
+            action: 'test.audit.created',
+            subjectType: 'system',
+            subjectId: null,
+            organizationId: null,
+            contactId: null,
+            commandCorrelationId: null,
+            beforeData: null,
+            afterData: null,
+            metadata: { test: true },
+          })
+          .returning({ id: auditEvents.id }),
+      );
+
+      await expect(
+        client.db
+          .update(auditEvents)
+          .set({ action: 'test.audit.rewritten' })
+          .where(eq(auditEvents.id, audit.id)),
+      ).rejects.toSatisfy((error: unknown) => errorText(error).includes('append-only'));
+      await expect(
+        client.db.delete(auditEvents).where(eq(auditEvents.id, audit.id)),
+      ).rejects.toSatisfy((error: unknown) => errorText(error).includes('append-only'));
+    } finally {
+      await client.close();
+    }
+  });
+
+  it('reports database health from a ping', async () => {
+    await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
+    const client = createTestDatabaseClient(testDatabaseUrl);
+
+    try {
+      const healthy = await checkDatabaseHealth(client);
+      expect(healthy.status).toBe('ok');
+      expect(healthy.latencyMs).toBeGreaterThanOrEqual(0);
+
+      const unhealthy = await checkDatabaseHealth({
+        async ping(): Promise<boolean> {
+          throw Object.assign(new Error('synthetic ping failure'), { code: '23505' });
+        },
+      });
+      expect(unhealthy.status).toBe('unavailable');
+      expect(unhealthy.error?.code).toBe('DB_UNIQUE_VIOLATION');
     } finally {
       await client.close();
     }
@@ -183,4 +340,14 @@ function first<T>(rows: T[]): T {
     throw new Error('Expected at least one row.');
   }
   return row;
+}
+
+function errorText(error: unknown): string {
+  if (error instanceof Error) {
+    return `${error.message}\n${errorText(error.cause)}`;
+  }
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return String(error ?? '');
 }

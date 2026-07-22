@@ -206,11 +206,7 @@ class MemoryTerritories implements TerritoryRepository {
     return this.territory;
   }
 
-  async archive(
-    id: string,
-    updatedByUserId: string | null,
-    at: Date,
-  ): Promise<Territory | null> {
+  async archive(id: string, updatedByUserId: string | null, at: Date): Promise<Territory | null> {
     if (this.territory?.id !== id) return null;
     this.territory = { ...this.territory, status: 'retired', updatedByUserId, archivedAt: at };
     return this.territory;
@@ -220,7 +216,10 @@ class MemoryTerritories implements TerritoryRepository {
 class MemoryAssignments implements AccountAssignmentRepository {
   assignments: AccountAssignment[] = [];
 
-  async findCurrent(organizationId: string, assignmentRole: string): Promise<AccountAssignment | null> {
+  async findCurrent(
+    organizationId: string,
+    assignmentRole: string,
+  ): Promise<AccountAssignment | null> {
     return (
       this.assignments.find(
         (assignment) =>
@@ -242,7 +241,9 @@ class MemoryAssignments implements AccountAssignmentRepository {
     return current;
   }
 
-  async create(input: Parameters<AccountAssignmentRepository['create']>[0]): Promise<AccountAssignment> {
+  async create(
+    input: Parameters<AccountAssignmentRepository['create']>[0],
+  ): Promise<AccountAssignment> {
     const assignment: AccountAssignment = {
       ...input,
       id: `assignment-${this.assignments.length + 1}`,

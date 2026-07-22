@@ -268,7 +268,10 @@ async function seedUserRoles(db: RepositoryExecutor, ids: SeedIds): Promise<void
   }
 }
 
-async function seedTerritories(db: RepositoryExecutor, ids: SeedIds): Promise<Record<string, string>> {
+async function seedTerritories(
+  db: RepositoryExecutor,
+  ids: SeedIds,
+): Promise<Record<string, string>> {
   const specs = [
     ['northeast', 'NE', 'Northeast', 'Northeast synthetic seed territory'],
     ['southeast', 'SE', 'Southeast', 'Southeast synthetic seed territory'],
@@ -307,7 +310,10 @@ async function seedTerritories(db: RepositoryExecutor, ids: SeedIds): Promise<Re
   return territoryIds;
 }
 
-async function seedOrganizations(db: RepositoryExecutor, ids: SeedIds): Promise<Record<string, string>> {
+async function seedOrganizations(
+  db: RepositoryExecutor,
+  ids: SeedIds,
+): Promise<Record<string, string>> {
   const specs = [
     {
       key: 'atlas',
@@ -407,7 +413,10 @@ async function seedOrganizations(db: RepositoryExecutor, ids: SeedIds): Promise<
   return organizationIds;
 }
 
-async function seedLocations(db: RepositoryExecutor, ids: SeedIds): Promise<Record<string, string>> {
+async function seedLocations(
+  db: RepositoryExecutor,
+  ids: SeedIds,
+): Promise<Record<string, string>> {
   const specs = [
     {
       key: 'atlas-hq',
@@ -441,7 +450,12 @@ async function seedLocations(db: RepositoryExecutor, ids: SeedIds): Promise<Reco
     const existing = await db
       .select({ id: organizationLocations.id })
       .from(organizationLocations)
-      .where(and(eq(organizationLocations.organizationId, organizationId), eq(organizationLocations.name, spec.name)))
+      .where(
+        and(
+          eq(organizationLocations.organizationId, organizationId),
+          eq(organizationLocations.name, spec.name),
+        ),
+      )
       .limit(1);
     const existingRow = existing[0];
     const values = {
@@ -462,7 +476,10 @@ async function seedLocations(db: RepositoryExecutor, ids: SeedIds): Promise<Reco
     };
 
     if (existingRow) {
-      await db.update(organizationLocations).set(values).where(eq(organizationLocations.id, existingRow.id));
+      await db
+        .update(organizationLocations)
+        .set(values)
+        .where(eq(organizationLocations.id, existingRow.id));
       locationIds[spec.key] = existingRow.id;
       continue;
     }
@@ -531,7 +548,12 @@ async function seedContacts(db: RepositoryExecutor, ids: SeedIds): Promise<Recor
     const existing = await db
       .select({ id: contacts.id })
       .from(contacts)
-      .where(and(eq(contacts.organizationId, organizationId), eq(contacts.normalizedEmail, normalizedEmail)))
+      .where(
+        and(
+          eq(contacts.organizationId, organizationId),
+          eq(contacts.normalizedEmail, normalizedEmail),
+        ),
+      )
       .limit(1);
     const existingRow = existing[0];
     const values = {
@@ -592,7 +614,10 @@ async function seedOrganizationRoles(db: RepositoryExecutor, ids: SeedIds): Prom
       .limit(1);
 
     if (existing[0]) {
-      await db.update(organizationRoles).set({ roleName, updatedAt: sql`now()` }).where(eq(organizationRoles.id, existing[0].id));
+      await db
+        .update(organizationRoles)
+        .set({ roleName, updatedAt: sql`now()` })
+        .where(eq(organizationRoles.id, existing[0].id));
       continue;
     }
 
@@ -631,7 +656,10 @@ async function seedContactRoles(db: RepositoryExecutor, ids: SeedIds): Promise<v
       .limit(1);
 
     if (existing[0]) {
-      await db.update(contactRoles).set({ roleName, updatedAt: sql`now()` }).where(eq(contactRoles.id, existing[0].id));
+      await db
+        .update(contactRoles)
+        .set({ roleName, updatedAt: sql`now()` })
+        .where(eq(contactRoles.id, existing[0].id));
       continue;
     }
 
@@ -773,7 +801,10 @@ async function seedConsent(db: RepositoryExecutor, ids: SeedIds): Promise<void> 
     .limit(1);
 
   if (suppression[0]) {
-    await db.update(suppressionEntries).set({ state: 'opted_out', source: 'admin' }).where(eq(suppressionEntries.id, suppression[0].id));
+    await db
+      .update(suppressionEntries)
+      .set({ state: 'opted_out', source: 'admin' })
+      .where(eq(suppressionEntries.id, suppression[0].id));
   } else {
     await db.insert(suppressionEntries).values({
       scope: 'global_channel',
@@ -825,9 +856,21 @@ async function seedTags(db: RepositoryExecutor, ids: SeedIds): Promise<Record<st
 
 async function seedTasksNotesAndTaggings(db: RepositoryExecutor, ids: SeedIds): Promise<void> {
   const taskSpecs = [
-    ['atlas', 'Confirm custodian footprint', 'Validate synthetic research gaps for Atlas.', 'researcher', 1],
+    [
+      'atlas',
+      'Confirm custodian footprint',
+      'Validate synthetic research gaps for Atlas.',
+      'researcher',
+      1,
+    ],
     ['brightside', 'Prepare sales handoff', 'Create a synthetic sales handoff note.', 'sales', 2],
-    ['cedar', 'Review restriction rationale', 'Confirm existing relationship restriction.', 'reviewer', 0],
+    [
+      'cedar',
+      'Review restriction rationale',
+      'Confirm existing relationship restriction.',
+      'reviewer',
+      0,
+    ],
   ] as const;
 
   for (const [organizationKey, title, description, assigneeKey, priority] of taskSpecs) {
@@ -841,7 +884,12 @@ async function seedTasksNotesAndTaggings(db: RepositoryExecutor, ids: SeedIds): 
     if (existing[0]) {
       await db
         .update(tasks)
-        .set({ description, priority, assignedToUserId: required(ids.users, assigneeKey), updatedAt: sql`now()` })
+        .set({
+          description,
+          priority,
+          assignedToUserId: required(ids.users, assigneeKey),
+          updatedAt: sql`now()`,
+        })
         .where(eq(tasks.id, existing[0].id));
     } else {
       await db.insert(tasks).values({

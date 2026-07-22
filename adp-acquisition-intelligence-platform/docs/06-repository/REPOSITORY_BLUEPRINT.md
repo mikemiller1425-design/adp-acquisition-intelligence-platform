@@ -100,3 +100,16 @@ Prompts 1–12 are defined in the [Roadmap](../11-implementation/IMPLEMENTATION_
 
 Implementation tracks planned file/responsibility status as `planned`, `created`, `verified`, `superseded`, or `deferred`, ideally in generated inventory data. Documentation is not updated to claim `verified` until tests pass. Generated lockfiles and migrations are cataloged by responsibility rather than predicted one-by-one.
 
+## Prompt 2 implementation status
+
+Prompt 2 verified these planned responsibilities:
+
+- `packages/database/schema/*` — **verified** for Prompt 2 canonical identity, organization/contact, territory/assignment, consent/suppression, operational-state, work, audit, and outbox tables.
+- `packages/database/migrations/*` — **verified** for empty-schema migration, Drizzle journal idempotency, seed compatibility, hard-delete guards, append-only audit/transition guards, and consent immutability guards.
+- `packages/organizations/src/domain/*`, `application/*`, `infrastructure/*` — **verified** for organization/contact repository ports, Postgres adapters, and create/update/archive service behavior.
+- `packages/consent/src/domain/*`, `application/*`, `infrastructure/*` — **verified** for consent precedence, supersession, and Postgres adapter behavior.
+- `packages/qualification/src/application/operational-state-service.ts` and `infrastructure/postgres-operational-state.ts` — **verified** for Prompt 2 parallel-state transition rules, transition history, and transaction-compatible adapters.
+- `apps/api/src/app.ts` readiness behavior — **verified** for database ping contract.
+
+Prompt 2 intentionally leaves collection, evidence, variables, scoring, discovery, outreach, opportunities, reporting, and UI feature packages in `planned` status for later prompts.
+
