@@ -34,10 +34,18 @@ const envSchema = z.object({
   RETENTION_JOB_PAYLOAD_DAYS: z.coerce.number().int().positive().default(30),
   RETENTION_BUSINESS_YEARS: z.coerce.number().int().positive().default(7),
   RETENTION_AUDIT_YEARS: z.coerce.number().int().positive().default(7),
-  COLLECTION_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(10 * 1024 * 1024),
+  COLLECTION_MAX_UPLOAD_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(10 * 1024 * 1024),
   COLLECTION_MAX_IMPORT_ROWS: z.coerce.number().int().positive().default(10_000),
   COLLECTION_MAX_IMPORT_COLUMNS: z.coerce.number().int().positive().default(100),
-  COLLECTION_MAX_IMPORT_CELL_BYTES: z.coerce.number().int().positive().default(64 * 1024),
+  COLLECTION_MAX_IMPORT_CELL_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(64 * 1024),
 });
 
 export type AppConfig = {

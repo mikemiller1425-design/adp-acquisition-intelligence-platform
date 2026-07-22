@@ -3,7 +3,11 @@ import { createHash } from 'node:crypto';
 import type { MalwareScanPort, ObjectStoragePort } from '@adp/platform';
 import { AppError } from '@adp/platform';
 
-import { validateCsvArtifact, type CsvSecurityLimits, sanitizeReportCell } from '../domain/csv-security.js';
+import {
+  validateCsvArtifact,
+  type CsvSecurityLimits,
+  sanitizeReportCell,
+} from '../domain/csv-security.js';
 import {
   findDuplicateCandidates,
   MATCH_POLICY_VERSION,
@@ -17,7 +21,12 @@ import {
 } from '../domain/field-registry.js';
 import { transitionImportStatus } from '../domain/import-lifecycle.js';
 import { planOrganizationMerge } from '../domain/merge-planner.js';
-import { normalizeDomain, normalizeEmail, normalizeOrgName, normalizePhone } from '../domain/normalizers.js';
+import {
+  normalizeDomain,
+  normalizeEmail,
+  normalizeOrgName,
+  normalizePhone,
+} from '../domain/normalizers.js';
 import { evaluateImportReversal, evaluateMergeReversal } from '../domain/reversal.js';
 import { AllowListCollectionCapabilityChecker } from '../domain/authz.js';
 import type {
@@ -35,6 +44,7 @@ import type {
   MergeReadRepository,
   MergeReversalReadPort,
   MergeWritePort,
+  ObservationProposalPort,
   TransactionPort,
   VariableProposalPort,
 } from '../domain/ports.js';
@@ -58,12 +68,29 @@ export class ManualEntryService {
 
   async preview(command: {
     actor: CollectionActor;
-    organization: { displayName: string; legalName?: string | null; domain?: string | null; firmType?: string | null };
-    location?: { addressLine1?: string | null; city?: string | null; region?: string | null; postalCode?: string | null; countryCode?: string | null; phone?: string | null };
+    organization: {
+      displayName: string;
+      legalName?: string | null;
+      domain?: string | null;
+      firmType?: string | null;
+    };
+    location?: {
+      addressLine1?: string | null;
+      city?: string | null;
+      region?: string | null;
+      postalCode?: string | null;
+      countryCode?: string | null;
+      phone?: string | null;
+    };
     contact?: { displayName: string; email?: string | null; phone?: string | null };
   }) {
     await this.authz.assertCan(command.actor, 'manual_entry:create');
-    return buildEntityInputs(command.organization, command.location, command.contact, command.actor.userId);
+    return buildEntityInputs(
+      command.organization,
+      command.location,
+      command.contact,
+      command.actor.userId,
+    );
   }
 
   async confirm(command: Parameters<ManualEntryService['preview']>[0]) {
@@ -84,7 +111,11 @@ export class ManualEntryService {
             organizationId: organization.id,
             primaryLocationId: location?.id ?? null,
           });
-    return { organizationId: organization.id, locationId: location?.id ?? null, contactId: contact?.id ?? null };
+    return {
+      organizationId: organization.id,
+      locationId: location?.id ?? null,
+      contactId: contact?.id ?? null,
+    };
   }
 }
 
@@ -247,7 +278,13 @@ export class ImportDryRunService {
   async dryRun(command: { actor: CollectionActor; batchId: string }) {
     await this.authz.assertCan(command.actor, 'import:dry_run');
     const batch = await requireBatch(this.batches, command.batchId);
-    const rowRecords = (await this.rows.listByBatch(batch.id)).filter((row) => row.status === 'valid');
+    const rowRecords = (await this.rows.listByBatch(batch.id)).filter(
+      (row) => row.status === 'valid',
+    );
+    const existingReviews = await this.duplicates.listByBatch(batch.id);
+    const existingReviewKeys = new Set(
+      existingReviews.map((review) => `${review.rowId}:${review.candidateOrganizationId}`),
+    );
     let duplicateCount = 0;
     for (const row of rowRecords) {
       const incoming = duplicateInputFromRow(row);
@@ -257,8 +294,14 @@ export class ImportDryRunService {
       });
       const matches = findDuplicateCandidates(incoming, candidates);
       duplicateCount += matches.length;
+      const newMatches = matches.filter((match) => {
+        const key = `${row.id}:${match.candidateOrganizationId}`;
+        if (existingReviewKeys.has(key)) return false;
+        existingReviewKeys.add(key);
+        return true;
+      });
       await this.duplicates.insertCandidates(
-        matches.map((match) => ({
+        newMatches.map((match) => ({
           batchId: batch.id,
           rowId: row.id,
           candidateOrganizationId: match.candidateOrganizationId,
@@ -270,23 +313,31 @@ export class ImportDryRunService {
     const report: ImportDryRunReport = {
       generatedAt: new Date().toISOString(),
       validRows: rowRecords.length,
-      invalidRows: (await this.rows.listByBatch(batch.id)).filter((row) => row.status === 'invalid').length,
+      invalidRows: (await this.rows.listByBatch(batch.id)).filter((row) => row.status === 'invalid')
+        .length,
       duplicateCandidates: duplicateCount,
       duplicatePolicyVersion: MATCH_POLICY_VERSION,
       proposedCreates: {
         organizations: rowRecords.length,
-        locations: rowRecords.filter((row) => row.normalized['location.address_line_1'] !== null).length,
-        contacts: rowRecords.filter((row) => row.normalized['contact.display_name'] !== null).length,
+        locations: rowRecords.filter((row) => row.normalized['location.address_line_1'] !== null)
+          .length,
+        contacts: rowRecords.filter((row) => row.normalized['contact.display_name'] !== null)
+          .length,
         variableProposals: rowRecords.reduce(
-          (sum, row) => sum + Object.keys(row.normalized).filter((key) => key.startsWith('variable.')).length,
+          (sum, row) =>
+            sum + Object.keys(row.normalized).filter((key) => key.startsWith('variable.')).length,
           0,
         ),
       },
     };
     await this.batches.saveDryRunReport(batch.id, report);
+    const nextStatus = duplicateCount > 0 ? 'duplicate_review_required' : 'ready_to_commit';
+    if (batch.status === nextStatus) {
+      return this.batches.updateStatus(batch.id, nextStatus);
+    }
     return this.batches.updateStatus(
       batch.id,
-      transitionImportStatus(batch.status, duplicateCount > 0 ? 'duplicate_review_required' : 'ready_to_commit', {
+      transitionImportStatus(batch.status, nextStatus, {
         hasPreviewReport: true,
       }),
     );
@@ -323,6 +374,7 @@ export class ImportCommitService {
     private readonly evidence: EvidenceProposalPort,
     private readonly variables: VariableProposalPort,
     private readonly consent: ConsentImportPort,
+    private readonly observations?: ObservationProposalPort,
     private readonly authz: CapabilityChecker = defaultAuthz,
     private readonly audit?: CollectionAuditPort,
     private readonly outbox?: CollectionOutboxPort,
@@ -382,9 +434,13 @@ export class ImportCommitService {
         : await this.transactions.withTransaction((ports) =>
             work({ rows: ports.rows, organizations: ports.organizations, batches: ports.batches }),
           );
-    await this.batches.updateStatus(batch.id, report.failedRows === 0 ? 'committed' : 'partially_committed', {
-      committedAt: new Date(),
-    });
+    await this.batches.updateStatus(
+      batch.id,
+      report.failedRows === 0 ? 'committed' : 'partially_committed',
+      {
+        committedAt: new Date(),
+      },
+    );
     await this.audit?.append({
       actorUserId: command.actor.userId,
       action: 'import_committed',
@@ -425,12 +481,23 @@ export class ImportCommitService {
         const review = input.duplicateReviews.find((item) => item.rowId === row.id);
         if (review?.disposition === 'skip' || review?.disposition === 'needs_research') {
           await input.rows.update(row.id, { status: 'duplicate_blocked' });
-          rowReports.push({ rowId: row.id, status: 'duplicate_blocked', organizationId: null, contactId: null, errors: [] });
+          rowReports.push({
+            rowId: row.id,
+            status: 'duplicate_blocked',
+            organizationId: null,
+            contactId: null,
+            errors: [],
+          });
           continue;
         }
         const ids =
           review?.disposition === 'link_existing'
-            ? { organizationId: review.candidateOrganizationId, locationId: null, contactId: null, linked: true }
+            ? {
+                organizationId: review.candidateOrganizationId,
+                locationId: null,
+                contactId: null,
+                linked: true,
+              }
             : await createEntitiesFromRow(row, input.actor, input.organizations);
         if (ids.linked) linkedExistingRows += 1;
         const evidenceRecord = await this.evidence.recordImportEvidence({
@@ -442,7 +509,25 @@ export class ImportCommitService {
           actor: input.actor,
           correlationId: input.idempotencyKey,
         });
-        await proposeVariables(row, ids, evidenceRecord.evidenceRecordId, input.actor, input.idempotencyKey, this.variables);
+        await this.observations?.proposeImportObservation({
+          subjectType: 'organization',
+          organizationId: ids.organizationId,
+          contactId: null,
+          claim: 'Import row observation',
+          proposedTypedValue: row.normalized,
+          normalizedInterpretation: 'Imported row normalized for collection commit',
+          evidenceRecordId: evidenceRecord.evidenceRecordId,
+          actor: input.actor,
+          correlationId: `${input.idempotencyKey}:${row.id}`,
+        });
+        await proposeVariables(
+          row,
+          ids,
+          evidenceRecord.evidenceRecordId,
+          input.actor,
+          input.idempotencyKey,
+          this.variables,
+        );
         if (ids.contactId !== null) {
           await this.consent.preserveOrApplyImportConsent({
             contactId: ids.contactId,
@@ -460,12 +545,24 @@ export class ImportCommitService {
           createdContactId: ids.linked ? null : ids.contactId,
         });
         committedRows += 1;
-        rowReports.push({ rowId: row.id, status: 'committed', organizationId: ids.organizationId, contactId: ids.contactId, errors: [] });
+        rowReports.push({
+          rowId: row.id,
+          status: 'committed',
+          organizationId: ids.organizationId,
+          contactId: ids.contactId,
+          errors: [],
+        });
       } catch (error) {
         failedRows += 1;
         const message = error instanceof Error ? error.message : 'Unknown commit failure';
         await input.rows.update(row.id, { status: 'failed', errors: [message] });
-        rowReports.push({ rowId: row.id, status: 'failed', organizationId: null, contactId: null, errors: [message] });
+        rowReports.push({
+          rowId: row.id,
+          status: 'failed',
+          organizationId: null,
+          contactId: null,
+          errors: [message],
+        });
       }
     }
     return { batchId: input.batchId, committedRows, failedRows, linkedExistingRows, rowReports };
@@ -477,7 +574,9 @@ export class ImportCommitService {
       batchId,
       committedRows: rows.filter((row) => row.status === 'committed').length,
       failedRows: rows.filter((row) => row.status === 'failed').length,
-      linkedExistingRows: rows.filter((row) => row.status === 'committed' && row.createdOrganizationId === null).length,
+      linkedExistingRows: rows.filter(
+        (row) => row.status === 'committed' && row.createdOrganizationId === null,
+      ).length,
       rowReports: rows.map((row) => ({
         rowId: row.id,
         status: row.status,
@@ -497,7 +596,9 @@ export class ImportRetryService {
 
   async resetFailedRows(command: { actor: CollectionActor; batchId: string }) {
     await this.authz.assertCan(command.actor, 'import:commit');
-    const failed = (await this.rows.listByBatch(command.batchId)).filter((row) => row.status === 'failed');
+    const failed = (await this.rows.listByBatch(command.batchId)).filter(
+      (row) => row.status === 'failed',
+    );
     await this.rows.updateManyStatus(
       failed.map((row) => row.id),
       'valid',
@@ -523,8 +624,12 @@ export class ImportReportService {
       batch,
       rows: rows.map((row) => ({
         ...row,
-        raw: Object.fromEntries(Object.entries(row.raw).map(([key, value]) => [key, sanitizeReportCell(value)])),
-        mapped: Object.fromEntries(Object.entries(row.mapped).map(([key, value]) => [key, sanitizeReportCell(value)])),
+        raw: Object.fromEntries(
+          Object.entries(row.raw).map(([key, value]) => [key, sanitizeReportCell(value)]),
+        ),
+        mapped: Object.fromEntries(
+          Object.entries(row.mapped).map(([key, value]) => [key, sanitizeReportCell(value)]),
+        ),
       })),
       duplicates,
     };
@@ -557,6 +662,10 @@ export class ImportReversalService {
     if (!eligibility.eligible) return eligibility;
     const batch = await requireBatch(this.batches, command.batchId);
     const rows = await this.rows.listByBatch(batch.id);
+    const reverting = transitionImportStatus(batch.status, 'reverting', {
+      hasCommittedRows: rows.some((row) => row.createdOrganizationId !== null),
+    });
+    await this.batches.updateStatus(batch.id, reverting);
     for (const row of rows) {
       if (row.createdOrganizationId !== null) {
         await this.organizations.archiveBatchOnlyOrganization({
@@ -567,8 +676,15 @@ export class ImportReversalService {
         await this.rows.update(row.id, { status: 'reversed' });
       }
     }
-    await this.batches.updateStatus(batch.id, 'reverted', { reversedAt: new Date() });
-    return { ...eligibility, reversedRows: rows.filter((row) => row.createdOrganizationId !== null).length };
+    await this.batches.updateStatus(
+      batch.id,
+      transitionImportStatus(reverting, 'reverted', { hasUnsafeReversalBlockers: false }),
+      { reversedAt: new Date() },
+    );
+    return {
+      ...eligibility,
+      reversedRows: rows.filter((row) => row.createdOrganizationId !== null).length,
+    };
   }
 }
 
@@ -641,7 +757,10 @@ export class MergeReversalService {
     const eligibility = await this.preview(command);
     if (!eligibility.eligible) return eligibility;
     await this.writes.reverseMerge(command.mergeEventId, command.actor);
-    await this.mergeEvents.markReversed({ mergeEventId: command.mergeEventId, reversedAt: new Date() });
+    await this.mergeEvents.markReversed({
+      mergeEventId: command.mergeEventId,
+      reversedAt: new Date(),
+    });
     return eligibility;
   }
 }
@@ -649,7 +768,11 @@ export class MergeReversalService {
 async function requireBatch(batches: ImportBatchRepository, batchId: string) {
   const batch = await batches.findById(batchId);
   if (batch === null) {
-    throw new AppError({ code: 'NOT_FOUND', message: 'Import batch not found', details: { batchId } });
+    throw new AppError({
+      code: 'NOT_FOUND',
+      message: 'Import batch not found',
+      details: { batchId },
+    });
   }
   return batch;
 }
@@ -670,14 +793,32 @@ function duplicateInputFromRow(row: ImportRow): DuplicateCandidate {
     region: stringValue(row.normalized['location.region']),
     postalCode: stringValue(row.normalized['location.postal_code']),
     phone: stringValue(row.normalized['location.phone']),
-    contactEmails: [stringValue(row.normalized['contact.email'])].filter((value): value is string => value !== null),
-    contactPhones: [stringValue(row.normalized['contact.phone'])].filter((value): value is string => value !== null),
+    contactEmails: [stringValue(row.normalized['contact.email'])].filter(
+      (value): value is string => value !== null,
+    ),
+    contactPhones: [stringValue(row.normalized['contact.phone'])].filter(
+      (value): value is string => value !== null,
+    ),
   };
 }
 
 function buildEntityInputs(
-  organization: { displayName: string; legalName?: string | null; domain?: string | null; firmType?: string | null },
-  location: { addressLine1?: string | null; city?: string | null; region?: string | null; postalCode?: string | null; countryCode?: string | null; phone?: string | null } | undefined,
+  organization: {
+    displayName: string;
+    legalName?: string | null;
+    domain?: string | null;
+    firmType?: string | null;
+  },
+  location:
+    | {
+        addressLine1?: string | null;
+        city?: string | null;
+        region?: string | null;
+        postalCode?: string | null;
+        countryCode?: string | null;
+        phone?: string | null;
+      }
+    | undefined,
   contact: { displayName: string; email?: string | null; phone?: string | null } | undefined,
   createdByUserId: string | null,
 ) {
@@ -731,7 +872,12 @@ async function createEntitiesFromRow(
   row: ImportRow,
   actor: CollectionActor,
   organizations: CollectionOrganizationPort,
-): Promise<{ organizationId: string; locationId: string | null; contactId: string | null; linked: false }> {
+): Promise<{
+  organizationId: string;
+  locationId: string | null;
+  contactId: string | null;
+  linked: false;
+}> {
   const orgName = stringValue(row.mapped['organization.display_name']);
   if (orgName === null) throw validation('Organization display name is required');
   const normalizedName = normalizeOrgName(orgName).normalized;
@@ -741,11 +887,15 @@ async function createEntitiesFromRow(
     legalName: stringValue(row.mapped['organization.legal_name']),
     normalizedName,
     domain: stringValue(row.mapped['organization.domain']),
-    normalizedDomain: stringValue(row.normalized['organization.domain']) ?? normalizeDomain(stringValue(row.mapped['organization.domain'])).normalized,
+    normalizedDomain:
+      stringValue(row.normalized['organization.domain']) ??
+      normalizeDomain(stringValue(row.mapped['organization.domain'])).normalized,
     firmType: stringValue(row.normalized['organization.firm_type']),
     createdByUserId: actor.userId,
   });
-  const hasLocation = row.mapped['location.address_line_1'] !== undefined && row.mapped['location.address_line_1'] !== null;
+  const hasLocation =
+    row.mapped['location.address_line_1'] !== undefined &&
+    row.mapped['location.address_line_1'] !== null;
   const location = hasLocation
     ? await organizations.createLocation({
         organizationId: org.id,
@@ -773,7 +923,12 @@ async function createEntitiesFromRow(
           normalizedPhone: stringValue(row.normalized['contact.phone']),
           createdByUserId: actor.userId,
         });
-  return { organizationId: org.id, locationId: location?.id ?? null, contactId: contact?.id ?? null, linked: false };
+  return {
+    organizationId: org.id,
+    locationId: location?.id ?? null,
+    contactId: contact?.id ?? null,
+    linked: false,
+  };
 }
 
 async function proposeVariables(
@@ -785,7 +940,8 @@ async function proposeVariables(
   variables: VariableProposalPort,
 ) {
   for (const [key, value] of Object.entries(row.normalized)) {
-    if (!key.startsWith('variable.') || key.endsWith('.__original') || key.endsWith('.__blank')) continue;
+    if (!key.startsWith('variable.') || key.endsWith('.__original') || key.endsWith('.__blank'))
+      continue;
     await variables.proposeImportVariable({
       subjectType: 'organization',
       organizationId: ids.organizationId,
@@ -801,7 +957,8 @@ async function proposeVariables(
 
 function consentState(row: ImportRow): 'allowed' | 'unknown' | 'restricted' | 'opted_out' | null {
   const value = row.normalized['consent.email_state'];
-  if (value === 'allowed' || value === 'unknown' || value === 'restricted' || value === 'opted_out') return value;
+  if (value === 'allowed' || value === 'unknown' || value === 'restricted' || value === 'opted_out')
+    return value;
   return null;
 }
 

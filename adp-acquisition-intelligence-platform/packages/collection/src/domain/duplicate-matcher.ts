@@ -1,4 +1,9 @@
-import { normalizeAddress, normalizeDomain, normalizeOrgName, normalizePhone } from './normalizers.js';
+import {
+  normalizeAddress,
+  normalizeDomain,
+  normalizeOrgName,
+  normalizePhone,
+} from './normalizers.js';
 
 export const MATCH_POLICY_VERSION = 'collection-duplicate-match-v1';
 
@@ -54,7 +59,8 @@ export function matchDuplicateCandidate(
     signal(
       'normalized_domain',
       normalizeDomain(incoming.domain).normalized !== null &&
-        normalizeDomain(incoming.domain).normalized === normalizeDomain(candidate.domain).normalized,
+        normalizeDomain(incoming.domain).normalized ===
+          normalizeDomain(candidate.domain).normalized,
       40,
       'Same normalized internet domain',
     ),
@@ -87,12 +93,7 @@ export function matchDuplicateCandidate(
       'Same normalized name and phone',
     ),
     signal('aliases', aliasOverlap(incoming, candidate), 15, 'Incoming name matches a known alias'),
-    signal(
-      'shared_location',
-      sameAddress(incoming, candidate),
-      10,
-      'Shared normalized location',
-    ),
+    signal('shared_location', sameAddress(incoming, candidate), 10, 'Shared normalized location'),
     signal(
       'contact_overlap',
       contactOverlap(incoming, candidate),
@@ -102,8 +103,9 @@ export function matchDuplicateCandidate(
   ];
   const score = features.reduce((sum, feature) => sum + (feature.matched ? feature.weight : 0), 0);
   const tier: DuplicateTier =
-    features.some((feature) => feature.matched && ['external_id', 'normalized_domain'].includes(feature.key)) &&
-    score >= 40
+    features.some(
+      (feature) => feature.matched && ['external_id', 'normalized_domain'].includes(feature.key),
+    ) && score >= 40
       ? 'exact'
       : score >= 55
         ? 'likely'

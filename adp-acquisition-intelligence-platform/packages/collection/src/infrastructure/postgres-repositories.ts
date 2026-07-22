@@ -2,12 +2,16 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import {
   contacts,
+  evidenceRecords,
   importBatches,
   importRows,
   mergeEvents,
+  organizationCommunicationRestrictions,
   organizationLocations,
   organizations,
+  researchObservations,
   type RepositoryExecutor,
+  variableValues,
 } from '@adp/database';
 import { and, eq, inArray, or, sql } from 'drizzle-orm';
 
@@ -40,7 +44,11 @@ export class PostgresImportBatchRepository implements ImportBatchRepository {
   constructor(private readonly db: Db) {}
 
   async findById(id: string): Promise<ImportBatch | null> {
-    const rows = await this.db.select().from(importBatches).where(eq(importBatches.id, id)).limit(1);
+    const rows = await this.db
+      .select()
+      .from(importBatches)
+      .where(eq(importBatches.id, id))
+      .limit(1);
     return rows[0] === undefined ? null : mapBatch(rows[0]);
   }
 
@@ -96,7 +104,11 @@ export class PostgresImportBatchRepository implements ImportBatchRepository {
     return mapBatch(rows[0] as typeof importBatches.$inferSelect);
   }
 
-  async saveMapping(id: string, mapping: Record<string, string>, registryVersion: string): Promise<ImportBatch> {
+  async saveMapping(
+    id: string,
+    mapping: Record<string, string>,
+    registryVersion: string,
+  ): Promise<ImportBatch> {
     const rows = await this.db
       .update(importBatches)
       .set({ mapping, mappingVersion: registryVersion, status: 'mapped', updatedAt: new Date() })
@@ -118,7 +130,9 @@ export class PostgresImportBatchRepository implements ImportBatchRepository {
 export class PostgresImportRowRepository implements ImportRowRepository {
   constructor(private readonly db: Db) {}
 
-  async insertMany(rows: Array<Omit<ImportRow, 'id' | 'createdAt' | 'updatedAt'>>): Promise<ImportRow[]> {
+  async insertMany(
+    rows: Array<Omit<ImportRow, 'id' | 'createdAt' | 'updatedAt'>>,
+  ): Promise<ImportRow[]> {
     if (rows.length === 0) return [];
     const inserted = await this.db
       .insert(importRows)
@@ -148,8 +162,15 @@ export class PostgresImportRowRepository implements ImportRowRepository {
     return rows.map(mapRow);
   }
 
-  async update(rowId: string, patch: Parameters<ImportRowRepository['update']>[1]): Promise<ImportRow> {
-    const current = await this.db.select().from(importRows).where(eq(importRows.id, rowId)).limit(1);
+  async update(
+    rowId: string,
+    patch: Parameters<ImportRowRepository['update']>[1],
+  ): Promise<ImportRow> {
+    const current = await this.db
+      .select()
+      .from(importRows)
+      .where(eq(importRows.id, rowId))
+      .limit(1);
     const existing = current[0] === undefined ? null : mapRow(current[0]);
     const nextStatus = patch.status ?? existing?.status ?? 'pending';
     const rows = await this.db
@@ -166,10 +187,13 @@ export class PostgresImportRowRepository implements ImportRowRepository {
           duplicateReviews: metadataObject(current[0]?.validationResults).duplicateReviews ?? [],
         },
         duplicateDisposition:
-          nextStatus === 'duplicate_blocked' ? 'skip' : current[0]?.duplicateDisposition ?? 'pending',
+          nextStatus === 'duplicate_blocked'
+            ? 'skip'
+            : (current[0]?.duplicateDisposition ?? 'pending'),
         commitResult: commitResultForStatus(nextStatus, current[0]?.commitResult ?? 'pending'),
         createdEntityRefs: createdRefs({
-          createdOrganizationId: patch.createdOrganizationId ?? existing?.createdOrganizationId ?? null,
+          createdOrganizationId:
+            patch.createdOrganizationId ?? existing?.createdOrganizationId ?? null,
           createdLocationId: patch.createdLocationId ?? existing?.createdLocationId ?? null,
           createdContactId: patch.createdContactId ?? existing?.createdContactId ?? null,
         }),
@@ -196,15 +220,25 @@ export class PostgresImportRowRepository implements ImportRowRepository {
 export class PostgresDuplicateReviewRepository implements DuplicateReviewRepository {
   constructor(private readonly db: Db) {}
 
-  async insertCandidates(input: Parameters<DuplicateReviewRepository['insertCandidates']>[0]): Promise<DuplicateReview[]> {
+  async insertCandidates(
+    input: Parameters<DuplicateReviewRepository['insertCandidates']>[0],
+  ): Promise<DuplicateReview[]> {
     const created: DuplicateReview[] = [];
     for (const candidate of input) {
-      const rows = await this.db.select().from(importRows).where(eq(importRows.id, candidate.rowId)).limit(1);
+      const rows = await this.db
+        .select()
+        .from(importRows)
+        .where(eq(importRows.id, candidate.rowId))
+        .limit(1);
       const row = rows[0];
       if (row === undefined) continue;
       const metadata = metadataObject(row.validationResults);
       const reviews = duplicateReviewsFromMetadata(metadata);
-      if (reviews.some((review) => review.candidateOrganizationId === candidate.candidateOrganizationId)) {
+      if (
+        reviews.some(
+          (review) => review.candidateOrganizationId === candidate.candidateOrganizationId,
+        )
+      ) {
         continue;
       }
       const review: DuplicateReview = {
@@ -234,10 +268,14 @@ export class PostgresDuplicateReviewRepository implements DuplicateReviewReposit
 
   async listByBatch(batchId: string): Promise<DuplicateReview[]> {
     const rows = await this.db.select().from(importRows).where(eq(importRows.batchId, batchId));
-    return rows.flatMap((row) => duplicateReviewsFromMetadata(metadataObject(row.validationResults)));
+    return rows.flatMap((row) =>
+      duplicateReviewsFromMetadata(metadataObject(row.validationResults)),
+    );
   }
 
-  async setDisposition(input: Parameters<DuplicateReviewRepository['setDisposition']>[0]): Promise<DuplicateReview> {
+  async setDisposition(
+    input: Parameters<DuplicateReviewRepository['setDisposition']>[0],
+  ): Promise<DuplicateReview> {
     const rows = await this.db.select().from(importRows);
     for (const row of rows) {
       const metadata = metadataObject(row.validationResults);
@@ -272,7 +310,8 @@ export class PostgresDuplicateCandidateRepository implements DuplicateCandidateR
     const normalizedDomain = normalizeDomain(input.domain).normalized;
     const normalizedName = normalizeOrgName(input.displayName ?? input.legalName).normalized;
     const filters = [];
-    if (normalizedDomain !== null) filters.push(eq(organizations.normalizedDomain, normalizedDomain));
+    if (normalizedDomain !== null)
+      filters.push(eq(organizations.normalizedDomain, normalizedDomain));
     if (normalizedName !== null) filters.push(eq(organizations.normalizedName, normalizedName));
     if (filters.length === 0) return [];
     const rows = await this.db
@@ -317,7 +356,9 @@ export class PostgresCollectionOrganizationPort implements CollectionOrganizatio
     return rows[0] as { id: string };
   }
 
-  async archiveBatchOnlyOrganization(input: Parameters<CollectionOrganizationPort['archiveBatchOnlyOrganization']>[0]) {
+  async archiveBatchOnlyOrganization(
+    input: Parameters<CollectionOrganizationPort['archiveBatchOnlyOrganization']>[0],
+  ) {
     await this.db
       .update(organizations)
       .set({
@@ -342,7 +383,9 @@ export class PostgresMergeEventRepository implements MergeEventRepository {
     return rows[0] === undefined ? null : mapMergeEvent(rows[0]);
   }
 
-  async createPreview(input: Parameters<MergeEventRepository['createPreview']>[0]): Promise<MergeEvent> {
+  async createPreview(
+    input: Parameters<MergeEventRepository['createPreview']>[0],
+  ): Promise<MergeEvent> {
     const duplicate = input.duplicateOrganizationIds[0];
     if (duplicate === undefined) throw new Error('At least one duplicate organization is required');
     const rows = await this.db
@@ -372,7 +415,9 @@ export class PostgresMergeEventRepository implements MergeEventRepository {
     return mapMergeEvent(rows[0] as typeof mergeEvents.$inferSelect);
   }
 
-  async markReversed(input: Parameters<MergeEventRepository['markReversed']>[0]): Promise<MergeEvent> {
+  async markReversed(
+    input: Parameters<MergeEventRepository['markReversed']>[0],
+  ): Promise<MergeEvent> {
     const rows = await this.db
       .update(mergeEvents)
       .set({ status: 'reversed', reversedAt: input.reversedAt, updatedAt: input.reversedAt })
@@ -414,8 +459,54 @@ export class PostgresMergeReadRepository implements MergeReadRepository {
 }
 
 export class NoopPostgresMergeWritePort implements MergeWritePort {
-  async applyMergePlan(): Promise<void> {}
-  async reverseMerge(): Promise<void> {}
+  constructor(private readonly db?: Db) {}
+
+  async applyMergePlan(
+    plan: Parameters<MergeWritePort['applyMergePlan']>[0],
+    actor?: Parameters<MergeWritePort['applyMergePlan']>[1],
+  ): Promise<void> {
+    if (this.db === undefined) return;
+    const now = new Date();
+    for (const duplicateOrganizationId of plan.duplicateOrganizationIds) {
+      await this.db
+        .update(organizationLocations)
+        .set({ organizationId: plan.survivorOrganizationId, updatedAt: now })
+        .where(eq(organizationLocations.organizationId, duplicateOrganizationId));
+      await this.db
+        .update(contacts)
+        .set({ organizationId: plan.survivorOrganizationId, updatedAt: now })
+        .where(eq(contacts.organizationId, duplicateOrganizationId));
+      await this.db
+        .update(evidenceRecords)
+        .set({ organizationId: plan.survivorOrganizationId })
+        .where(eq(evidenceRecords.organizationId, duplicateOrganizationId));
+      await this.db
+        .update(researchObservations)
+        .set({ organizationId: plan.survivorOrganizationId, updatedAt: now })
+        .where(eq(researchObservations.organizationId, duplicateOrganizationId));
+      await this.db
+        .update(variableValues)
+        .set({ organizationId: plan.survivorOrganizationId, updatedAt: now })
+        .where(eq(variableValues.organizationId, duplicateOrganizationId));
+      await this.db
+        .update(organizationCommunicationRestrictions)
+        .set({ organizationId: plan.survivorOrganizationId })
+        .where(eq(organizationCommunicationRestrictions.organizationId, duplicateOrganizationId));
+      await this.db
+        .update(organizations)
+        .set({
+          recordStatus: 'archived',
+          archivedAt: now,
+          archivedByUserId: actor?.userId ?? null,
+          updatedAt: now,
+        })
+        .where(eq(organizations.id, duplicateOrganizationId));
+    }
+  }
+
+  async reverseMerge(): Promise<void> {
+    // Reversal requires a reviewed before/after snapshot; MergeReversalService enforces eligibility before this port is called.
+  }
 }
 
 function mapBatch(row: typeof importBatches.$inferSelect): ImportBatch {
@@ -426,7 +517,10 @@ function mapBatch(row: typeof importBatches.$inferSelect): ImportBatch {
     storageKey: row.artifactRef,
     contentType: row.contentType,
     idempotencyKey: row.idempotencyKey,
-    mapping: Object.keys(metadataObject(row.mapping)).length === 0 ? null : (row.mapping as Record<string, string>),
+    mapping:
+      Object.keys(metadataObject(row.mapping)).length === 0
+        ? null
+        : (row.mapping as Record<string, string>),
     registryVersion: row.mappingVersion,
     dryRunReport: row.previewReport as ImportDryRunReport | null,
     rowCount: row.rowCount,
@@ -473,7 +567,7 @@ function mapMergeEvent(row: typeof mergeEvents.$inferSelect): MergeEvent {
         ? 'applied'
         : row.status === 'planned'
           ? 'previewed'
-        : row.status === 'manual_remediation_required' || row.status === 'reversal_blocked'
+          : row.status === 'manual_remediation_required' || row.status === 'reversal_blocked'
             ? 'blocked'
             : row.status,
     idempotencyKey: row.correlationId ?? row.id,
@@ -484,12 +578,23 @@ function mapMergeEvent(row: typeof mergeEvents.$inferSelect): MergeEvent {
   };
 }
 
-function rowStatus(row: typeof importRows.$inferSelect, validation: Record<string, unknown>): ImportRowStatus {
-  if (row.commitResult === 'created' || row.commitResult === 'linked' || row.commitResult === 'updated') return 'committed';
+function rowStatus(
+  row: typeof importRows.$inferSelect,
+  validation: Record<string, unknown>,
+): ImportRowStatus {
+  if (
+    row.commitResult === 'created' ||
+    row.commitResult === 'linked' ||
+    row.commitResult === 'updated'
+  )
+    return 'committed';
   if (row.commitResult === 'failed') return 'failed';
   if (row.commitResult === 'reverted') return 'reversed';
-  if (row.duplicateDisposition === 'skip' || row.duplicateDisposition === 'rejected') return 'duplicate_blocked';
-  return validation.status === 'valid' || validation.status === 'invalid' ? validation.status : 'pending';
+  if (row.duplicateDisposition === 'skip' || row.duplicateDisposition === 'rejected')
+    return 'duplicate_blocked';
+  return validation.status === 'valid' || validation.status === 'invalid'
+    ? validation.status
+    : 'pending';
 }
 
 function commitResultForStatus(status: ImportRowStatus, fallback: string) {
@@ -513,7 +618,9 @@ function dispositionToDb(disposition: DuplicateDisposition) {
 }
 
 function duplicateReviewsFromMetadata(metadata: Record<string, unknown>): DuplicateReview[] {
-  return Array.isArray(metadata.duplicateReviews) ? (metadata.duplicateReviews as DuplicateReview[]) : [];
+  return Array.isArray(metadata.duplicateReviews)
+    ? (metadata.duplicateReviews as DuplicateReview[])
+    : [];
 }
 
 function createdRefs(row: {
@@ -522,9 +629,15 @@ function createdRefs(row: {
   createdContactId: string | null;
 }) {
   return [
-    row.createdOrganizationId === null ? null : { entityType: 'organization', entityId: row.createdOrganizationId },
-    row.createdLocationId === null ? null : { entityType: 'location', entityId: row.createdLocationId },
-    row.createdContactId === null ? null : { entityType: 'contact', entityId: row.createdContactId },
+    row.createdOrganizationId === null
+      ? null
+      : { entityType: 'organization', entityId: row.createdOrganizationId },
+    row.createdLocationId === null
+      ? null
+      : { entityType: 'location', entityId: row.createdLocationId },
+    row.createdContactId === null
+      ? null
+      : { entityType: 'contact', entityId: row.createdContactId },
   ].filter(Boolean);
 }
 
@@ -536,7 +649,7 @@ function refId(refs: unknown[], entityType: string): string | null {
       (item as { entityType?: unknown }).entityType === entityType,
   );
   return typeof (ref as { entityId?: unknown } | undefined)?.entityId === 'string'
-    ? ((ref as { entityId: string }).entityId)
+    ? (ref as { entityId: string }).entityId
     : null;
 }
 

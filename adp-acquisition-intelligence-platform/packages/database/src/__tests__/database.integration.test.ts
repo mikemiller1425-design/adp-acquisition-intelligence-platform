@@ -236,12 +236,14 @@ describe.sequential('database integration tooling', () => {
         }),
       ).rejects.toSatisfy((error: unknown) => mapDatabaseError(error)?.kind === 'unique');
 
-      await expect(
-        client.db.delete(importRows).where(eq(importRows.id, row.id)),
-      ).rejects.toSatisfy((error: unknown) => errorText(error).includes('hard delete is forbidden'));
+      await expect(client.db.delete(importRows).where(eq(importRows.id, row.id))).rejects.toSatisfy(
+        (error: unknown) => errorText(error).includes('hard delete is forbidden'),
+      );
       await expect(
         client.db.delete(importBatches).where(eq(importBatches.id, batch.id)),
-      ).rejects.toSatisfy((error: unknown) => errorText(error).includes('hard delete is forbidden'));
+      ).rejects.toSatisfy((error: unknown) =>
+        errorText(error).includes('hard delete is forbidden'),
+      );
 
       const leftOrganization = first(
         await client.db
@@ -288,7 +290,9 @@ describe.sequential('database integration tooling', () => {
 
       await expect(
         client.db.delete(mergeEvents).where(eq(mergeEvents.id, mergeEvent.id)),
-      ).rejects.toSatisfy((error: unknown) => errorText(error).includes('hard delete is forbidden'));
+      ).rejects.toSatisfy((error: unknown) =>
+        errorText(error).includes('hard delete is forbidden'),
+      );
     } finally {
       await client.close();
     }

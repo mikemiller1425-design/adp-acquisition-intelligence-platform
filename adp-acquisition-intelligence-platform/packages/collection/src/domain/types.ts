@@ -42,13 +42,7 @@ export type ImportBatch = {
 };
 
 export type ImportRowStatus =
-  | 'pending'
-  | 'valid'
-  | 'invalid'
-  | 'duplicate_blocked'
-  | 'committed'
-  | 'failed'
-  | 'reversed';
+  'pending' | 'valid' | 'invalid' | 'duplicate_blocked' | 'committed' | 'failed' | 'reversed';
 
 export type ImportRow = {
   id: string;

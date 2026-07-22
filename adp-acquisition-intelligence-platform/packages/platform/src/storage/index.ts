@@ -74,7 +74,9 @@ export class LocalPrivateObjectStorage implements ObjectStoragePort {
         key,
         sizeBytes: fileStat.size,
         contentType:
-          typeof metadata.contentType === 'string' ? metadata.contentType : 'application/octet-stream',
+          typeof metadata.contentType === 'string'
+            ? metadata.contentType
+            : 'application/octet-stream',
         metadata:
           metadata.metadata !== null &&
           typeof metadata.metadata === 'object' &&

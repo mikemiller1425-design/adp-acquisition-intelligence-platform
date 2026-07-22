@@ -55,6 +55,16 @@ Apply migrations from empty database and every supported prior release; seed; ro
 
 No required suite failures, no unresolved critical/high security or architecture finding, no flaky E2E on three consecutive runs, no unexplained fixture drift, no material coverage regression, successful migration/restore rehearsal, and full traceability from exit-contract item to test/manual evidence. Every prompt must complete the [Architecture Review Checklist](../11-implementation/16_ARCHITECTURE_REVIEW_CHECKLIST.md); tests are evidence for that review, not a substitute for it. Numerical coverage thresholds are set in Prompt 1 and may not substitute for meaningful assertions.
 
+## Prompt 4 verified test evidence
+
+Prompt 4 adds collection package coverage across:
+
+- Unit/domain service tests for normalization, mapping, field validation, blank semantics, lifecycle transitions, duplicate explanations, commit/reversal eligibility, merge planning, and consent behavior.
+- PostgreSQL 17 integration tests for migration/persistence, dry-run without business mutation, mixed valid/invalid validation, duplicate-review blocking, commit retry/idempotency, provenance proposal ports, consent preservation, audit/outbox ports, import reversal, and merge service behavior.
+- Security tests for unsafe CSV inputs, report formula escaping, and unauthorized report/commit/merge access.
+- E2E service test for a 25+ organization import with malformed rows, exact and ambiguous duplicates, dry-run, review, commit, provenance, report, and reversal.
+- Performance test for 10k-row CSV validation/parsing with duration and heap logging.
+
 ## Test ownership
 
 Domain owners maintain unit/golden tests; platform/database owners maintain migration/resilience/security harnesses; web owners maintain component/accessibility tests; QA/release owner maintains E2E and exit evidence. A change that alters behavior updates the tests in the same change.

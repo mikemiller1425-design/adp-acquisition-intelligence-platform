@@ -31,8 +31,16 @@ export type ImportBatchRepository = {
     rowCount: number;
     createdByUserId: string | null;
   }): Promise<ImportBatch>;
-  updateStatus(id: string, status: ImportStatus, patch?: Partial<ImportBatch>): Promise<ImportBatch>;
-  saveMapping(id: string, mapping: Record<string, string>, registryVersion: string): Promise<ImportBatch>;
+  updateStatus(
+    id: string,
+    status: ImportStatus,
+    patch?: Partial<ImportBatch>,
+  ): Promise<ImportBatch>;
+  saveMapping(
+    id: string,
+    mapping: Record<string, string>,
+    registryVersion: string,
+  ): Promise<ImportBatch>;
   saveDryRunReport(id: string, report: ImportDryRunReport): Promise<ImportBatch>;
 };
 
@@ -41,7 +49,18 @@ export type ImportRowRepository = {
   listByBatch(batchId: string): Promise<ImportRow[]>;
   update(
     rowId: string,
-    patch: Partial<Pick<ImportRow, 'mapped' | 'normalized' | 'status' | 'errors' | 'createdOrganizationId' | 'createdContactId' | 'createdLocationId'>>,
+    patch: Partial<
+      Pick<
+        ImportRow,
+        | 'mapped'
+        | 'normalized'
+        | 'status'
+        | 'errors'
+        | 'createdOrganizationId'
+        | 'createdContactId'
+        | 'createdLocationId'
+      >
+    >,
   ): Promise<ImportRow>;
   updateManyStatus(rowIds: readonly string[], status: ImportRowStatus): Promise<void>;
 };
@@ -130,6 +149,20 @@ export type VariableProposalPort = {
     actor: CollectionActor;
     correlationId: string | null;
   }): Promise<void>;
+};
+
+export type ObservationProposalPort = {
+  proposeImportObservation(input: {
+    subjectType: 'organization' | 'contact';
+    organizationId: string | null;
+    contactId: string | null;
+    claim: string;
+    proposedTypedValue: unknown;
+    normalizedInterpretation: string | null;
+    evidenceRecordId: string | null;
+    actor: CollectionActor;
+    correlationId: string | null;
+  }): Promise<{ observationId: string | null }>;
 };
 
 export type ConsentImportPort = {

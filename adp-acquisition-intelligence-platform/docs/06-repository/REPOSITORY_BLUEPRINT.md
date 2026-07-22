@@ -126,3 +126,15 @@ Prompt 3 verified these planned responsibilities:
 
 Prompt 3 intentionally leaves collection/import, scoring/completeness, discovery, outreach, opportunities, reporting, and UI feature packages in `planned` status for later prompts. Confidence aggregation weights remain unresolved by design.
 
+## Prompt 4 implementation status
+
+Prompt 4 verified these planned responsibilities:
+
+- `packages/database/schema/collection.ts` and migration `0003_melted_inertia.sql` — **verified** for import batches, import rows, import entity links, duplicate candidates, merge events, constraints, indexes, and hard-delete protection on collection tables.
+- `packages/collection/src/domain/*` — **verified** for 52-field registry validation, deterministic normalization, explainable duplicate matching, import lifecycle transitions, merge planning, authorization, CSV security, and reversal eligibility.
+- `packages/collection/src/application/*` — **verified** for upload, mapping, validation, dry-run, duplicate review, commit, retry, report, import reversal, merge, and merge reversal service contracts.
+- `packages/collection/src/infrastructure/postgres-repositories.ts` — **verified** for import batch/row persistence, duplicate review metadata persistence, organization creation/archival, duplicate candidate lookup, merge event persistence, and supported Postgres merge child reassignment.
+- `packages/platform` storage and malware scan ports — **verified** as collection upload dependencies.
+
+Prompt 4 intentionally leaves API route/UI composition, dedicated `import_entity_links` writing, and DB-backed merge reverse movement in deferred status for later composition prompts. Prompt 5 scoring/completeness remains unstarted.
+

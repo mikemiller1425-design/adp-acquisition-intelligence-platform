@@ -27,11 +27,7 @@ const roleCapabilities: Record<CollectionRole, ReadonlySet<CollectionCapability>
     'import:report',
     'merge:preview',
   ]),
-  sales: new Set<CollectionCapability>([
-    'manual_entry:create',
-    'import:upload',
-    'import:report',
-  ]),
+  sales: new Set<CollectionCapability>(['manual_entry:create', 'import:upload', 'import:report']),
   reviewer: new Set<CollectionCapability>([
     'duplicate:review',
     'import:commit',
@@ -42,10 +38,7 @@ const roleCapabilities: Record<CollectionRole, ReadonlySet<CollectionCapability>
 };
 
 export class AllowListCollectionCapabilityChecker implements CapabilityChecker {
-  assertCan(
-    actor: { roles: readonly CollectionRole[] },
-    capability: CollectionCapability,
-  ): void {
+  assertCan(actor: { roles: readonly CollectionRole[] }, capability: CollectionCapability): void {
     if (actor.roles.some((role) => roleCapabilities[role].has(capability))) return;
     throw new AppError({
       code: 'FORBIDDEN',

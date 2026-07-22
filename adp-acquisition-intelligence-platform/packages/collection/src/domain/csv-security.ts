@@ -47,8 +47,7 @@ export function validateCsvArtifact(input: {
   if (looksBinary(input.bytes)) {
     throw validation('CSV appears to be binary data');
   }
-  const hasBom =
-    input.bytes[0] === 0xef && input.bytes[1] === 0xbb && input.bytes[2] === 0xbf;
+  const hasBom = input.bytes[0] === 0xef && input.bytes[1] === 0xbb && input.bytes[2] === 0xbf;
   const text = new TextDecoder('utf-8', { fatal: true }).decode(input.bytes).replace(/^\uFEFF/, '');
   const delimiter = detectDelimiter(text);
   const shape = inspectCsvShape(text, delimiter, input.limits);
@@ -134,12 +133,14 @@ export function inspectCsvShape(
 function detectDelimiter(text: string): CsvSecurityResult['delimiter'] {
   const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
   const candidates: CsvSecurityResult['delimiter'][] = [',', '\t', ';', '|'];
-  return candidates
-    .map((delimiter) => ({
-      delimiter,
-      count: firstLine.split(delimiter).length - 1,
-    }))
-    .sort((left, right) => right.count - left.count)[0]?.delimiter ?? ',';
+  return (
+    candidates
+      .map((delimiter) => ({
+        delimiter,
+        count: firstLine.split(delimiter).length - 1,
+      }))
+      .sort((left, right) => right.count - left.count)[0]?.delimiter ?? ','
+  );
 }
 
 function looksBinary(bytes: Uint8Array): boolean {

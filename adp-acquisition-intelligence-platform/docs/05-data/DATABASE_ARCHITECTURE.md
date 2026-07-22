@@ -141,3 +141,14 @@ Prompt 3 implements variables, evidence, and provenance tables in `packages/data
 - Confidence assessments store component values and allow `aggregate_score` to remain null until an approved aggregation policy exists.
 - `permission_evidence_links` adds structured evidence provenance for consent rows without changing consent precedence.
 - Prompt 3 seeds 56 variable definitions from the current Variable Dictionary.
+
+## Prompt 4 implementation notes
+
+Prompt 4 implements collection and identity-resolution tables in `packages/database/src/schema/collection.ts` and migration `0003_melted_inertia.sql`.
+
+- Added tables: `import_batches`, `import_rows`, `import_entity_links`, `duplicate_candidates`, and `merge_events`.
+- `import_batches` stores private artifact references, lifecycle status, mapping versions, preview/commit/reversal reports, and idempotency keys.
+- `import_rows` stores raw-row hashes, mapped/normalized field JSON, validation/duplicate metadata, commit results, and created entity references.
+- `duplicate_candidates` stores explainable features, policy version, review queue status, and decision metadata.
+- `merge_events` stores survivor/absorbed organization IDs, impact previews, moved-child snapshots, completion metadata, and reversal metadata.
+- Prompt 4 was gated and integration-tested against PostgreSQL 17; see [Prompt 4 PostgreSQL 17 Gate](../01-reviews/PROMPT_4_POSTGRESQL_17_GATE.md).

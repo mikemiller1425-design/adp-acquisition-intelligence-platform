@@ -45,12 +45,18 @@ export function planOrganizationMerge(input: {
       survivorOrganizationId: input.survivorOrganizationId,
     });
   }
-  const snapshotById = new Map(input.snapshots.map((snapshot) => [snapshot.organizationId, snapshot]));
-  const missing = [input.survivorOrganizationId, ...duplicateIds].filter((id) => !snapshotById.has(id));
+  const snapshotById = new Map(
+    input.snapshots.map((snapshot) => [snapshot.organizationId, snapshot]),
+  );
+  const missing = [input.survivorOrganizationId, ...duplicateIds].filter(
+    (id) => !snapshotById.has(id),
+  );
   if (missing.length > 0) {
     throw mergeError('Organization merge snapshot is missing an organization', { missing });
   }
-  const cycle = duplicateIds.find((id) => createsCycle(id, input.survivorOrganizationId, input.priorMergeEdges ?? []));
+  const cycle = duplicateIds.find((id) =>
+    createsCycle(id, input.survivorOrganizationId, input.priorMergeEdges ?? []),
+  );
   if (cycle !== undefined) {
     throw mergeError('Organization merge would create a cycle', {
       fromOrganizationId: cycle,

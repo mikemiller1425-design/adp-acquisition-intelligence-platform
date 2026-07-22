@@ -91,20 +91,24 @@ describe('collection domain', () => {
       }),
     ).toBe('preview_ready');
     expect(() => transitionImportStatus('uploaded', 'committed')).toThrow();
-    expect(evaluateImportReversal({
-      batchStatus: 'committed',
-      createdEntityCount: 1,
-      touchedAfterImportCount: 1,
-      hasExternalReferences: false,
-      hasConsentWeakeningRisk: false,
-    })).toMatchObject({ eligible: false, manualRemediationRequired: true });
-    expect(evaluateMergeReversal({
-      mergeStatus: 'applied',
-      survivorTouchedAfterMerge: false,
-      duplicateArchivedOnly: true,
-      movedChildrenTouchedCount: 0,
-      wouldOrphanHistory: false,
-    })).toMatchObject({ eligible: true });
+    expect(
+      evaluateImportReversal({
+        batchStatus: 'committed',
+        createdEntityCount: 1,
+        touchedAfterImportCount: 1,
+        hasExternalReferences: false,
+        hasConsentWeakeningRisk: false,
+      }),
+    ).toMatchObject({ eligible: false, manualRemediationRequired: true });
+    expect(
+      evaluateMergeReversal({
+        mergeStatus: 'applied',
+        survivorTouchedAfterMerge: false,
+        duplicateArchivedOnly: true,
+        movedChildrenTouchedCount: 0,
+        wouldOrphanHistory: false,
+      }),
+    ).toMatchObject({ eligible: true });
   });
 
   it('returns explainable duplicate features without auto-merge', () => {
@@ -134,10 +138,7 @@ describe('collection domain', () => {
     const plan = planOrganizationMerge({
       survivorOrganizationId: 'survivor',
       duplicateOrganizationIds: ['duplicate'],
-      snapshots: [
-        snapshot('survivor', false, 0),
-        snapshot('duplicate', false, 2),
-      ],
+      snapshots: [snapshot('survivor', false, 0), snapshot('duplicate', false, 2)],
       idempotencyKey: 'merge-key',
     });
     expect(plan.childReassignments).toContainEqual({
@@ -231,19 +232,22 @@ describe('collection services e2e with fakes', () => {
       idempotencyKey: 'upload-1',
     });
     expect(upload.status).toBe('mapping_required');
-    expect((await new ImportUploadService(
-      batches,
-      rows,
-      storage,
-      new AllowAllMalwareScanPort(),
-      { maxBytes: 100_000, maxRows: 100, maxColumns: 20, maxCellBytes: 1_000 },
-    ).upload({
-      actor: researcher,
-      filename: 'mixed.csv',
-      contentType: 'text/csv',
-      bytes: new TextEncoder().encode(csv),
-      idempotencyKey: 'upload-1',
-    })).id).toBe(upload.id);
+    expect(
+      (
+        await new ImportUploadService(batches, rows, storage, new AllowAllMalwareScanPort(), {
+          maxBytes: 100_000,
+          maxRows: 100,
+          maxColumns: 20,
+          maxCellBytes: 1_000,
+        }).upload({
+          actor: researcher,
+          filename: 'mixed.csv',
+          contentType: 'text/csv',
+          bytes: new TextEncoder().encode(csv),
+          idempotencyKey: 'upload-1',
+        })
+      ).id,
+    ).toBe(upload.id);
 
     await new ImportMappingService(batches).applyMapping({
       actor: researcher,
@@ -262,14 +266,13 @@ describe('collection services e2e with fakes', () => {
       batchId: upload.id,
     });
     expect(validated.status).toBe('preview_ready');
-    expect((await rows.listByBatch(upload.id)).filter((row) => row.status === 'invalid')).toHaveLength(1);
+    expect(
+      (await rows.listByBatch(upload.id)).filter((row) => row.status === 'invalid'),
+    ).toHaveLength(1);
 
-    const dryRun = await new ImportDryRunService(
-      batches,
-      rows,
-      duplicateSearch,
-      duplicates,
-    ).dryRun({ actor: researcher, batchId: upload.id });
+    const dryRun = await new ImportDryRunService(batches, rows, duplicateSearch, duplicates).dryRun(
+      { actor: researcher, batchId: upload.id },
+    );
     expect(dryRun.status).toBe('duplicate_review_required');
 
     const review = (await duplicates.listByBatch(upload.id))[0];
@@ -326,7 +329,9 @@ function buildCsv(count: number): string {
   const rows = ['Company,Domain,Contact,Email,Consent,Note'];
   rows.push('Existing HOA,existing.example,Jane Existing,jane@existing.example,allowed,=formula');
   for (let index = 0; index < count - 1; index += 1) {
-    rows.push(`Org ${index},org${index}.example,Person ${index},person${index}@org${index}.example,unknown,note ${index}`);
+    rows.push(
+      `Org ${index},org${index}.example,Person ${index},person${index}@org${index}.example,unknown,note ${index}`,
+    );
   }
   rows.push('Broken,,No Email,not-an-email,unknown,note');
   return `${rows.join('\n')}\n`;
@@ -340,7 +345,9 @@ class InMemoryBatchRepo implements ImportBatchRepository {
   }
 
   async findByIdempotencyKey(idempotencyKey: string) {
-    return [...this.batches.values()].find((batch) => batch.idempotencyKey === idempotencyKey) ?? null;
+    return (
+      [...this.batches.values()].find((batch) => batch.idempotencyKey === idempotencyKey) ?? null
+    );
   }
 
   async create(input: Parameters<ImportBatchRepository['create']>[0]) {
@@ -395,7 +402,12 @@ class InMemoryRowRepo implements ImportRowRepository {
 
   async insertMany(rows: Array<Omit<ImportRow, 'id' | 'createdAt' | 'updatedAt'>>) {
     const now = new Date();
-    const inserted = rows.map((row) => ({ ...row, id: randomUUID(), createdAt: now, updatedAt: now }));
+    const inserted = rows.map((row) => ({
+      ...row,
+      id: randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+    }));
     this.rows.push(...inserted);
     return inserted;
   }
@@ -490,10 +502,13 @@ class InMemoryVariablePort implements VariableProposalPort {
 class InMemoryConsentPort implements ConsentImportPort {
   decisions: Array<{ applied: boolean; reason: string }> = [];
 
-  async preserveOrApplyImportConsent(input: Parameters<ConsentImportPort['preserveOrApplyImportConsent']>[0]) {
-    const decision = input.importedState === 'allowed'
-      ? { applied: false, reason: 'missing_is_not_allowed' }
-      : { applied: input.importedState !== null, reason: 'preserved_restrictions' };
+  async preserveOrApplyImportConsent(
+    input: Parameters<ConsentImportPort['preserveOrApplyImportConsent']>[0],
+  ) {
+    const decision =
+      input.importedState === 'allowed'
+        ? { applied: false, reason: 'missing_is_not_allowed' }
+        : { applied: input.importedState !== null, reason: 'preserved_restrictions' };
     this.decisions.push(decision);
     return decision;
   }

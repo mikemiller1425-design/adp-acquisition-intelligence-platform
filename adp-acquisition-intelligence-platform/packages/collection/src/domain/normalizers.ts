@@ -170,7 +170,9 @@ export function normalizeUrl(value: string | null | undefined): Normalized<strin
   const cleaned = normalizeUnicodeWhitespace(value);
   if (cleaned.normalized === null) return wrap<string>(cleaned.original, null);
   try {
-    const url = new URL(cleaned.normalized.includes('://') ? cleaned.normalized : `https://${cleaned.normalized}`);
+    const url = new URL(
+      cleaned.normalized.includes('://') ? cleaned.normalized : `https://${cleaned.normalized}`,
+    );
     url.hash = '';
     url.hostname = url.hostname.toLowerCase();
     return wrap(cleaned.original, url.toString().replace(/\/$/, ''));
@@ -192,7 +194,8 @@ export function normalizePhone(value: string | null | undefined): Normalized<str
   const prefixed = cleaned.normalized.trim().startsWith('+');
   const digits = cleaned.normalized.replace(/\D/g, '');
   if (digits.length === 10) return wrap(cleaned.original, `+1${digits}`);
-  if (digits.length >= 8 && digits.length <= 15) return wrap(cleaned.original, prefixed ? `+${digits}` : digits);
+  if (digits.length >= 8 && digits.length <= 15)
+    return wrap(cleaned.original, prefixed ? `+${digits}` : digits);
   return wrap<string>(cleaned.original, null);
 }
 
@@ -216,7 +219,8 @@ export function normalizeState(value: string | null | undefined): Normalized<str
   const cleaned = normalizeUnicodeWhitespace(value);
   if (cleaned.normalized === null) return wrap<string>(cleaned.original, null);
   const lower = cleaned.normalized.toLowerCase();
-  if (/^[a-z]{2}$/i.test(cleaned.normalized)) return wrap(cleaned.original, cleaned.normalized.toUpperCase());
+  if (/^[a-z]{2}$/i.test(cleaned.normalized))
+    return wrap(cleaned.original, cleaned.normalized.toUpperCase());
   return wrap(cleaned.original, stateMap.get(lower) ?? null);
 }
 
@@ -224,7 +228,8 @@ export function normalizeCountry(value: string | null | undefined): Normalized<s
   const cleaned = normalizeUnicodeWhitespace(value);
   if (cleaned.normalized === null) return wrap<string>(cleaned.original, null);
   const lower = cleaned.normalized.toLowerCase();
-  if (/^[a-z]{2}$/i.test(cleaned.normalized)) return wrap(cleaned.original, cleaned.normalized.toUpperCase());
+  if (/^[a-z]{2}$/i.test(cleaned.normalized))
+    return wrap(cleaned.original, cleaned.normalized.toUpperCase());
   return wrap(cleaned.original, countryMap.get(lower) ?? null);
 }
 
@@ -287,8 +292,10 @@ export function normalizeRange(value: string | null | undefined): Normalized<Nor
     .split(/\s*(?:-|to)\s*/i)
     .map((part) => Number(part.replace(/[$,%\s,]/g, '')))
     .filter((part) => Number.isFinite(part));
-  if (parts.length === 1) return wrap(cleaned.original, { min: parts[0] as number, max: parts[0] as number });
-  if (parts.length >= 2) return wrap(cleaned.original, { min: parts[0] as number, max: parts[1] as number });
+  if (parts.length === 1)
+    return wrap(cleaned.original, { min: parts[0] as number, max: parts[0] as number });
+  if (parts.length >= 2)
+    return wrap(cleaned.original, { min: parts[0] as number, max: parts[1] as number });
   return wrap<NormalizedRange>(cleaned.original, null);
 }
 
@@ -301,7 +308,10 @@ export function normalizeFirmType(value: string | null | undefined): Normalized<
 export function normalizeContactRole(value: string | null | undefined): Normalized<string> {
   const cleaned = normalizeUnicodeWhitespace(value);
   if (cleaned.normalized === null) return wrap<string>(cleaned.original, null);
-  return wrap(cleaned.original, contactRoleMap.get(cleaned.normalized.toLowerCase()) ?? cleaned.normalized.toLowerCase());
+  return wrap(
+    cleaned.original,
+    contactRoleMap.get(cleaned.normalized.toLowerCase()) ?? cleaned.normalized.toLowerCase(),
+  );
 }
 
 function wrap<T>(original: string | null, normalized: T | null): Normalized<T> {

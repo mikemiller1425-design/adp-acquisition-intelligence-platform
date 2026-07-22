@@ -28,6 +28,10 @@ Database development:
 - [Migration guide](docs/development/MIGRATION_GUIDE.md)
 - [Evidence and provenance guide](docs/development/EVIDENCE_AND_PROVENANCE_GUIDE.md)
 - [Variable definition guide](docs/development/VARIABLE_DEFINITION_GUIDE.md)
+- [Import pipeline guide](docs/development/IMPORT_PIPELINE_GUIDE.md)
+- [Normalization policy](docs/development/NORMALIZATION_POLICY.md)
+- [Duplicate and merge guide](docs/development/DUPLICATE_AND_MERGE_GUIDE.md)
+- [Import recovery runbook](docs/operations/IMPORT_RECOVERY_RUNBOOK.md)
 
 ## Documentation
 

@@ -88,10 +88,7 @@ export const importBatches = pgTable(
     ),
     check('import_batches_content_hash_present', sql`${table.contentHash} <> ''`),
     check('import_batches_file_size_nonnegative', sql`${table.fileSizeBytes} >= 0`),
-    check(
-      'import_batches_delimiter_valid',
-      sql`char_length(${table.delimiter}) between 1 and 4`,
-    ),
+    check('import_batches_delimiter_valid', sql`char_length(${table.delimiter}) between 1 and 4`),
     check(
       'import_batches_counts_nonnegative',
       sql`${table.rowCount} >= 0
@@ -222,10 +219,7 @@ export const duplicateCandidates = pgTable(
     index('duplicate_candidates_pending_review_idx')
       .on(table.createdAt)
       .where(sql`${table.disposition} = 'pending'`),
-    check(
-      'duplicate_candidates_subject_organization',
-      sql`${table.subjectType} = 'organization'`,
-    ),
+    check('duplicate_candidates_subject_organization', sql`${table.subjectType} = 'organization'`),
     check(
       'duplicate_candidates_distinct_organizations',
       sql`${table.leftOrganizationId} <> ${table.rightOrganizationId}`,
