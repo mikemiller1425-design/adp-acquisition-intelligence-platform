@@ -1,5 +1,6 @@
 export * from './account-assignments.js';
 export * from './audit.js';
+export * from './collection.js';
 export * from './consent.js';
 export * from './enums.js';
 export * from './evidence.js';

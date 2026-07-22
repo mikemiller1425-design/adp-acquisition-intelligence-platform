@@ -10,8 +10,12 @@ import {
   auditEvents,
   checkDatabaseHealth,
   contacts,
+  duplicateCandidates,
   evidenceRecords,
+  importBatches,
+  importRows,
   mapDatabaseError,
+  mergeEvents,
   organizationLocations,
   organizations,
   permissionEvidenceLinks,
@@ -85,7 +89,7 @@ describe.sequential('database integration tooling', () => {
     expect(after).toBeGreaterThan(0);
   });
 
-  it('applies the Prompt 3 migration after the Prompt 2 schema migrations', async () => {
+  it('applies the Prompt 4 migration after the Prompt 3 schema migrations', async () => {
     await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
     const client = createTestDatabaseClient(testDatabaseUrl);
 
@@ -95,12 +99,196 @@ describe.sequential('database integration tooling', () => {
         await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
       ) as { entries: Array<{ tag: string }> };
 
-      expect(journalCount).toBe(3);
+      expect(journalCount).toBe(4);
       expect(journal.entries.map((row) => row.tag)).toEqual([
         '0000_parched_electro',
         '0001_integrity_guards',
         '0002_lyrical_daimon_hellstrom',
+        '0003_melted_inertia',
       ]);
+    } finally {
+      await client.close();
+    }
+  });
+
+  it('applies Prompt 4 collection tables, constraints, and deletion guards', async () => {
+    await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
+    const client = createTestDatabaseClient(testDatabaseUrl);
+
+    try {
+      const tables = await client.sql<{ table_name: string }[]>`
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name in (
+            'import_batches',
+            'import_rows',
+            'import_entity_links',
+            'duplicate_candidates',
+            'merge_events'
+          )
+        order by table_name
+      `;
+      expect(tables.map((row) => row.table_name)).toEqual([
+        'duplicate_candidates',
+        'import_batches',
+        'import_entity_links',
+        'import_rows',
+        'merge_events',
+      ]);
+
+      const constraints = await client.sql<{ conname: string }[]>`
+        select conname
+        from pg_constraint
+        where conname in (
+          'import_batches_filename_safe',
+          'import_batches_artifact_ref_private',
+          'duplicate_candidates_distinct_organizations',
+          'merge_events_completion_metadata_valid'
+        )
+        order by conname
+      `;
+      expect(constraints.map((row) => row.conname)).toEqual([
+        'duplicate_candidates_distinct_organizations',
+        'import_batches_artifact_ref_private',
+        'import_batches_filename_safe',
+        'merge_events_completion_metadata_valid',
+      ]);
+
+      const indexes = await client.sql<{ indexname: string }[]>`
+        select indexname
+        from pg_indexes
+        where schemaname = 'public'
+          and indexname in (
+            'import_batches_idempotency_key_unique',
+            'import_rows_batch_source_row_unique',
+            'import_entity_links_entity_idx',
+            'duplicate_candidates_review_queue_idx',
+            'merge_events_incomplete_pair_unique'
+          )
+        order by indexname
+      `;
+      expect(indexes.map((row) => row.indexname)).toEqual([
+        'duplicate_candidates_review_queue_idx',
+        'import_batches_idempotency_key_unique',
+        'import_entity_links_entity_idx',
+        'import_rows_batch_source_row_unique',
+        'merge_events_incomplete_pair_unique',
+      ]);
+
+      const triggers = await client.sql<{ tgname: string }[]>`
+        select tgname
+        from pg_trigger
+        where tgname in (
+          'import_batches_reject_hard_delete',
+          'import_rows_reject_hard_delete',
+          'merge_events_reject_hard_delete'
+        )
+        order by tgname
+      `;
+      expect(triggers.map((row) => row.tgname)).toEqual([
+        'import_batches_reject_hard_delete',
+        'import_rows_reject_hard_delete',
+        'merge_events_reject_hard_delete',
+      ]);
+
+      await expect(
+        client.db.insert(importBatches).values({
+          filename: 'unsafe/name.csv',
+          artifactRef: 'private/imports/unsafe.csv',
+          contentHash: 'sha256:unsafe',
+          fileSizeBytes: 12,
+          source: 'csv_upload',
+          idempotencyKey: 'unsafe-import',
+        }),
+      ).rejects.toSatisfy((error: unknown) => mapDatabaseError(error)?.kind === 'check');
+
+      const batch = first(
+        await client.db
+          .insert(importBatches)
+          .values({
+            filename: 'safe-import.csv',
+            artifactRef: 'private/imports/safe-import.csv',
+            contentHash: 'sha256:safe-import',
+            fileSizeBytes: 128,
+            source: 'csv_upload',
+            idempotencyKey: 'safe-import',
+          })
+          .returning({ id: importBatches.id }),
+      );
+
+      const row = first(
+        await client.db
+          .insert(importRows)
+          .values({
+            batchId: batch.id,
+            sourceRowNumber: 1,
+            rawRowHash: 'sha256:row-1',
+          })
+          .returning({ id: importRows.id }),
+      );
+
+      await expect(
+        client.db.insert(importRows).values({
+          batchId: batch.id,
+          sourceRowNumber: 1,
+          rawRowHash: 'sha256:row-1-duplicate',
+        }),
+      ).rejects.toSatisfy((error: unknown) => mapDatabaseError(error)?.kind === 'unique');
+
+      await expect(
+        client.db.delete(importRows).where(eq(importRows.id, row.id)),
+      ).rejects.toSatisfy((error: unknown) => errorText(error).includes('hard delete is forbidden'));
+      await expect(
+        client.db.delete(importBatches).where(eq(importBatches.id, batch.id)),
+      ).rejects.toSatisfy((error: unknown) => errorText(error).includes('hard delete is forbidden'));
+
+      const leftOrganization = first(
+        await client.db
+          .insert(organizations)
+          .values({
+            displayName: 'Left Merge Advisors',
+            normalizedName: 'left merge advisors',
+            normalizedDomain: 'left-merge.example.com',
+          })
+          .returning({ id: organizations.id }),
+      );
+      const rightOrganization = first(
+        await client.db
+          .insert(organizations)
+          .values({
+            displayName: 'Right Merge Advisors',
+            normalizedName: 'right merge advisors',
+            normalizedDomain: 'right-merge.example.com',
+          })
+          .returning({ id: organizations.id }),
+      );
+
+      await expect(
+        client.db.insert(duplicateCandidates).values({
+          batchId: batch.id,
+          leftOrganizationId: leftOrganization.id,
+          rightOrganizationId: leftOrganization.id,
+          matchTier: 'exact',
+          matchScore: '1.0000',
+          matchPolicyVersion: 'duplicate_match.v1',
+        }),
+      ).rejects.toSatisfy((error: unknown) => mapDatabaseError(error)?.kind === 'check');
+
+      const mergeEvent = first(
+        await client.db
+          .insert(mergeEvents)
+          .values({
+            survivorOrganizationId: leftOrganization.id,
+            absorbedOrganizationId: rightOrganization.id,
+            status: 'planned',
+          })
+          .returning({ id: mergeEvents.id }),
+      );
+
+      await expect(
+        client.db.delete(mergeEvents).where(eq(mergeEvents.id, mergeEvent.id)),
+      ).rejects.toSatisfy((error: unknown) => errorText(error).includes('hard delete is forbidden'));
     } finally {
       await client.close();
     }

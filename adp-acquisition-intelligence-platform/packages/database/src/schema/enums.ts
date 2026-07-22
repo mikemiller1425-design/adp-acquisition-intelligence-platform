@@ -276,3 +276,90 @@ export const outboxEventStatusEnum = pgEnum('outbox_event_status', [
   'failed',
   'dead_letter',
 ]);
+
+export const importBatchSourceEnum = pgEnum('import_batch_source', ['manual', 'csv_upload']);
+
+export const importBatchLifecycleStatusEnum = pgEnum('import_batch_lifecycle_status', [
+  'uploaded',
+  'mapping_required',
+  'mapped',
+  'validating',
+  'validation_failed',
+  'preview_ready',
+  'duplicate_review_required',
+  'ready_to_commit',
+  'committing',
+  'committed',
+  'partially_committed',
+  'commit_failed',
+  'reverting',
+  'reverted',
+  'partially_reverted',
+  'expired',
+  'archived',
+]);
+
+export const duplicateDispositionEnum = pgEnum('duplicate_disposition', [
+  'pending',
+  'unique',
+  'link',
+  'skip',
+  'merge_candidate',
+  'rejected',
+]);
+
+export const importCommitResultEnum = pgEnum('import_commit_result', [
+  'pending',
+  'created',
+  'linked',
+  'updated',
+  'skipped',
+  'failed',
+  'reverted',
+]);
+
+export const importEntityTypeEnum = pgEnum('import_entity_type', [
+  'organization',
+  'contact',
+  'location',
+  'alias',
+  'assignment',
+  'evidence',
+  'observation',
+  'variable_value',
+  'consent_permission',
+]);
+
+export const importEntityLinkActionEnum = pgEnum('import_entity_link_action', [
+  'created',
+  'updated',
+  'linked',
+  'proposed',
+  'merged',
+  'skipped',
+  'archived',
+  'reverted',
+]);
+
+export const duplicateMatchTierEnum = pgEnum('duplicate_match_tier', [
+  'exact',
+  'strong',
+  'ambiguous',
+  'weak',
+]);
+
+export const duplicateCandidateDispositionEnum = pgEnum('duplicate_candidate_disposition', [
+  'pending',
+  'confirmed_duplicate',
+  'not_duplicate',
+  'merged',
+  'deferred',
+]);
+
+export const mergeEventStatusEnum = pgEnum('merge_event_status', [
+  'planned',
+  'completed',
+  'reversal_blocked',
+  'reversed',
+  'manual_remediation_required',
+]);

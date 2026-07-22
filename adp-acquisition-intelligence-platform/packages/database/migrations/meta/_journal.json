@@ -22,6 +22,13 @@
       "when": 1784756757761,
       "tag": "0002_lyrical_daimon_hellstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784759590218,
+      "tag": "0003_melted_inertia",
+      "breakpoints": true
     }
   ]
 }
