@@ -65,6 +65,7 @@ export class PostgresPermissionRepository implements PermissionRepository {
   async assertContactChannelPermission(
     input: ContactPermissionInput,
   ): Promise<ContactChannelPermission> {
+    const { evidenceRecordId: _evidenceRecordId, ...insertInput } = input;
     const id = randomUUID();
     const rows = await this.db.transaction(async (tx) => {
       const superseded = await tx
@@ -81,7 +82,7 @@ export class PostgresPermissionRepository implements PermissionRepository {
         .returning({ id: contactChannelPermissions.id });
       const inserted = await tx
         .insert(contactChannelPermissions)
-        .values({ id, ...input })
+        .values({ id, ...insertInput })
         .returning();
       if (superseded.length > 0) {
         await tx
@@ -102,6 +103,7 @@ export class PostgresPermissionRepository implements PermissionRepository {
   async setOrganizationRestriction(
     input: OrganizationRestrictionInput,
   ): Promise<OrganizationCommunicationRestriction> {
+    const { evidenceRecordId: _evidenceRecordId, ...insertInput } = input;
     const id = randomUUID();
     const rows = await this.db.transaction(async (tx) => {
       const superseded = await tx
@@ -120,7 +122,7 @@ export class PostgresPermissionRepository implements PermissionRepository {
         .returning({ id: organizationCommunicationRestrictions.id });
       const inserted = await tx
         .insert(organizationCommunicationRestrictions)
-        .values({ id, ...input })
+        .values({ id, ...insertInput })
         .returning();
       if (superseded.length > 0) {
         await tx
@@ -139,6 +141,7 @@ export class PostgresPermissionRepository implements PermissionRepository {
   }
 
   async upsertSuppression(input: SuppressionInput): Promise<SuppressionEntry> {
+    const { evidenceRecordId: _evidenceRecordId, ...insertInput } = input;
     const id = randomUUID();
     const rows = await this.db.transaction(async (tx) => {
       const superseded = await tx
@@ -166,7 +169,7 @@ export class PostgresPermissionRepository implements PermissionRepository {
         .returning({ id: suppressionEntries.id });
       const inserted = await tx
         .insert(suppressionEntries)
-        .values({ id, ...input })
+        .values({ id, ...insertInput })
         .returning();
       if (superseded.length > 0) {
         await tx

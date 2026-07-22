@@ -17,6 +17,7 @@ import type {
   ContactPermissionInput,
   OrganizationRestrictionInput,
   PermissionRepository,
+  ConsentEvidenceLinkPort,
   SuppressionInput,
 } from '../domain/ports.js';
 
@@ -60,11 +61,14 @@ export class ConsentPermissionService {
   constructor(
     private readonly repository: PermissionRepository,
     private readonly audit?: ConsentAuditPort,
+    private readonly evidenceLinks?: ConsentEvidenceLinkPort,
   ) {}
 
   async assertContactChannelPermission(input: ContactPermissionInput) {
     assertEffectiveWindow(input);
-    return this.repository.assertContactChannelPermission(input);
+    const permission = await this.repository.assertContactChannelPermission(input);
+    await this.linkEvidence(input, 'contact_channel_permission', permission.id);
+    return permission;
   }
 
   async setOrganizationRestriction(input: OrganizationRestrictionInput) {
@@ -75,13 +79,17 @@ export class ConsentPermissionService {
         message: 'Organization restrictions cannot assert allowed',
       });
     }
-    return this.repository.setOrganizationRestriction(input);
+    const restriction = await this.repository.setOrganizationRestriction(input);
+    await this.linkEvidence(input, 'organization_communication_restriction', restriction.id);
+    return restriction;
   }
 
   async upsertSuppression(input: SuppressionInput) {
     assertEffectiveWindow(input);
     assertSuppressionState(input.state);
-    return this.repository.upsertSuppression(input);
+    const suppression = await this.repository.upsertSuppression(input);
+    await this.linkEvidence(input, 'suppression_entry', suppression.id);
+    return suppression;
   }
 
   async revokeSuppression(command: {
@@ -222,5 +230,26 @@ export class ConsentPermissionService {
       });
     }
     return evaluation;
+  }
+
+  private async linkEvidence(
+    input: ContactPermissionInput | OrganizationRestrictionInput | SuppressionInput,
+    subjectType:
+      'contact_channel_permission' | 'organization_communication_restriction' | 'suppression_entry',
+    subjectId: string,
+  ): Promise<void> {
+    if (
+      this.evidenceLinks === undefined ||
+      input.evidenceRecordId === undefined ||
+      input.evidenceRecordId === null
+    ) {
+      return;
+    }
+    await this.evidenceLinks.link({
+      subjectType,
+      subjectId,
+      evidenceRecordId: input.evidenceRecordId,
+      createdBy: input.capturedByUserId,
+    });
   }
 }

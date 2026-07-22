@@ -18,6 +18,7 @@ export type PermissionMutationInput = {
   reasonCode: string | null;
   reasonNote: string | null;
   evidenceRef: string | null;
+  evidenceRecordId?: string | null;
 };
 
 export type ContactPermissionInput = PermissionMutationInput & {
@@ -76,5 +77,15 @@ export type ConsentAuditPort = {
     subjectId: string;
     correlationId: string | null;
     metadata: Record<string, unknown>;
+  }): Promise<void>;
+};
+
+export type ConsentEvidenceLinkPort = {
+  link(input: {
+    subjectType:
+      'contact_channel_permission' | 'organization_communication_restriction' | 'suppression_entry';
+    subjectId: string;
+    evidenceRecordId: string;
+    createdBy: string | null;
   }): Promise<void>;
 };
