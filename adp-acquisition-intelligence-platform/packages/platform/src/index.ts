@@ -17,4 +17,17 @@ export {
   type JobHandler,
   InMemoryJobDispatcher,
 } from './jobs/index.js';
+export {
+  type ObjectStoragePort,
+  type ObjectStoragePutInput,
+  type StoredObject,
+  LocalPrivateObjectStorage,
+} from './storage/index.js';
+export {
+  type MalwareScanPort,
+  type MalwareScanResult,
+  type MalwareScanVerdict,
+  AllowAllMalwareScanPort,
+  QuarantineMalwareScanPort,
+} from './security/index.js';
 export { buildHealthResponse } from './health/index.js';

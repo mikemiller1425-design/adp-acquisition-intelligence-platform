@@ -34,6 +34,10 @@ const envSchema = z.object({
   RETENTION_JOB_PAYLOAD_DAYS: z.coerce.number().int().positive().default(30),
   RETENTION_BUSINESS_YEARS: z.coerce.number().int().positive().default(7),
   RETENTION_AUDIT_YEARS: z.coerce.number().int().positive().default(7),
+  COLLECTION_MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(10 * 1024 * 1024),
+  COLLECTION_MAX_IMPORT_ROWS: z.coerce.number().int().positive().default(10_000),
+  COLLECTION_MAX_IMPORT_COLUMNS: z.coerce.number().int().positive().default(100),
+  COLLECTION_MAX_IMPORT_CELL_BYTES: z.coerce.number().int().positive().default(64 * 1024),
 });
 
 export type AppConfig = {
@@ -59,6 +63,12 @@ export type AppConfig = {
   };
   otelServiceName: string;
   retention: z.infer<typeof retentionSchema>;
+  collection: {
+    maxUploadBytes: number;
+    maxImportRows: number;
+    maxImportColumns: number;
+    maxImportCellBytes: number;
+  };
   tenancy: {
     mode: 'single_tenant';
     note: string;
@@ -100,6 +110,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     },
     otelServiceName: parsed.OTEL_SERVICE_NAME,
     retention,
+    collection: {
+      maxUploadBytes: parsed.COLLECTION_MAX_UPLOAD_BYTES,
+      maxImportRows: parsed.COLLECTION_MAX_IMPORT_ROWS,
+      maxImportColumns: parsed.COLLECTION_MAX_IMPORT_COLUMNS,
+      maxImportCellBytes: parsed.COLLECTION_MAX_IMPORT_CELL_BYTES,
+    },
     tenancy: {
       mode: 'single_tenant',
       note: 'ADR-003: territories and ownership are authorization scopes, not tenants.',
