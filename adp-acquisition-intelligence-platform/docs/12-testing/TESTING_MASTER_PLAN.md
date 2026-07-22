@@ -1,6 +1,6 @@
 # Testing Master Plan
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 
 ## Strategy
 
@@ -9,8 +9,8 @@ Tests demonstrate business invariants, not implementation trivia. Prefer fast do
 ## Test layers
 
 - **Static:** formatting, lint, strict typecheck, unused exports, forbidden dependency/cycle checks, configuration schema validation.
-- **Unit:** normalization, value validation, confidence, completeness, score transforms, recommendation ties, transition guards, question selection, response classification.
-- **Integration:** repositories/migrations/constraints, transactions/outbox, authorization scopes, import commit/revert, evidence-to-value, score persistence, discovery mapping/recalc, activity/task effects.
+- **Unit:** normalization, value validation, confidence, completeness, score transforms, recommendation ties, transition guards (all parallel dimensions), permission precedence, question selection, response classification.
+- **Integration:** repositories/migrations/constraints, transactions/outbox, authorization scopes, import commit/revert, evidence-to-value, score persistence, discovery mapping/recalc, activity/task effects, consent evaluate+block, operational_state_transitions.
 - **Contract:** API request/response/error schemas and backward compatibility; job payload versions.
 - **Component/accessibility:** tables, forms, dialogs, error/empty/loading/stale states, keyboard and automated accessibility checks.
 - **E2E:** critical operator journeys with seeded roles and territory constraints.
@@ -26,10 +26,14 @@ Tests demonstrate business invariants, not implementation trivia. Prefer fast do
 6. Low completeness produces provisional/insufficient status; a high raw fit never hides low confidence.
 7. Unauthorized territory/user cannot read, mutate, export, merge, override, or transition restricted records.
 8. Discovery retains verbatim answer, requires mapping confirmation, supersedes values explicitly, and shows score delta.
-9. Outreach cannot proceed after opt-out/restriction or without human approval; Phase 1 cannot send externally.
+9. Outreach cannot proceed after opt-out/restriction/`unknown` permission or without human approval; Phase 1 cannot send externally; denial is audited; scores unchanged.
 10. Valid activity/response creates the configured next task; duplicate command does not duplicate activity.
-11. Opportunity transition guards, stage history, loss reasons, and aging calculations are correct.
-12. Dashboard counts equal source fixtures across filters/timezone boundaries; drilldowns and exports reconcile.
+11. Opportunity transition guards, `operational_state_transitions` history, loss reasons, and aging calculations are correct; org `prospect_stage` set to `opportunity` on first open opportunity without clearing research gaps.
+12. Dashboard counts equal source fixtures across filters/timezone boundaries; drilldowns and exports reconcile; parallel-dimension filters compose.
+13. Parallel states coexist: e.g. `prospect_stage=outreach_active`, `research_status=gaps_open`, `data_freshness_status=stale`, open opportunity with independent `opportunity_stage`; illegal transitions leave prior state.
+14. Consent precedence: global suppression > org restriction > channel opt-out > contact permission; expired/revoked inactive; conflicts → most restrictive; import cannot lift opt-out; export masks restricted channels.
+
+Authority for scenarios 9, 11, 13, and 14: [Operational State and Consent Model](../05-data/OPERATIONAL_STATE_AND_CONSENT_MODEL.md).
 
 ## Full Phase 1 E2E
 
@@ -37,11 +41,11 @@ Run the 25-organization scenario in the [Functional Specification](../02-functio
 
 ## Performance baselines
 
-Establish an agreed representative volume before Prompt 10 (recommended initial fixture: 100k organizations, 300k contacts, 10m variable/evidence/history rows). Test indexed prospect filters, organization 360, score table, dashboard aggregates, 10k-row import, recalculation queue, and large export. Standard read target p95 is under 2 seconds; jobs expose progress and do not exhaust web workers.
+Establish an agreed representative volume before Prompt 10 (recommended initial fixture: 100k organizations, 300k contacts, 10m variable/evidence/history rows). Test indexed prospect filters (including parallel-dimension indexes), organization 360, score table, dashboard aggregates, 10k-row import, recalculation queue, and large export. Standard read target p95 is under 2 seconds; jobs expose progress and do not exhaust web workers.
 
 ## Security and privacy
 
-Test authentication/session controls, authorization object/field/territory scope, injection, XSS output encoding, CSRF where applicable, upload validation, rate limits, secret/PII log redaction, export access/expiry, audit tamper resistance, dependency scanning, and least-privilege runtime credentials. Perform threat-model review and independent release review.
+Test authentication/session controls, authorization object/field/territory scope, injection, XSS output encoding, CSRF where applicable, upload validation, rate limits, secret/PII log redaction, export access/expiry, consent evaluation bypass attempts, audit tamper resistance, dependency scanning, and least-privilege runtime credentials. Perform threat-model review and independent release review.
 
 ## Migration and recovery
 
