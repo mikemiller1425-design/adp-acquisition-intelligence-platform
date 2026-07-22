@@ -1,0 +1,124 @@
+schema_version: "1.0"
+contract_id: adp-acquisition-platform-phase-1
+status: pending
+phase_boundary:
+  includes:
+    - collection
+    - normalization_and_deduplication
+    - evidence_provenance_confidence
+    - purpose_specific_completeness
+    - multi_motion_scoring
+    - qualification_and_workflow
+    - discovery_and_rescoring
+    - human_approved_outreach_tracking
+    - opportunities_and_stage_history
+    - dashboards_and_exports
+  excludes:
+    - referral_partner_ecosystem
+    - autonomous_outbound_sending
+    - predictive_machine_learning
+    - production_crm_sync
+
+status_values: [pending, passed, failed, waived, not_applicable]
+evidence_required_fields:
+  - artifact
+  - commit
+  - environment
+  - executed_at
+  - result
+
+gates:
+  foundation:
+    required: true
+    owner: engineering
+    checks:
+      - {id: FND-001, requirement: deterministic_install_and_setup, status: pending, evidence: []}
+      - {id: FND-002, requirement: web_api_worker_start_and_health_pass, status: pending, evidence: []}
+      - {id: FND-003, requirement: config_logging_errors_auth_audit_jobs_are_centralized, status: pending, evidence: []}
+      - {id: FND-004, requirement: build_lint_typecheck_dependency_and_unit_checks_pass, status: pending, evidence: []}
+  data_model:
+    required: true
+    owner: engineering
+    checks:
+      - {id: DAT-001, requirement: canonical_entities_relationships_constraints_and_indexes_exist, status: pending, evidence: []}
+      - {id: DAT-002, requirement: empty_and_upgrade_migrations_pass, status: pending, evidence: []}
+      - {id: DAT-003, requirement: archive_supersession_and_append_only_audit_preserve_history, status: pending, evidence: []}
+      - {id: DAT-004, requirement: territory_ownership_and_existing_relationship_controls_pass, status: pending, evidence: []}
+      - {id: DAT-005, requirement: encrypted_backup_restore_rehearsal_passes, status: pending, evidence: []}
+  collection:
+    required: true
+    owner: product_engineering
+    checks:
+      - {id: COL-001, requirement: manual_organization_location_and_contact_entry_works, status: pending, evidence: []}
+      - {id: COL-002, requirement: csv_map_validate_dry_run_commit_report_and_revert_work, status: pending, evidence: []}
+      - {id: COL-003, requirement: source_rows_and_import_audit_are_retained, status: pending, evidence: []}
+      - {id: COL-004, requirement: normalization_is_deterministic_and_tested, status: pending, evidence: []}
+      - {id: COL-005, requirement: duplicate_candidates_are_explainable_and_merges_are_human_reviewed, status: pending, evidence: []}
+  intelligence:
+    required: true
+    owner: business_scoring
+    checks:
+      - {id: INT-001, requirement: evidence_source_claim_date_context_and_review_state_are_traceable, status: pending, evidence: []}
+      - {id: INT-002, requirement: fact_calculation_inference_and_unknown_are_visibly_distinct, status: pending, evidence: []}
+      - {id: INT-003, requirement: zero_false_unknown_not_applicable_withheld_contradicted_and_stale_are_distinct, status: pending, evidence: []}
+      - {id: INT-004, requirement: confidence_uses_quality_specificity_recency_agreement_and_extraction_inputs, status: pending, evidence: []}
+      - {id: INT-005, requirement: overall_motion_discovery_and_outreach_completeness_and_gaps_work, status: pending, evidence: []}
+  scoring:
+    required: true
+    owner: business_scoring
+    checks:
+      - {id: SCR-001, requirement: acquisition_wholesale_cas_direct_influence_urgency_revenue_accessibility_and_confidence_scores_exist, status: pending, evidence: []}
+      - {id: SCR-002, requirement: active_score_rubrics_and_weights_have_business_approval, status: pending, evidence: []}
+      - {id: SCR-003, requirement: scores_are_versioned_deterministic_and_replayable, status: pending, evidence: []}
+      - {id: SCR-004, requirement: output_includes_status_tier_confidence_completeness_factors_gaps_action_and_snapshot, status: pending, evidence: []}
+      - {id: SCR-005, requirement: low_completeness_and_conflicts_do_not_create_false_precision, status: pending, evidence: []}
+      - {id: SCR-006, requirement: recommendation_override_requires_authorization_reason_and_preserves_computed_result, status: pending, evidence: []}
+  workflow:
+    required: true
+    owner: product
+    checks:
+      - {id: WFL-001, requirement: qualification_outcomes_and_structured_reasons_work, status: pending, evidence: []}
+      - {id: WFL-002, requirement: transition_guards_history_exceptions_and_next_tasks_work, status: pending, evidence: []}
+      - {id: WFL-003, requirement: discovery_agenda_verbatim_answers_confirmed_mappings_and_rescoring_work, status: pending, evidence: []}
+      - {id: WFL-004, requirement: outreach_templates_sequences_approvals_activities_responses_and_followups_work, status: pending, evidence: []}
+      - {id: WFL-005, requirement: opt_out_and_channel_restrictions_block_incompatible_outreach, status: pending, evidence: []}
+      - {id: WFL-006, requirement: opportunity_creation_stages_aging_risk_and_outcomes_work, status: pending, evidence: []}
+  dashboards:
+    required: true
+    owner: product_analytics
+    checks:
+      - {id: DSH-001, requirement: executive_prospect_research_scoring_discovery_outreach_opportunity_and_performance_views_exist, status: pending, evidence: []}
+      - {id: DSH-002, requirement: filters_sort_pagination_saved_views_and_drilldowns_work, status: pending, evidence: []}
+      - {id: DSH-003, requirement: metrics_reconcile_to_known_source_fixtures, status: pending, evidence: []}
+      - {id: DSH-004, requirement: permission_scoped_csv_exports_reproduce_view_and_metadata, status: pending, evidence: []}
+      - {id: DSH-005, requirement: empty_loading_partial_stale_denied_and_error_states_are_clear, status: pending, evidence: []}
+  quality_and_release:
+    required: true
+    owner: qa_release
+    checks:
+      - {id: QAR-001, requirement: unit_integration_contract_component_accessibility_and_e2e_suites_pass, status: pending, evidence: []}
+      - {id: QAR-002, requirement: security_privacy_threat_model_and_independent_review_pass, status: pending, evidence: []}
+      - {id: QAR-003, requirement: target_volume_performance_baselines_pass, status: pending, evidence: []}
+      - {id: QAR-004, requirement: operational_developer_and_user_documentation_is_current, status: pending, evidence: []}
+      - {id: QAR-005, requirement: twenty_five_organization_end_to_end_acceptance_scenario_passes_without_database_edits, status: pending, evidence: []}
+      - {id: QAR-006, requirement: no_open_blocking_defects_or_unexpired_prohibited_waivers, status: pending, evidence: []}
+      - {id: QAR-007, requirement: every_prompt_has_an_architecture_review_with_no_open_critical_or_high_findings, status: pending, evidence: []}
+      - {id: QAR-008, requirement: final_repository_architecture_review_passes, status: pending, evidence: []}
+  scope_control:
+    required: true
+    owner: product
+    checks:
+      - {id: SCP-001, requirement: referral_partner_workflows_are_not_implemented, status: pending, evidence: []}
+      - {id: SCP-002, requirement: no_autonomous_external_message_sending_exists, status: pending, evidence: []}
+
+required_signoffs:
+  product_owner: {status: pending, approver: null, approved_at: null}
+  business_scoring_owner: {status: pending, approver: null, approved_at: null}
+  engineering_owner: {status: pending, approver: null, approved_at: null}
+  security_privacy_owner: {status: pending, approver: null, approved_at: null}
+  qa_release_owner: {status: pending, approver: null, approved_at: null}
+
+exceptions: []
+completion_rule: >-
+  Complete only when every required check is passed, every required signoff is
+  approved, no blocking defect remains, and the end-to-end scenario passes.
