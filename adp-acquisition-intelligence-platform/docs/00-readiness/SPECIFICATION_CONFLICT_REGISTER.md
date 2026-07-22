@@ -1,9 +1,10 @@
 # Specification Conflict Register
 
-**Version:** 1.0.0  
-**Status:** Open tracking register from Prompt 0  
+**Version:** 1.1.0  
+**Status:** Open tracking register from Prompt 0; CONF-005/009 resolved in Prompt 1.5  
 **Policy:** Do not silently resolve. Coordinated canonical updates + ADR required before consuming prompts implement conflicting behavior.  
-**Created:** 2026-07-22T18:33:53Z
+**Created:** 2026-07-22T18:33:53Z  
+**Updated:** 2026-07-22T19:15:56Z
 
 Status values: `open` | `resolved` | `accepted_risk` | `superseded`
 
@@ -81,8 +82,16 @@ Severity: `critical` | `high` | `medium` | `low`
 | Impact | Risk of overloaded `organizations.status`; dashboards and guards cannot be implemented faithfully; exit WFL-002 threatened |
 | Recommended resolution | Add explicit fields or satellite state tables for `prospect_stage`, `research_status`, `outreach_status`, and freshness indicators; enumerate allowed values; keep `stage_history` append-only for prospect and opportunity transitions |
 | Required approver | product_owner + engineering_owner |
-| Status | open |
+| Status | **resolved** |
 | Target prompt | before Prompt 2 schema freeze (critical path) |
+| Resolved in | Prompt 1.5 (`2026-07-22`) |
+| Selected resolution | Current-state columns on subject + shared append-only `operational_state_transitions` + `OperationalStateService`. Dimensions: `prospect_stage`, `research_status`, `outreach_status`, `data_freshness_status` on `organizations`; `opportunity_stage` on `opportunities`. `record_status` is separate. Authority: `docs/05-data/OPERATIONAL_STATE_AND_CONSENT_MODEL.md` |
+| Documents updated | `OPERATIONAL_STATE_AND_CONSENT_MODEL.md` (new), `PHASE_1_FUNCTIONAL_SPECIFICATION.md`, `BUSINESS_ENTITY_CATALOG.md`, `PHASE_1_TECHNICAL_ARCHITECTURE.md`, `DATABASE_ARCHITECTURE.md`, `REPOSITORY_BLUEPRINT.md`, `WORKFLOW_STATE_MACHINE.md`, `UI_SCREEN_CATALOG.md`, `DASHBOARD_SPECIFICATION.md`, `TESTING_MASTER_PLAN.md`, `docs/README.md`, `REQUIREMENTS_TRACEABILITY_MATRIX.md`, `PROMPT_1_5_SPECIFICATION_REVIEW.md` |
+
+### CONF-005 resolution history
+
+1. **2026-07-22 Prompt 0:** Finding opened — parallel dimensions required but not modeled in Database Architecture.
+2. **2026-07-22 Prompt 1.5:** Canonical model published; all listed documents updated to agree; status → resolved.
 
 ---
 
@@ -141,8 +150,16 @@ Severity: `critical` | `high` | `medium` | `low`
 | Impact | Outreach restrictions cannot be modeled, audited, or tested without inventing schema; security finding |
 | Recommended resolution | Add `ContactChannelPermission` (or equivalent) entity + tables: contact, channel, permission state (`permitted`/`restricted`/`opted_out`), source, effective/expiry, actor, audit. Wire OutreachService guards to this aggregate |
 | Required approver | product_owner + security_privacy_owner |
-| Status | open |
+| Status | **resolved** |
 | Target prompt | before Prompt 8 (schema preferably Prompt 2) |
+| Resolved in | Prompt 1.5 (`2026-07-22`) |
+| Selected resolution | Canonical Consent & Suppression model: `ContactChannelPermission`, `OrganizationCommunicationRestriction`, `SuppressionEntry`, `PermissionEvidenceLink`; states `allowed`\|`unknown`\|`restricted`\|`opted_out`\|`not_applicable` (`unknown` ≠ allowed); precedence and `ConsentPermissionService` defined in `OPERATIONAL_STATE_AND_CONSENT_MODEL.md`. Technical enforcement only—not legal compliance. |
+| Documents updated | Same coordinated set as CONF-005, plus UI-27 consent admin |
+
+### CONF-009 resolution history
+
+1. **2026-07-22 Prompt 0:** Finding opened — opt-out/consent required without entity/schema.
+2. **2026-07-22 Prompt 1.5:** Entities, tables, precedence, services, UI, tests, and exports specified; status → resolved.
 
 ---
 
@@ -328,10 +345,10 @@ Severity: `critical` | `high` | `medium` | `low`
 
 ## Summary counts
 
-| Severity | Open |
-|---|---:|
-| critical | 0 (tenant modeled as DEC-003 decision, not pure conflict) |
-| high | 4 (CONF-002, 005, 007, 009) |
-| medium | 12 |
-| low | 5 |
-| **Total** | **21** |
+| Severity | Open | Resolved (Prompt 1.5) |
+|---|---:|---:|
+| critical | 0 | 0 |
+| high | 2 (CONF-002, CONF-007) | 2 (CONF-005, CONF-009) |
+| medium | 12 | 0 |
+| low | 5 | 0 |
+| **Total open** | **19** | — |

@@ -1,8 +1,9 @@
 # Requirements Traceability Matrix
 
-**Version:** 1.0.0  
-**Status:** Prompt 0 baseline  
+**Version:** 1.1.0  
+**Status:** Prompt 0 baseline; updated Prompt 1.5 for CONF-005/009  
 **Created:** 2026-07-22T18:33:53Z  
+**Updated:** 2026-07-22T19:15:56Z
 
 Maps Phase 1 requirements from canonical sources through entities, modules, UI, prompts, tests, and exit-contract checks.
 
@@ -34,7 +35,8 @@ Legend: **Prompt** = implementation prompt; **Test** = primary automated layer; 
 | Encrypted backup/restore rehearsal | Database Arch; Testing Plan | — | operations | — | 12 | Manual restore + checksums | DAT-005 |
 | Users/roles/permissions | Vision; Entity Catalog | User, Role/Permission | platform/auth, database | UI-25 | 1–2 | Auth integration | FND-003, DAT-004 |
 | Tasks and notes | Functional §3.10 | Task, Note | work ports (owner TBD CONF-014) | UI-22, Org 360 | 2, 6 | Unit + integration | WFL-002 |
-| Parallel prospect/research/outreach states | State Machine parallel states | (gap CONF-005) | qualification/workflow | Org 360 header, D1–D2 | 2, 6 | Transition + query tests | WFL-002 |
+| Parallel prospect/research/outreach/freshness/opportunity states | State Machine; Operational State and Consent Model | Organization / Opportunity ops columns; Operational State Transition | OperationalStateService | Org 360, D1–D7 | 2, 6 | Unit + integration scenarios 11, 13 | WFL-002 |
+| Consent, channel permission, suppression | Functional §3.8a; Operational State and Consent Model | Contact Channel Permission, Org Restriction, Suppression Entry | ConsentPermissionService | UI-18, UI-27, D6 | 2, 8 | Scenarios 9, 14 | WFL-005 |
 
 ---
 
@@ -109,7 +111,7 @@ Legend: **Prompt** = implementation prompt; **Test** = primary automated layer; 
 |---|---|---|---|---|---|---|---|
 | Templates, sequences, approvals, activities, responses, follow-ups | Functional §3.8 | Campaign, Sequence, Template, Activity, Response | outreach/* | UI-18, UI-19, D6 | 8 | Integration + E2E | WFL-004 |
 | Human approval required; no autonomous send | Vision; Functional; Constitution | Message Template, Activity | outreach-service | UI-18 | 8 | Scenario 9 + scope | WFL-004, SCP-002 |
-| Opt-out/channel restrictions block | State Machine; Testing | (**gap CONF-009**) | outreach guards | UI-18 restriction flag | 8 | Scenario 9 | WFL-005 |
+| Opt-out/channel restrictions block | State Machine; Operational State and Consent Model; Testing | Contact Channel Permission, Org Restriction, Suppression | outreach + ConsentPermissionService | UI-18, UI-27, D6 | 2, 8 | Scenarios 9, 14 | WFL-005 |
 | Response classes controlled | Functional §3.8 | Response | outreach | UI-18, D6 | 8 | Unit classification | WFL-004 |
 | Idempotent activity commands | Testing scenario 10 | Outreach Activity, Task | outreach | UI-18 | 8 | Retry tests | WFL-004 |
 
@@ -158,6 +160,6 @@ Legend: **Prompt** = implementation prompt; **Test** = primary automated layer; 
 ## Coverage notes
 
 1. **Unprovable until human gates:** SCR-002, QAR-002, DAT-005, all `required_signoffs`.  
-2. **Blocked by open conflicts:** WFL-001 path for `conditionally_qualified` (CONF-002); WFL-005 data model (CONF-009); SCR-001 complete family configs (CONF-007); WFL-002 parallel states persistence (CONF-005).  
+2. **Blocked by open conflicts:** WFL-001 path for `conditionally_qualified` (CONF-002); SCR-001 complete family configs (CONF-007). CONF-005 and CONF-009 are **resolved** in Prompt 1.5.  
 3. **Campaign UI gap (CONF-013)** threatens QAR-005 “no DB edits” if campaigns are required in the happy path—resolve before Prompt 8/11.  
 4. Traceability IDs above are stable for Prompt evidence linking; extend rows when ADRs add requirements—do not delete historical rows.
