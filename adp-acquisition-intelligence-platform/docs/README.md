@@ -9,7 +9,8 @@
 5. [Variable Dictionary](05-data/VARIABLE_DICTIONARY.md) and [Scoring Engine Specification](08-scoring/SCORING_ENGINE_SPECIFICATION.md) — intelligence semantics.
 6. [UI Screen Catalog](09-ui/UI_SCREEN_CATALOG.md) and [Dashboard Specification](10-dashboards/DASHBOARD_SPECIFICATION.md) — operator experience.
 7. [Implementation Constitution](11-implementation/IMPLEMENTATION_CONSTITUTION.md), [Architecture Review Checklist](11-implementation/16_ARCHITECTURE_REVIEW_CHECKLIST.md), [Implementation Roadmap](11-implementation/IMPLEMENTATION_ROADMAP.md), and [Testing Master Plan](12-testing/TESTING_MASTER_PLAN.md) — delivery and review rules.
-8. [Phase 1 Exit Contract](13-exit-contract/PHASE_1_EXIT_CONTRACT.md) and [machine-readable checklist](13-exit-contract/phase_1_exit_contract.yaml) — definition of done.
+8. [Architecture Decision Records](adr/README.md) — Prompt 1 accepted decisions (DEC-001–012).
+9. [Phase 1 Exit Contract](13-exit-contract/PHASE_1_EXIT_CONTRACT.md) and [machine-readable checklist](13-exit-contract/phase_1_exit_contract.yaml) — definition of done.
 
 ## Conflict policy
 
