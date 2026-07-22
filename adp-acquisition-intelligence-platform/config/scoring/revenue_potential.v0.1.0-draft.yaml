@@ -1,0 +1,65 @@
+key: revenue_potential
+version: 0.1.0-draft
+status: draft
+approval_status: draft_unapproved
+activation_allowed: false
+range: [0, 100]
+currency_policy:
+  currency: USD
+  units: minor_units
+  band_labels: tbd_unapproved
+minimum_completeness: 0.55
+tiers:
+  high: 75
+  medium: 50
+  low: 0
+components:
+  - component_key: payroll_volume
+    variable_key: payroll_client_count
+    subject: organization
+    transform: capped_band
+    weight: 0.25
+    required: false
+    direction: '+'
+  - component_key: average_payroll_size
+    variable_key: average_payroll_size
+    subject: organization
+    transform: capped_band
+    weight: 0.20
+    required: false
+    direction: '+'
+  - component_key: client_volume
+    variable_key: estimated_client_count
+    subject: organization
+    transform: capped_band
+    weight: 0.15
+    required: false
+    direction: '+'
+  - component_key: typical_client_size
+    variable_key: typical_client_employee_count
+    subject: organization
+    transform: capped_band
+    weight: 0.15
+    required: false
+    direction: '+'
+  - component_key: direct_employer_size
+    variable_key: employee_count
+    subject: organization
+    transform: capped_band
+    weight: 0.10
+    required: false
+    direction: '+'
+  - component_key: firm_revenue_context
+    variable_key: estimated_revenue
+    subject: organization
+    transform: revenue_band
+    weight: 0.15
+    required: false
+    direction: '+'
+missing_data_behavior: unknown_not_zero_ranges_allowed
+confidence_behavior: range_confidence_from_confidence_policy_not_variable_key
+production_activation_blockers:
+  - business_scoring_owner_approval_missing
+  - SCR-002_pending
+  - BUS-001_pending
+  - CONF-007_open

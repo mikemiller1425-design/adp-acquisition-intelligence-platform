@@ -1,0 +1,68 @@
+key: wholesale_fit
+version: 0.1.0-draft
+status: draft
+approval_status: draft_unapproved
+activation_allowed: false
+range: [0, 100]
+minimum_completeness: 0.55
+tiers:
+  high: 75
+  medium: 50
+  low: 0
+components:
+  - component_key: recurring_service_model
+    variable_key: recurring_service_model
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.20
+    required: true
+    direction: '+'
+  - component_key: payroll_potential
+    variable_key: payroll_client_count
+    subject: organization
+    transform: capped_band
+    weight: 0.20
+    required: true
+    direction: '+'
+  - component_key: technology_maturity
+    variable_key: technology_maturity
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.10
+    required: false
+    direction: '+'
+  - component_key: advisory_influence
+    variable_key: client_decision_influence
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.15
+    required: false
+    direction: '+'
+  - component_key: operational_burden
+    variable_key: operational_burden
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.15
+    required: false
+    direction: '+'
+  - component_key: growth_intent
+    variable_key: growth_intent
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.10
+    required: false
+    direction: '+'
+  - component_key: competitive_openness
+    variable_key: competitive_openness
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.10
+    required: false
+    direction: '+'
+missing_data_behavior: unknown_not_zero_required_missing_blocks_final
+confidence_behavior: required_low_confidence_or_stale_provisional
+production_activation_blockers:
+  - business_scoring_owner_approval_missing
+  - SCR-002_pending
+  - BUS-001_pending
+  - CONF-007_open

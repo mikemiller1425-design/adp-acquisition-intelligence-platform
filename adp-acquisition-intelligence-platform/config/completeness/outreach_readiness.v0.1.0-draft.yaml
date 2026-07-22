@@ -1,0 +1,41 @@
+key: outreach_readiness
+version: 0.1.0-draft
+status: draft
+approval_status: draft_unapproved
+activation_allowed: false
+criticality_groups:
+  required:
+    group_weight: 0.35
+    variable_keys:
+      - firm_type
+      - executive_access
+      - recommendation_authority
+  high_impact:
+    group_weight: 0.45
+    variable_keys:
+      - client_interaction_frequency
+      - trusted_advisor_status
+      - provider_satisfaction
+      - known_provider_issue
+      - contract_renewal_date
+      - competitive_openness
+  contextual:
+    group_weight: 0.20
+    variable_keys:
+      - growth_stage
+      - rapid_hiring
+      - technology_dissatisfaction
+      - service_expansion
+      - multi_state_growth
+state_behavior:
+  unknown: incomplete_not_zero
+  not_applicable: exclude_only_when_definition_permits
+  withheld: incomplete_visible_withheld
+  contradicted: incomplete_create_research_gap
+  stale: incomplete_refresh_required
+operational_gates_not_scored:
+  - channel_permission
+  - opt_out
+  - suppression
+  - territory
+  - existing_relationship

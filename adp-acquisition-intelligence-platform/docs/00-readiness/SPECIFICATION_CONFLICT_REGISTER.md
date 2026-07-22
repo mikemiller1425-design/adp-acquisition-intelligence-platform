@@ -4,7 +4,7 @@
 **Status:** Open tracking register from Prompt 0; CONF-005/009 resolved in Prompt 1.5  
 **Policy:** Do not silently resolve. Coordinated canonical updates + ADR required before consuming prompts implement conflicting behavior.  
 **Created:** 2026-07-22T18:33:53Z  
-**Updated:** 2026-07-22T19:15:56Z
+**Updated:** 2026-07-22T22:56:00Z
 
 Status values: `open` | `resolved` | `accepted_risk` | `superseded`
 
@@ -122,6 +122,7 @@ Severity: `critical` | `high` | `medium` | `low`
 | Required approver | business_scoring_owner |
 | Status | open |
 | Target prompt | before Prompt 5 |
+| Prompt 5 note | Mapping draft published in `docs/08-scoring/SCORE_COMPONENT_VARIABLE_MAPPING.md`; still open pending business_scoring_owner approval |
 
 ---
 

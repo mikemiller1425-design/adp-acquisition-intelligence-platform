@@ -1,0 +1,36 @@
+key: recommendation_policy
+version: 0.1.0-draft
+status: draft
+approval_status: draft_unapproved
+activation_allowed: false
+primary_motion_selection:
+  basis: strongest_confidence_adjusted_eligible_motion
+  minimum_completeness_required: true
+  disqualifiers_block_recommendation_not_fit_score: true
+secondary_motion:
+  proximity_threshold: 0.10
+  proximity_threshold_points_on_0_100: 10
+  approval_status: draft_unapproved
+tie_break_sequence:
+  - final_over_provisional
+  - higher_confidence
+  - higher_completeness
+  - reviewer_configured_strategic_priority
+  - no_recommendation_human_review
+urgency_rules:
+  affects: ordering_and_next_action
+  does_not_affect: fit_qualification
+revenue_rules:
+  affects: priority
+  does_not_affect: qualification
+policy_blocks:
+  - existing_relationship
+  - territory
+  - consent_or_suppression
+  - reputational_or_policy_flag
+precision_rule: never_fabricate_precision
+production_activation_blockers:
+  - business_scoring_owner_approval_missing
+  - SCR-002_pending
+  - BUS-001_pending
+  - CONF-007_open

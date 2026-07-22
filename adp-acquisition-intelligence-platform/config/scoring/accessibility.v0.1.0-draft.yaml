@@ -1,0 +1,51 @@
+key: accessibility
+version: 0.1.0-draft
+status: draft
+approval_status: draft_unapproved
+activation_allowed: false
+range: [0, 100]
+minimum_completeness: 0.55
+tiers:
+  high: 75
+  medium: 50
+  low: 0
+components:
+  - component_key: relationship_access_executive
+    variable_key: executive_access
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.40
+    required: true
+    direction: '+'
+  - component_key: relationship_access_frequency
+    variable_key: client_interaction_frequency
+    subject: organization
+    transform: enum_rubric
+    weight: 0.20
+    required: false
+    direction: '+'
+  - component_key: relationship_access_trust
+    variable_key: trusted_advisor_status
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.20
+    required: false
+    direction: '+'
+  - component_key: relationship_access_recommendation
+    variable_key: recommendation_authority
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.20
+    required: false
+    direction: '+'
+mapping_gaps:
+  - verified_contact
+  - decision_role
+  - channel_permission
+missing_data_behavior: unknown_not_zero_operational_gates_not_scored
+confidence_behavior: required_low_confidence_or_stale_provisional
+production_activation_blockers:
+  - business_scoring_owner_approval_missing
+  - SCR-002_pending
+  - BUS-001_pending
+  - CONF-007_open

@@ -1,0 +1,39 @@
+key: confidence_policy
+version: 0.1.0-draft
+status: draft
+approval_status: draft_unapproved
+activation_allowed: false
+components:
+  - key: sourceReliability
+    required: true
+    weight: 0.20
+    range: [0, 1]
+  - key: specificity
+    required: true
+    weight: 0.20
+    range: [0, 1]
+  - key: recency
+    required: true
+    weight: 0.20
+    range: [0, 1]
+  - key: crossSourceAgreement
+    required: true
+    weight: 0.20
+    range: [0, 1]
+  - key: extractionCertainty
+    required: true
+    weight: 0.20
+    range: [0, 1]
+aggregation:
+  formula_status: draft
+  required_missing_behavior:
+    aggregate_score: null
+    aggregate_status: unassessed
+  base_formula: equal_weight_mean_of_present_required_components
+  conflict_penalty: 0.15
+  staleness_penalty: 0.10
+  clamp: [0, 1]
+production_activation_blockers:
+  - business_scoring_owner_approval_missing
+  - confidence_policy_approval_missing
+  - replay_tests_missing_for_approved_policy
