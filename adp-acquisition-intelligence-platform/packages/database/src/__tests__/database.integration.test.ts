@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
@@ -9,10 +10,16 @@ import {
   auditEvents,
   checkDatabaseHealth,
   contacts,
+  evidenceRecords,
   mapDatabaseError,
   organizationLocations,
   organizations,
+  permissionEvidenceLinks,
+  sources,
   users,
+  variableDefinitions,
+  variableDefinitionVersions,
+  variableValues,
 } from '../index.js';
 import {
   acquireTestDatabaseLock,
@@ -25,6 +32,7 @@ import {
 const execFileAsync = promisify(execFile);
 const packageRoot = fileURLToPath(new URL('../..', import.meta.url));
 const testDatabaseUrl = getTestDatabaseUrl();
+const expectedVariableDefinitionCount = 56;
 
 describe.sequential('database integration tooling', () => {
   let lock: TestDatabaseLock;
@@ -51,6 +59,15 @@ describe.sequential('database integration tooling', () => {
 
       expect(tables.map((row) => row.table_name)).toContain('organizations');
       expect(tables.map((row) => row.table_name)).toContain('contact_channel_permissions');
+      expect(tables.map((row) => row.table_name)).toContain('sources');
+      expect(tables.map((row) => row.table_name)).toContain('evidence_records');
+      expect(tables.map((row) => row.table_name)).toContain('research_observations');
+      expect(tables.map((row) => row.table_name)).toContain('variable_definitions');
+      expect(tables.map((row) => row.table_name)).toContain('variable_definition_versions');
+      expect(tables.map((row) => row.table_name)).toContain('variable_values');
+      expect(tables.map((row) => row.table_name)).toContain('variable_value_evidence');
+      expect(tables.map((row) => row.table_name)).toContain('permission_evidence_links');
+      expect(tables.map((row) => row.table_name)).toContain('confidence_assessments');
       expect(tables.map((row) => row.table_name)).toContain('outbox_events');
     } finally {
       await client.close();
@@ -66,6 +83,27 @@ describe.sequential('database integration tooling', () => {
 
     expect(after).toBe(before);
     expect(after).toBeGreaterThan(0);
+  });
+
+  it('applies the Prompt 3 migration after the Prompt 2 schema migrations', async () => {
+    await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
+    const client = createTestDatabaseClient(testDatabaseUrl);
+
+    try {
+      const journalCount = await migrationJournalCount();
+      const journal = JSON.parse(
+        await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
+      ) as { entries: Array<{ tag: string }> };
+
+      expect(journalCount).toBe(3);
+      expect(journal.entries.map((row) => row.tag)).toEqual([
+        '0000_parched_electro',
+        '0001_integrity_guards',
+        '0002_lyrical_daimon_hellstrom',
+      ]);
+    } finally {
+      await client.close();
+    }
   });
 
   it('enforces key partial indexes, checks, and foreign keys', async () => {
@@ -137,6 +175,136 @@ describe.sequential('database integration tooling', () => {
     }
   });
 
+  it('enforces Prompt 3 subject, uniqueness, and immutability constraints', async () => {
+    await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
+    const client = createTestDatabaseClient(testDatabaseUrl);
+
+    try {
+      const organization = first(
+        await client.db
+          .insert(organizations)
+          .values({
+            displayName: 'Prompt Three Advisors',
+            normalizedName: 'prompt three advisors',
+            normalizedDomain: 'prompt-three.example.com',
+          })
+          .returning({ id: organizations.id }),
+      );
+      const source = first(
+        await client.db
+          .insert(sources)
+          .values({
+            sourceType: 'company_website',
+            title: 'Prompt Three Website',
+            locator: 'https://prompt-three.example.com/services',
+            defaultReliability: '0.8000',
+          })
+          .returning({ id: sources.id }),
+      );
+
+      await expect(
+        client.db.insert(evidenceRecords).values({
+          subjectType: 'organization',
+          sourceId: source.id,
+          claim: 'Invalid evidence lacks an organization subject.',
+          structuredPayload: {},
+          evidenceType: 'verified_fact',
+          observedAt: new Date(),
+          contentHash: 'test:invalid-subject',
+        }),
+      ).rejects.toSatisfy((error: unknown) => mapDatabaseError(error)?.kind === 'check');
+
+      const evidence = first(
+        await client.db
+          .insert(evidenceRecords)
+          .values({
+            subjectType: 'organization',
+            organizationId: organization.id,
+            sourceId: source.id,
+            claim: 'Prompt Three Advisors offers payroll advisory.',
+            structuredPayload: { payroll_offered: true },
+            evidenceType: 'verified_fact',
+            observedAt: new Date(),
+            contentHash: 'test:prompt-three-evidence',
+          })
+          .returning({ id: evidenceRecords.id }),
+      );
+
+      await expect(
+        client.db
+          .update(evidenceRecords)
+          .set({ claim: 'Rewritten evidence claim.' })
+          .where(eq(evidenceRecords.id, evidence.id)),
+      ).rejects.toSatisfy((error: unknown) =>
+        errorText(error).includes('material evidence fields are immutable'),
+      );
+
+      const definition = first(
+        await client.db
+          .insert(variableDefinitions)
+          .values({
+            key: 'test_prompt_three_payroll_offered',
+            displayLabel: 'Test Payroll Offered',
+            description: 'Test variable definition for Prompt 3 constraints.',
+            subjectType: 'organization',
+            dataType: 'boolean',
+            status: 'active',
+          })
+          .returning({ id: variableDefinitions.id }),
+      );
+      const version = first(
+        await client.db
+          .insert(variableDefinitionVersions)
+          .values({
+            definitionId: definition.id,
+            version: 1,
+            allowedValues: { values: [true, false] },
+            nullStatusSemantics: { unknown: 'No reliable evidence.' },
+            lifecycleStatus: 'active',
+            publishedAt: new Date(),
+          })
+          .returning({ id: variableDefinitionVersions.id }),
+      );
+
+      await expect(
+        client.db
+          .update(variableDefinitionVersions)
+          .set({ helpText: 'Rewritten active version.' })
+          .where(eq(variableDefinitionVersions.id, version.id)),
+      ).rejects.toSatisfy((error: unknown) =>
+        errorText(error).includes('active variable_definition_versions rows are immutable'),
+      );
+
+      await client.db.insert(variableValues).values({
+        subjectType: 'organization',
+        organizationId: organization.id,
+        variableDefinitionId: definition.id,
+        definitionVersionId: version.id,
+        typedValue: { value: true },
+        normalizedValue: { value: true },
+        valueStatus: 'known',
+        evidenceType: 'verified_fact',
+        lifecycle: 'current',
+      });
+
+      await expect(
+        client.db.insert(variableValues).values({
+          subjectType: 'organization',
+          organizationId: organization.id,
+          variableDefinitionId: definition.id,
+          definitionVersionId: version.id,
+          typedValue: { value: false },
+          normalizedValue: { value: false },
+          valueStatus: 'known',
+          evidenceType: 'verified_fact',
+          lifecycle: 'current',
+        }),
+      ).rejects.toSatisfy((error: unknown) => mapDatabaseError(error)?.kind === 'unique');
+    } finally {
+      await client.close();
+    }
+  });
+
   it('runs the synthetic seed twice successfully', async () => {
     await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
 
@@ -156,10 +324,22 @@ describe.sequential('database integration tooling', () => {
           where status = 'pending'
         `,
       ).count;
+      const variableDefinitionCount = first(
+        await client.db.select({ value: count() }).from(variableDefinitions),
+      ).value;
+      const evidenceRecordCount = first(
+        await client.db.select({ value: count() }).from(evidenceRecords),
+      ).value;
+      const permissionEvidenceLinkCount = first(
+        await client.db.select({ value: count() }).from(permissionEvidenceLinks),
+      ).value;
 
       expect(userCount).toBeGreaterThanOrEqual(4);
       expect(organizationCount).toBeGreaterThanOrEqual(3);
       expect(pendingOutboxCount).toBeGreaterThanOrEqual(1);
+      expect(variableDefinitionCount).toBe(expectedVariableDefinitionCount);
+      expect(evidenceRecordCount).toBeGreaterThanOrEqual(6);
+      expect(permissionEvidenceLinkCount).toBeGreaterThanOrEqual(1);
     } finally {
       await client.close();
     }
