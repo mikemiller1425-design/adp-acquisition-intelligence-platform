@@ -43,12 +43,15 @@ Only one current non-contradicted value per subject/definition/effective context
 
 ### Scores and qualification
 
+- `completeness_definitions`, `completeness_definition_versions`, `completeness_results`
 - `score_definitions`, `score_definition_versions`, `score_components`
-- `score_results` — score, tier, confidence, completeness, status, calculated_at, immutable input/explanation snapshots.
-- `score_factors` — direction, contribution, variable/evidence reference, explanation.
+- `score_input_snapshots` — immutable normalized input, value/evidence refs, definition refs, and definition digest.
+- `score_results` — score, tier, confidence, completeness, status, calculated_at, immutable explanation, recommendation, duration, previous-result, and override metadata.
+- `score_factors` — transformed score, weight, contribution, variable reference, status, and explanation.
+- `score_recalculation_jobs` — idempotent recalculation queue for variable/definition events.
 - `qualification_reviews`, `qualification_review_scores`, `disqualification_reasons`
 
-Index score results by subject, definition/version, and calculated time. A published score definition cannot be updated.
+Index score results by subject, definition/version, and calculated time. A published score definition cannot be updated. Prompt 5 draft definitions are inactive until `business_scoring_owner` approval closes SCR-002 and CONF-007.
 
 ### Discovery
 
@@ -96,6 +99,7 @@ suppression_entries (global/identifier/contact/org scoped)
 operational_state_transitions N—1 subject (organization | opportunity)
 variable_definition_versions 1—N variable_values
 score_definition_versions 1—N score_results 1—N score_factors
+score_definition_versions 1—N score_input_snapshots 1—N score_results
 discovery_sessions 1—N answers 1—N answer_mappings → variable_values
 sequences 1—N sequence_versions 1—N steps → outreach_activities → responses
 opportunities.opportunity_stage + transitions
@@ -152,3 +156,13 @@ Prompt 4 implements collection and identity-resolution tables in `packages/datab
 - `duplicate_candidates` stores explainable features, policy version, review queue status, and decision metadata.
 - `merge_events` stores survivor/absorbed organization IDs, impact previews, moved-child snapshots, completion metadata, and reversal metadata.
 - Prompt 4 was gated and integration-tested against PostgreSQL 17; see [Prompt 4 PostgreSQL 17 Gate](../01-reviews/PROMPT_4_POSTGRESQL_17_GATE.md).
+
+## Prompt 5 implementation notes
+
+Prompt 5 implements draft completeness/scoring tables in `packages/database/src/schema/scoring.ts` and migration `0004_prompt_5_scoring_engine.sql`.
+
+- Added tables: `completeness_definitions`, `completeness_definition_versions`, `completeness_results`, `score_definitions`, `score_definition_versions`, `score_components`, `score_input_snapshots`, `score_results`, `score_factors`, and `score_recalculation_jobs`.
+- Active score/completeness definitions require approved metadata; draft unapproved definitions remain inactive.
+- Score input snapshots, score results, and score factors are append-only for deterministic replay and auditability.
+- Score recalculation jobs are deduplicated by idempotency key.
+- Draft seeds create nine score definitions without activating any definition; SCR-002 remains pending until business approval exists.

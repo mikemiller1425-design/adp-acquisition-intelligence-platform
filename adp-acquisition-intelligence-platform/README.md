@@ -31,7 +31,9 @@ Database development:
 - [Import pipeline guide](docs/development/IMPORT_PIPELINE_GUIDE.md)
 - [Normalization policy](docs/development/NORMALIZATION_POLICY.md)
 - [Duplicate and merge guide](docs/development/DUPLICATE_AND_MERGE_GUIDE.md)
+- [Scoring configuration guide](docs/development/SCORING_CONFIGURATION_GUIDE.md)
 - [Import recovery runbook](docs/operations/IMPORT_RECOVERY_RUNBOOK.md)
+- [Score recalculation runbook](docs/operations/SCORE_RECALCULATION_RUNBOOK.md)
 
 ## Documentation
 

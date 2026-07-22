@@ -136,5 +136,17 @@ Prompt 4 verified these planned responsibilities:
 - `packages/collection/src/infrastructure/postgres-repositories.ts` — **verified** for import batch/row persistence, duplicate review metadata persistence, organization creation/archival, duplicate candidate lookup, merge event persistence, and supported Postgres merge child reassignment.
 - `packages/platform` storage and malware scan ports — **verified** as collection upload dependencies.
 
-Prompt 4 intentionally leaves API route/UI composition, dedicated `import_entity_links` writing, and DB-backed merge reverse movement in deferred status for later composition prompts. Prompt 5 scoring/completeness remains unstarted.
+Prompt 4 intentionally leaves API route/UI composition, dedicated `import_entity_links` writing, and DB-backed merge reverse movement in deferred status for later composition prompts.
+
+## Prompt 5 implementation status
+
+Prompt 5 created and draft-verified these planned responsibilities:
+
+- `packages/database/schema/scoring.ts` and migration `0004_prompt_5_scoring_engine.sql` — **verified for draft engine existence** with completeness definitions/results, score definitions/versions/components, input snapshots, score results, score factors, recalculation jobs, activation guards, and append-only protections.
+- `packages/scoring/src/domain/*` — **verified for draft engine existence** with transforms, completeness, confidence-policy gating, deterministic scoring, recommendation tie handling, and weight validation.
+- `packages/scoring/src/application/*` — **verified for draft engine existence** with draft definition services, scoring/completeness services, recommendation service, override path, and recalculation service.
+- `packages/scoring/src/infrastructure/*` — **verified for draft engine existence** with draft config loaders and Postgres repositories.
+- `config/scoring/*.yaml` and `tests/fixtures/golden-scores/*` — **verified for draft engine existence** with inactive draft score, confidence, recommendation definitions, and golden fixtures for nine score families.
+
+Prompt 5 intentionally leaves all score/completeness definitions `draft_unapproved` and inactive. SCR-002 remains pending until `business_scoring_owner` approval is recorded and CONF-007 is resolved.
 

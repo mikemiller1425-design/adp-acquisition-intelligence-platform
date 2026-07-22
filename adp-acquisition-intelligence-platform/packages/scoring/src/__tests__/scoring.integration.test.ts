@@ -2,6 +2,7 @@ import { count, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  completenessDefinitions,
   mapDatabaseError,
   organizations,
   scoreDefinitions,
@@ -108,6 +109,20 @@ describe.sequential('Prompt 5 scoring integration', () => {
           displayName: 'Forbidden Active',
           description: 'Should fail',
           family: 'motion',
+          subjectType: 'organization',
+          status: 'active',
+          approvalStatus: 'draft_unapproved',
+        }),
+      ).rejects.toSatisfy((error: unknown) => {
+        const mapped = mapDatabaseError(error);
+        return mapped?.kind === 'check' || errorText(error).includes('approval_status=approved');
+      });
+      await expect(
+        client.db.insert(completenessDefinitions).values({
+          key: 'forbidden_completeness_active',
+          displayName: 'Forbidden Completeness Active',
+          description: 'Should fail',
+          purpose: 'draft_readiness',
           subjectType: 'organization',
           status: 'active',
           approvalStatus: 'draft_unapproved',
