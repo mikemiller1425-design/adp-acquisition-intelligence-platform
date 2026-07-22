@@ -1,3 +1,4 @@
+export * from './account-assignments.js';
 export * from './audit.js';
 export * from './consent.js';
 export * from './enums.js';

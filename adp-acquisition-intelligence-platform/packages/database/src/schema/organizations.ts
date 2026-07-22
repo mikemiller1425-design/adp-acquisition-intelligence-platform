@@ -23,6 +23,7 @@ import {
   researchStatusEnum,
 } from './enums.js';
 import { users } from './identity.js';
+import { territories } from './territories.js';
 
 export const organizations = pgTable(
   'organizations',
@@ -103,7 +104,9 @@ export const organizationLocations = pgTable(
     organizationId: uuid('organization_id')
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    territoryId: uuid('territory_id'),
+    territoryId: uuid('territory_id').references(() => territories.id, {
+      onDelete: 'set null',
+    }),
     name: text('name'),
     locationStatus: locationStatusEnum('location_status').notNull().default('active'),
     isPrimary: boolean('is_primary').notNull().default(false),

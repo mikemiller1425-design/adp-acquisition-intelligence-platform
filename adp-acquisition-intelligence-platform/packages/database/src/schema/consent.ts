@@ -73,9 +73,7 @@ export const organizationCommunicationRestrictions = pgTable(
   'organization_communication_restrictions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    organizationId: uuid('organization_id')
-      .notNull()
-      .references(() => organizations.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id').notNull(),
     channel: channelEnum('channel'),
     state: permissionStateEnum('state').notNull(),
     source: permissionSourceEnum('source').notNull(),
@@ -83,15 +81,23 @@ export const organizationCommunicationRestrictions = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     supersededById: uuid('superseded_by_id'),
-    capturedByUserId: uuid('captured_by_user_id').references(() => users.id, {
-      onDelete: 'set null',
-    }),
+    capturedByUserId: uuid('captured_by_user_id'),
     reasonCode: text('reason_code'),
     reasonNote: text('reason_note'),
     evidenceRef: text('evidence_ref'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.organizationId],
+      foreignColumns: [organizations.id],
+      name: 'ocr_organization_id_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.capturedByUserId],
+      foreignColumns: [users.id],
+      name: 'ocr_captured_by_user_id_fk',
+    }).onDelete('set null'),
     foreignKey({
       columns: [table.supersededById],
       foreignColumns: [table.id],

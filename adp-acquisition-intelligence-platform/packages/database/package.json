@@ -8,22 +8,42 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.ts",
+      "import": "./dist/schema/index.js",
+      "default": "./dist/schema/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/setup.d.ts",
+      "import": "./dist/testing/setup.js",
+      "default": "./dist/testing/setup.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "migrations",
+    "seeds"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "lint": "eslint src --max-warnings=0",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "db:generate": "tsx node_modules/drizzle-kit/bin.cjs generate --config drizzle.config.ts",
+    "db:migrate": "tsx src/migrate.ts",
+    "db:seed": "tsx seeds/index.ts",
+    "db:studio": "tsx node_modules/drizzle-kit/bin.cjs studio --config drizzle.config.ts",
+    "lint": "eslint src seeds drizzle.config.ts --max-warnings=0",
+    "test": "vitest run src --passWithNoTests",
+    "test:integration": "vitest run src/__tests__/database.integration.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.scripts.json --noEmit"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
-    "postgres": "^3.4.8"
+    "postgres": "^3.4.8",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "drizzle-kit": "0.31.8",
+    "tsx": "^4.23.1",
     "typescript": "5.9.3",
     "vitest": "4.1.10"
   },
