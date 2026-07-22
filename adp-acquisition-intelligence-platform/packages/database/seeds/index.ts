@@ -27,6 +27,7 @@ import {
   users,
   type RepositoryExecutor,
 } from '../src/index.js';
+import { seedScoringDrafts, type ScoringSeedSummary } from './scoring.js';
 import { seedVariables, type VariableSeedSummary } from './variables.js';
 
 const DEFAULT_DATABASE_URL = 'postgres://adp:adp@localhost:5432/adp_acquisition';
@@ -50,6 +51,7 @@ interface SeedSummary {
   tasks: number;
   tags: number;
   variables: VariableSeedSummary;
+  scoring: ScoringSeedSummary;
 }
 
 interface SeedIds {
@@ -94,6 +96,7 @@ export async function runSeed(databaseUrl: string): Promise<SeedSummary> {
       await seedTasksNotesAndTaggings(tx, ids);
       await seedOperationalTransitions(tx, ids);
       const variableSummary = await seedVariables(tx, ids);
+      const scoringSummary = await seedScoringDrafts(tx);
       await seedAuditAndOutbox(tx, ids);
 
       return {
@@ -106,6 +109,7 @@ export async function runSeed(databaseUrl: string): Promise<SeedSummary> {
         tasks: 3,
         tags: Object.keys(ids.tags).length,
         variables: variableSummary,
+        scoring: scoringSummary,
       };
     });
   } finally {

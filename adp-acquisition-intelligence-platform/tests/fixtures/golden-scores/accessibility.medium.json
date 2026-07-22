@@ -1,0 +1,30 @@
+{
+  "scoreKey": "accessibility",
+  "family": "support",
+  "components": [
+    { "key": "verified_contact", "weight": 0.5, "transform": "boolean_flag", "required": true },
+    {
+      "key": "relationship_access",
+      "weight": 0.5,
+      "transform": "ordinal_linear",
+      "transformConfig": { "min": 0, "max": 4 }
+    }
+  ],
+  "inputs": [
+    {
+      "componentKey": "verified_contact",
+      "value": true,
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    },
+    {
+      "componentKey": "relationship_access",
+      "value": 1,
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    }
+  ],
+  "expected": { "status": "final", "tier": "medium", "score": 62.5 }
+}

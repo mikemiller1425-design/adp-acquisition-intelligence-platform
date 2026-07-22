@@ -180,6 +180,27 @@ export const definitionLifecycleEnum = pgEnum('definition_lifecycle', [
   'retired',
 ]);
 
+export const scoringApprovalStatusEnum = pgEnum('scoring_approval_status', [
+  'draft_unapproved',
+  'pending',
+  'approved',
+  'rejected',
+]);
+
+export const scoreResultStatusEnum = pgEnum('score_result_status', [
+  'final',
+  'provisional',
+  'insufficient_data',
+]);
+
+export const scoreRecalculationJobStatusEnum = pgEnum('score_recalculation_job_status', [
+  'pending',
+  'running',
+  'completed',
+  'failed',
+  'skipped',
+]);
+
 export const variableDataTypeEnum = pgEnum('variable_data_type', [
   'boolean',
   'integer',

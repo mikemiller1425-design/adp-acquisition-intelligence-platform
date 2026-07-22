@@ -1,0 +1,41 @@
+{
+  "scoreKey": "direct_payroll_opportunity",
+  "family": "motion",
+  "components": [
+    {
+      "key": "employer_size_fit",
+      "weight": 0.5,
+      "transform": "capped_band",
+      "required": true,
+      "transformConfig": {
+        "bands": [
+          { "max": 24, "score": 25 },
+          { "min": 25, "max": 500, "score": 90 }
+        ]
+      }
+    },
+    {
+      "key": "provider_pain",
+      "weight": 0.5,
+      "transform": "ordinal_linear",
+      "required": true,
+      "transformConfig": { "min": 0, "max": 4 }
+    }
+  ],
+  "inputs": [
+    {
+      "componentKey": "employer_size_fit",
+      "value": 120,
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    },
+    {
+      "componentKey": "provider_pain",
+      "value": null,
+      "valueStatus": "unknown",
+      "confidenceStatus": "unassessed"
+    }
+  ],
+  "expected": { "status": "insufficient_data", "tier": null, "score": null }
+}

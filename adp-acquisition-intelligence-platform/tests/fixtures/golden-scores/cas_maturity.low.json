@@ -1,0 +1,25 @@
+{
+  "scoreKey": "cas_maturity",
+  "family": "motion",
+  "components": [
+    { "key": "recurring_share", "weight": 0.5, "transform": "percentage_linear", "required": true },
+    { "key": "executive_access", "weight": 0.5, "transform": "boolean_flag" }
+  ],
+  "inputs": [
+    {
+      "componentKey": "recurring_share",
+      "value": 20,
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    },
+    {
+      "componentKey": "executive_access",
+      "value": false,
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    }
+  ],
+  "expected": { "status": "final", "tier": "low", "score": 10 }
+}

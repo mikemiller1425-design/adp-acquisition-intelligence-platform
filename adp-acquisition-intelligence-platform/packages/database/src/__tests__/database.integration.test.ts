@@ -19,6 +19,7 @@ import {
   organizationLocations,
   organizations,
   permissionEvidenceLinks,
+  scoreDefinitions,
   sources,
   users,
   variableDefinitions,
@@ -99,12 +100,13 @@ describe.sequential('database integration tooling', () => {
         await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
       ) as { entries: Array<{ tag: string }> };
 
-      expect(journalCount).toBe(4);
+      expect(journalCount).toBe(5);
       expect(journal.entries.map((row) => row.tag)).toEqual([
         '0000_parched_electro',
         '0001_integrity_guards',
         '0002_lyrical_daimon_hellstrom',
         '0003_melted_inertia',
+        '0004_prompt_5_scoring_engine',
       ]);
     } finally {
       await client.close();
@@ -293,6 +295,81 @@ describe.sequential('database integration tooling', () => {
       ).rejects.toSatisfy((error: unknown) =>
         errorText(error).includes('hard delete is forbidden'),
       );
+    } finally {
+      await client.close();
+    }
+  });
+
+  it('applies Prompt 5 scoring tables, activation guards, and append-only protections', async () => {
+    await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
+    const client = createTestDatabaseClient(testDatabaseUrl);
+
+    try {
+      const tables = await client.sql<{ table_name: string }[]>`
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name in (
+            'completeness_definitions',
+            'completeness_definition_versions',
+            'completeness_results',
+            'score_definitions',
+            'score_definition_versions',
+            'score_components',
+            'score_results',
+            'score_factors',
+            'score_input_snapshots',
+            'score_recalculation_jobs'
+          )
+        order by table_name
+      `;
+      expect(tables.map((row) => row.table_name)).toEqual([
+        'completeness_definition_versions',
+        'completeness_definitions',
+        'completeness_results',
+        'score_components',
+        'score_definition_versions',
+        'score_definitions',
+        'score_factors',
+        'score_input_snapshots',
+        'score_recalculation_jobs',
+        'score_results',
+      ]);
+
+      const triggers = await client.sql<{ tgname: string }[]>`
+        select tgname
+        from pg_trigger
+        where tgname in (
+          'score_definitions_reject_unapproved_activation',
+          'score_definition_versions_reject_active_rewrite',
+          'score_results_append_only',
+          'score_input_snapshots_append_only',
+          'score_factors_append_only'
+        )
+        order by tgname
+      `;
+      expect(triggers.map((row) => row.tgname)).toEqual([
+        'score_definition_versions_reject_active_rewrite',
+        'score_definitions_reject_unapproved_activation',
+        'score_factors_append_only',
+        'score_input_snapshots_append_only',
+        'score_results_append_only',
+      ]);
+
+      await expect(
+        client.db.insert(scoreDefinitions).values({
+          key: 'unapproved_active_database_test',
+          displayName: 'Unapproved Active Database Test',
+          description: 'Should be blocked by Prompt 5 activation guard.',
+          family: 'motion',
+          subjectType: 'organization',
+          status: 'active',
+          approvalStatus: 'draft_unapproved',
+        }),
+      ).rejects.toSatisfy((error: unknown) => {
+        const mapped = mapDatabaseError(error);
+        return mapped?.kind === 'check' || errorText(error).includes('approval_status=approved');
+      });
     } finally {
       await client.close();
     }
@@ -521,6 +598,15 @@ describe.sequential('database integration tooling', () => {
       const variableDefinitionCount = first(
         await client.db.select({ value: count() }).from(variableDefinitions),
       ).value;
+      const scoreDefinitionCount = first(
+        await client.db.select({ value: count() }).from(scoreDefinitions),
+      ).value;
+      const activeScoreDefinitionCount = first(
+        await client.db
+          .select({ value: count() })
+          .from(scoreDefinitions)
+          .where(eq(scoreDefinitions.status, 'active')),
+      ).value;
       const evidenceRecordCount = first(
         await client.db.select({ value: count() }).from(evidenceRecords),
       ).value;
@@ -532,6 +618,8 @@ describe.sequential('database integration tooling', () => {
       expect(organizationCount).toBeGreaterThanOrEqual(3);
       expect(pendingOutboxCount).toBeGreaterThanOrEqual(1);
       expect(variableDefinitionCount).toBe(expectedVariableDefinitionCount);
+      expect(scoreDefinitionCount).toBe(9);
+      expect(activeScoreDefinitionCount).toBe(0);
       expect(evidenceRecordCount).toBeGreaterThanOrEqual(6);
       expect(permissionEvidenceLinkCount).toBeGreaterThanOrEqual(1);
     } finally {
