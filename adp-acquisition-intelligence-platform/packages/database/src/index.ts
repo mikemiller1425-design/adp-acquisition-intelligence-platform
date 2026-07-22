@@ -1,6 +1,8 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
+export * from './schema/index.js';
+
 /**
  * Prompt 1 database seam only.
  * Business schemas and migrations begin in Prompt 2 (ADR-005).
