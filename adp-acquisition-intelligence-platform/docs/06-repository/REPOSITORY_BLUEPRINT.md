@@ -1,6 +1,6 @@
 # Repository Blueprint
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Status:** Planned production repository contract
 
 ## Proposed production tree
@@ -23,10 +23,11 @@ adp-acquisition-platform/
 │   ├── qualification/src/
 │   ├── discovery/src/
 │   ├── outreach/src/
+│   ├── consent/src/
 │   ├── opportunities/src/
 │   ├── reporting/src/
 │   └── ui/src/
-├── config/{variables,scoring,workflows,discovery,outreach}
+├── config/{variables,scoring,workflows,discovery,outreach,consent}
 ├── data/{seed,fixtures,imports,exports}
 ├── docs/{adr,architecture,operations,user}
 ├── scripts/{setup,seed,import,validation,maintenance}
@@ -69,18 +70,23 @@ The exact filenames may change by ADR, but every responsibility and owner below 
 | `packages/scoring/application/scoring-service.ts` | snapshot, persist, explain, recalc | variables, evidence | Scoring | 5 |
 | `config/scoring/*.yaml` | versioned formulas/rubrics | config schema | Scoring config | 5 |
 | `packages/qualification/application/review-service.ts` | decisions, overrides, next actions | scores, workflow | Qualification | 6 |
-| `config/workflows/prospect.yaml` | transition/guard declaration | workflow schema | Qualification | 6 |
+| `packages/qualification/application/operational-state-service.ts` | parallel-dimension transitions + history | workflow config, audit, tasks | Qualification / Workflow | 2/6 |
+| `config/workflows/prospect.yaml` | prospect_stage transition/guard declaration | workflow schema | Qualification | 6 |
+| `config/workflows/parallel_states.yaml` | research/outreach/freshness vocabularies + guards | workflow schema | Qualification | 2/6 |
+| `packages/consent/domain/permission.ts` | permission/suppression invariants + precedence | primitives | Consent | 2 |
+| `packages/consent/application/consent-permission-service.ts` | assert/supersede/evaluate effective permission | evidence, audit | Consent | 2/8 |
 | `packages/discovery/application/agenda-service.ts` | context-sensitive question selection | variables, scores | Discovery | 7 |
 | `packages/discovery/application/answer-mapping-service.ts` | confirm mappings and trigger recalc | variables, scoring | Discovery | 7 |
 | `config/discovery/*.yaml` | templates/questions/mappings | config schema | Discovery config | 7 |
-| `packages/outreach/application/outreach-service.ts` | drafts, approvals, activities/responses | qualification, tasks | Outreach | 8 |
+| `packages/outreach/application/outreach-service.ts` | drafts, approvals, activities/responses; consent gate | qualification, tasks, consent | Outreach | 8 |
 | `config/outreach/*.yaml` | versioned templates/sequences/tags | config schema | Outreach config | 8 |
-| `packages/opportunities/application/opportunity-service.ts` | opportunity/stage commands | workflow, audit | Opportunities | 9 |
+| `packages/opportunities/application/opportunity-service.ts` | opportunity/opportunity_stage commands | operational-state, audit | Opportunities | 9 |
 | `packages/reporting/application/dashboard-query-service.ts` | permission-scoped metrics/tables | domain query ports | Reporting | 10 |
-| `packages/reporting/application/export-service.ts` | reproducible async exports | jobs, auth | Reporting | 10 |
-| `apps/web/src/features/{prospects,research,scoring,discovery,outreach,opportunities,dashboards}/*` | screens in UI catalog | contracts/UI | Web | 4–11 |
+| `packages/reporting/application/export-service.ts` | reproducible async exports; channel masking | jobs, auth, consent | Reporting | 10 |
+| `apps/web/src/features/{prospects,research,scoring,discovery,outreach,opportunities,consent,dashboards}/*` | screens in UI catalog | contracts/UI | Web | 4–11 |
 | `tests/e2e/phase1-happy-path.spec.ts` | full exit scenario | deployed test stack | QA | 12 |
 | `tests/fixtures/golden-scores/*` | score regression fixtures | active definitions | QA/Scoring | 5/12 |
+| `tests/fixtures/consent-precedence/*` | permission ruling fixtures | consent definitions | QA/Consent | 2/8 |
 
 ## Module contract template
 
@@ -88,7 +94,7 @@ Every new module records: purpose, owned entities, public commands/queries/event
 
 ## Prompt ownership map
 
-Prompts 1–12 are defined in the [Roadmap](../11-implementation/IMPLEMENTATION_ROADMAP.md). A prompt may modify earlier foundation files only when necessary and must report it. Future work must not create dormant referral packages during Phase 1.
+Prompts 1–12 are defined in the [Roadmap](../11-implementation/IMPLEMENTATION_ROADMAP.md). Prompt 1.5 resolved CONF-005/CONF-009 specification gaps; Prompt 2 MUST implement the resulting schema without inventing alternate state or consent models. A prompt may modify earlier foundation files only when necessary and must report it. Future work must not create dormant referral packages during Phase 1.
 
 ## Blueprint status protocol
 
