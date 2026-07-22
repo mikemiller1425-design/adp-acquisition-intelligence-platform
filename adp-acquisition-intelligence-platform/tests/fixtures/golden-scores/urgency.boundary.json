@@ -1,0 +1,24 @@
+{
+  "scoreKey": "urgency",
+  "family": "support",
+  "components": [
+    {
+      "key": "dated_trigger",
+      "weight": 1,
+      "transform": "trigger_recency",
+      "required": true,
+      "transformConfig": { "fresh_days": 10, "stale_days": 110 }
+    }
+  ],
+  "inputs": [
+    {
+      "componentKey": "dated_trigger",
+      "value": "2026-07-02T00:00:00.000Z",
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    }
+  ],
+  "now": "2026-07-22T00:00:00.000Z",
+  "expected": { "status": "final", "tier": "high", "score": 90 }
+}

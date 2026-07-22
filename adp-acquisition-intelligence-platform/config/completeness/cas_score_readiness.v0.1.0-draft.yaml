@@ -1,0 +1,32 @@
+key: cas_score_readiness
+version: 0.1.0-draft
+status: draft
+approval_status: draft_unapproved
+activation_allowed: false
+criticality_groups:
+  required:
+    group_weight: 0.35
+    variable_keys:
+      - cas_offered
+      - cas_revenue_share
+  high_impact:
+    group_weight: 0.45
+    variable_keys:
+      - recurring_service_model
+      - client_interaction_frequency
+      - technology_maturity
+      - process_standardization
+      - executive_access
+  contextual:
+    group_weight: 0.20
+    variable_keys:
+      - bookkeeping_offered
+      - fractional_cfo_offered
+      - technology_consulting_offered
+      - trusted_advisor_status
+state_behavior:
+  unknown: incomplete_not_zero
+  not_applicable: exclude_only_when_definition_permits
+  withheld: incomplete_visible_withheld
+  contradicted: incomplete_create_research_gap
+  stale: incomplete_refresh_required

@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: adp
+      POSTGRES_PASSWORD: adp
+      POSTGRES_DB: adp_acquisition
+    volumes:
+      - adp_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U adp -d adp_acquisition']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  adp_pg_data:

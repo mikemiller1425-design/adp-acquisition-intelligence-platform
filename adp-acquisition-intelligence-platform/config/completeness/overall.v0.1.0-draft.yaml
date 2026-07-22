@@ -1,0 +1,40 @@
+key: overall
+version: 0.1.0-draft
+status: draft
+approval_status: draft_unapproved
+activation_allowed: false
+criticality_groups:
+  required:
+    group_weight: 0.35
+    variable_keys:
+      - firm_type
+      - employee_count
+      - payroll_offered
+      - payroll_delivery_model
+      - geographic_coverage
+  high_impact:
+    group_weight: 0.45
+    variable_keys:
+      - estimated_client_count
+      - payroll_client_count
+      - recurring_service_model
+      - client_decision_influence
+      - executive_access
+      - growth_stage
+      - current_payroll_provider
+  contextual:
+    group_weight: 0.20
+    variable_keys:
+      - estimated_revenue
+      - average_payroll_size
+      - typical_client_employee_count
+      - technology_maturity
+      - process_standardization
+      - competitive_openness
+      - provider_satisfaction
+state_behavior:
+  unknown: incomplete_not_zero
+  not_applicable: exclude_only_when_definition_permits
+  withheld: incomplete_visible_withheld
+  contradicted: incomplete_create_research_gap
+  stale: incomplete_refresh_required

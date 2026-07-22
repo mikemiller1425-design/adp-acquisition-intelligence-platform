@@ -67,12 +67,60 @@ gates:
     required: true
     owner: business_scoring
     checks:
-      - {id: SCR-001, requirement: acquisition_wholesale_cas_direct_influence_urgency_revenue_accessibility_and_confidence_scores_exist, status: pending, evidence: []}
-      - {id: SCR-002, requirement: active_score_rubrics_and_weights_have_business_approval, status: pending, evidence: []}
-      - {id: SCR-003, requirement: scores_are_versioned_deterministic_and_replayable, status: pending, evidence: []}
-      - {id: SCR-004, requirement: output_includes_status_tier_confidence_completeness_factors_gaps_action_and_snapshot, status: pending, evidence: []}
-      - {id: SCR-005, requirement: low_completeness_and_conflicts_do_not_create_false_precision, status: pending, evidence: []}
-      - {id: SCR-006, requirement: recommendation_override_requires_authorization_reason_and_preserves_computed_result, status: pending, evidence: []}
+      - id: SCR-001
+        requirement: acquisition_wholesale_cas_direct_influence_urgency_revenue_accessibility_and_confidence_scores_exist
+        status: pending
+        evidence:
+          - artifact: docs/prompts/PROMPT_5_COMPLETENESS_AND_SCORING.md
+            commit: ece8350c8444baf655c6c7d145274fa88b669288
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:14:00Z"
+            result: draft_engine_exists_for_nine_required_families_definitions_inactive
+      - id: SCR-002
+        requirement: active_score_rubrics_and_weights_have_business_approval
+        status: pending
+        evidence:
+          - artifact: docs/01-reviews/PROMPT_5_HANDOFF.md
+            commit: ece8350c8444baf655c6c7d145274fa88b669288
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:14:00Z"
+            result: blocked_business_scoring_owner_approval_pending_definitions_draft_inactive
+      - id: SCR-003
+        requirement: scores_are_versioned_deterministic_and_replayable
+        status: pending
+        evidence:
+          - artifact: tests/fixtures/golden-scores
+            commit: ece8350c8444baf655c6c7d145274fa88b669288
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:14:00Z"
+            result: draft_golden_replay_exists_pending_approved_definition_replay
+      - id: SCR-004
+        requirement: output_includes_status_tier_confidence_completeness_factors_gaps_action_and_snapshot
+        status: pending
+        evidence:
+          - artifact: packages/scoring/src/application/scoring-service.ts
+            commit: ece8350c8444baf655c6c7d145274fa88b669288
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:14:00Z"
+            result: draft_output_and_snapshot_contract_exists_pending_active_approval
+      - id: SCR-005
+        requirement: low_completeness_and_conflicts_do_not_create_false_precision
+        status: pending
+        evidence:
+          - artifact: packages/scoring/src/__tests__/scoring.unit.test.ts
+            commit: ece8350c8444baf655c6c7d145274fa88b669288
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:14:00Z"
+            result: draft_tests_cover_missing_semantics_and_confidence_null_pending_approved_policy
+      - id: SCR-006
+        requirement: recommendation_override_requires_authorization_reason_and_preserves_computed_result
+        status: pending
+        evidence:
+          - artifact: packages/scoring/src/application/scoring-service.ts
+            commit: ece8350c8444baf655c6c7d145274fa88b669288
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:14:00Z"
+            result: draft_override_metadata_path_exists_pending_qualification_authorization_composition
   workflow:
     required: true
     owner: product

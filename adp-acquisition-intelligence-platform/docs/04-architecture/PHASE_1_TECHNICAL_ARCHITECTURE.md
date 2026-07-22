@@ -1,6 +1,6 @@
 # Phase 1 Technical Architecture
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Status:** Canonical engineering architecture
 
 ## Architecture style
@@ -27,9 +27,10 @@ No UI component accesses persistence. Background jobs invoke the same applicatio
 - Evidence & Research
 - Variables & Completeness
 - Scoring
-- Qualification & Workflow
+- Qualification & Workflow (includes `OperationalStateService`)
 - Discovery
-- Outreach
+- Outreach (includes consent evaluation hooks)
+- Consent & Suppression (contact channel permissions, org restrictions, suppressions)
 - Opportunities
 - Reporting & Exports
 - Audit & Shared Platform
@@ -56,17 +57,19 @@ Representative services:
 
 | Service | Inputs | Outputs | Side effects / failures |
 |---|---|---|---|
-| ImportService | file, mapping, actor, dry-run flag | validation preview or committed batch | creates normalized records on commit; row errors, policy rejection |
+| ImportService | file, mapping, actor, dry-run flag | validation preview or committed batch | creates normalized records and proposed permission rows on commit; row errors, policy rejection; never auto-lifts opt-out |
 | IdentityResolutionService | organization candidate | ranked duplicate candidates | no merge side effect; ambiguous result |
-| EvidenceService | claim, source, context | evidence/observation | audit write; invalid locator/policy |
-| VariableService | typed proposal + evidence | current/superseded values | affected-score event; conflict/validation |
+| EvidenceService | claim, source, context | evidence/observation | audit write; invalid locator/policy; may trigger freshness recompute |
+| VariableService | typed proposal + evidence | current/superseded values | affected-score event; conflict/validation; may open research gaps |
 | CompletenessService | subject + purpose/version | breakdown and gaps | pure calculation |
 | ScoringService | subject + score version | immutable result/explanation | snapshot persistence; insufficient data |
-| QualificationService | evidence, scores, decision | review and transition | task/audit; transition denied |
+| OperationalStateService | subject, dimension, target, actor, reason | transition id + new state | history + audit + tasks; transition denied leaves prior state |
+| ConsentPermissionService | assert/supersede/evaluate permission | permission row or effective ruling | immutable supersession; audit; reviewer required to lift opt-out |
+| QualificationService | evidence, scores, decision | review and prospect_stage transition | task/audit; transition denied |
 | DiscoveryService | context/session/answers | agenda, mappings, deltas | variable updates after confirmation |
-| OutreachService | sequence/recipient/activity | draft/activity/response | task and metric events; opt-out denial |
-| OpportunityService | qualified subject + motion | opportunity/stage | stage history; ownership conflict |
-| ExportService | view/query + format | job and artifact | authorization snapshot; size failure |
+| OutreachService | sequence/recipient/activity | draft/activity/response | MUST evaluate consent; task/metric events; permission denial audited; may set `outreach_status` |
+| OpportunityService | qualified subject + motion | opportunity + opportunity_stage | operational_state_transitions; may set org `prospect_stage=opportunity` |
+| ExportService | view/query + format | job and artifact | authorization snapshot; mask restricted channels; size failure |
 
 ## Cross-cutting systems
 
@@ -79,7 +82,7 @@ Representative services:
 
 ## Security and data governance
 
-Apply least privilege, server-side authorization, territory scoping, secure session handling, CSRF protections where applicable, rate limits, parameterized queries, file type/size validation, malware scanning integration seam, encryption in transit/at rest, PII minimization, retention policy, export authorization, and secrets redaction. Record consent/opt-out constraints used by outreach. Threat modeling is required before release.
+Apply least privilege, server-side authorization, territory scoping, secure session handling, CSRF protections where applicable, rate limits, parameterized queries, file type/size validation, malware scanning integration seam, encryption in transit/at rest, PII minimization, retention policy, export authorization, and secrets redaction. Consent, channel permission, and suppression are first-class aggregates enforced by `ConsentPermissionService`; UI disablement is not enforcement. Threat modeling is required before release. See [Operational State and Consent Model](../05-data/OPERATIONAL_STATE_AND_CONSENT_MODEL.md).
 
 ## Reliability and performance targets
 
@@ -93,5 +96,5 @@ Apply least privilege, server-side authorization, territory scoping, secure sess
 
 Exact framework versions, hosting provider, identity provider, queue implementation, object store, monorepo tooling, and observability vendor require ADRs based on the implementation environment. They MUST not alter business semantics.
 
-See [Repository Blueprint](../06-repository/REPOSITORY_BLUEPRINT.md), [Database Architecture](../05-data/DATABASE_ARCHITECTURE.md), and [Implementation Constitution](../11-implementation/IMPLEMENTATION_CONSTITUTION.md).
+See [Repository Blueprint](../06-repository/REPOSITORY_BLUEPRINT.md), [Database Architecture](../05-data/DATABASE_ARCHITECTURE.md), [Operational State and Consent Model](../05-data/OPERATIONAL_STATE_AND_CONSENT_MODEL.md), and [Implementation Constitution](../11-implementation/IMPLEMENTATION_CONSTITUTION.md).
 

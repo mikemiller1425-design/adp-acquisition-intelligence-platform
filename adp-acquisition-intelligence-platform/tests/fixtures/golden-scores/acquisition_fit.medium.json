@@ -1,0 +1,42 @@
+{
+  "scoreKey": "acquisition_fit",
+  "family": "motion",
+  "components": [
+    {
+      "key": "payroll_book",
+      "weight": 0.5,
+      "transform": "capped_band",
+      "required": true,
+      "transformConfig": {
+        "bands": [
+          { "max": 24, "score": 20 },
+          { "min": 25, "max": 99, "score": 55 },
+          { "min": 100, "score": 90 }
+        ]
+      }
+    },
+    {
+      "key": "openness",
+      "weight": 0.5,
+      "transform": "ordinal_linear",
+      "transformConfig": { "min": 0, "max": 4 }
+    }
+  ],
+  "inputs": [
+    {
+      "componentKey": "payroll_book",
+      "value": 50,
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    },
+    {
+      "componentKey": "openness",
+      "value": 2,
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    }
+  ],
+  "expected": { "status": "final", "tier": "medium", "score": 52.5 }
+}

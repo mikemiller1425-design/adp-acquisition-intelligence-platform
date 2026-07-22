@@ -1,0 +1,461 @@
+scores:
+  - key: acquisition_fit
+    display_name: Acquisition Fit
+    description: Draft unapproved acquisition fit hypothesis.
+    family: motion
+    subject_type: organization
+    version: 0.1.0-draft
+    status: draft
+    approval_status: draft_unapproved
+    minimum_completeness: 0.55
+    range: [0, 100]
+    tiers: { high: 75, medium: 50, low: 0 }
+    confidence_policy:
+      approval_status: draft_unapproved
+      base: evidence_average
+    recommendation_policy:
+      strategic_priority: 1
+      next_action: Validate acquisition fit assumptions with a reviewer.
+    components:
+      - key: payroll_client_count
+        variable_key: payroll_client_count
+        weight: 0.25
+        transform: range_midpoint_band
+        required: true
+        transform_config:
+          bands:
+            - { min: 0, max: 24, score: 20 }
+            - { min: 25, max: 99, score: 55 }
+            - { min: 100, score: 90 }
+      - key: ownership_succession
+        variable_key: ownership_succession
+        weight: 0.20
+        transform: ordinal_linear
+        required: true
+        transform_config: { min: 0, max: 4 }
+      - key: operational_burden
+        variable_key: operational_burden
+        weight: 0.20
+        transform: ordinal_linear
+        transform_config: { min: 0, max: 4 }
+      - key: process_quality
+        variable_key: process_quality
+        weight: 0.15
+        transform: ordinal_linear
+        transform_config: { min: 0, max: 4 }
+      - key: economics
+        variable_key: estimated_revenue
+        weight: 0.10
+        transform: currency_band
+        transform_config:
+          bands:
+            - { max_minor: 49999999, score: 30 }
+            - { min_minor: 50000000, max_minor: 199999999, score: 60 }
+            - { min_minor: 200000000, score: 85 }
+      - key: openness
+        variable_key: acquisition_openness
+        weight: 0.10
+        transform: ordinal_linear
+        transform_config: { min: 0, max: 4 }
+  - key: wholesale_fit
+    display_name: Wholesale Fit
+    description: Draft unapproved wholesale fit hypothesis from Prompt 5 specification.
+    family: motion
+    subject_type: organization
+    version: 0.1.0-draft
+    status: draft
+    approval_status: draft_unapproved
+    minimum_completeness: 0.55
+    range: [0, 100]
+    tiers: { high: 75, medium: 50, low: 0 }
+    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    recommendation_policy:
+      strategic_priority: 2
+      next_action: Validate payroll delivery model before wholesale outreach.
+    components:
+      - {
+          key: recurring_service_model,
+          variable_key: recurring_service_model,
+          weight: 0.20,
+          transform: ordinal_linear,
+          required: true,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: payroll_client_count,
+          variable_key: payroll_client_count,
+          weight: 0.20,
+          transform: range_midpoint_band,
+          required: true,
+          transform_config:
+            {
+              bands:
+                [{ max: 24, score: 20 }, { min: 25, max: 99, score: 55 }, { min: 100, score: 90 }],
+            },
+        }
+      - {
+          key: technology_maturity,
+          variable_key: technology_maturity,
+          weight: 0.10,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: client_decision_influence,
+          variable_key: client_decision_influence,
+          weight: 0.15,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: operational_burden,
+          variable_key: operational_burden,
+          weight: 0.15,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: growth_intent,
+          variable_key: growth_intent,
+          weight: 0.10,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: competitive_openness,
+          variable_key: competitive_openness,
+          weight: 0.10,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+  - key: cas_maturity
+    display_name: CAS Maturity
+    description: Draft unapproved CAS maturity hypothesis.
+    family: motion
+    subject_type: organization
+    version: 0.1.0-draft
+    status: draft
+    approval_status: draft_unapproved
+    minimum_completeness: 0.50
+    range: [0, 100]
+    tiers: { high: 75, medium: 50, low: 0 }
+    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    recommendation_policy:
+      { strategic_priority: 3, next_action: Research recurring advisory delivery depth. }
+    components:
+      - {
+          key: recurring_revenue_share,
+          variable_key: recurring_revenue_share,
+          weight: 0.25,
+          transform: percentage_linear,
+          required: true,
+        }
+      - {
+          key: service_breadth,
+          variable_key: service_breadth,
+          weight: 0.20,
+          transform: ordinal_linear,
+          required: true,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: cadence,
+          variable_key: advisory_cadence,
+          weight: 0.20,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: technology_process_maturity,
+          variable_key: technology_maturity,
+          weight: 0.20,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: executive_access,
+          variable_key: executive_access,
+          weight: 0.15,
+          transform: boolean_flag,
+        }
+  - key: direct_payroll_opportunity
+    display_name: Direct Payroll Opportunity
+    description: Draft unapproved direct employer payroll opportunity hypothesis.
+    family: motion
+    subject_type: organization
+    version: 0.1.0-draft
+    status: draft
+    approval_status: draft_unapproved
+    minimum_completeness: 0.55
+    range: [0, 100]
+    tiers: { high: 75, medium: 50, low: 0 }
+    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    recommendation_policy:
+      { strategic_priority: 4, next_action: Research employer payroll timing and access. }
+    components:
+      - {
+          key: employer_size_fit,
+          variable_key: employee_count,
+          weight: 0.25,
+          transform: capped_band,
+          required: true,
+          transform_config:
+            {
+              bands:
+                [{ max: 24, score: 25 }, { min: 25, max: 500, score: 90 }, { min: 501, score: 60 }],
+            },
+        }
+      - {
+          key: growth,
+          variable_key: growth_stage,
+          weight: 0.15,
+          transform: enum_map,
+          transform_config:
+            { map: { contracting: 20, stable: 55, growing: 75, rapid_growth: 90, unknown: 0 } },
+        }
+      - {
+          key: multistate_complexity,
+          variable_key: multi_state_complexity,
+          weight: 0.15,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: provider_pain,
+          variable_key: provider_pain,
+          weight: 0.20,
+          transform: ordinal_linear,
+          required: true,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: timing,
+          variable_key: payroll_timing_trigger,
+          weight: 0.15,
+          transform: trigger_recency,
+          transform_config: { fresh_days: 30, stale_days: 180 },
+        }
+      - { key: access, variable_key: executive_access, weight: 0.10, transform: boolean_flag }
+  - key: influence
+    display_name: Influence
+    description: Draft unapproved influence support score.
+    family: support
+    subject_type: organization
+    version: 0.1.0-draft
+    status: draft
+    approval_status: draft_unapproved
+    minimum_completeness: 0.45
+    range: [0, 100]
+    tiers: { high: 75, medium: 50, low: 0 }
+    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    recommendation_policy:
+      { strategic_priority: 5, next_action: Identify decision influence evidence. }
+    components:
+      - {
+          key: decision_influence,
+          variable_key: client_decision_influence,
+          weight: 0.30,
+          transform: ordinal_linear,
+          required: true,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: interaction_frequency,
+          variable_key: interaction_frequency,
+          weight: 0.20,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: trust,
+          variable_key: trust_level,
+          weight: 0.20,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: recommendation_authority,
+          variable_key: recommendation_authority,
+          weight: 0.20,
+          transform: boolean_flag,
+        }
+      - {
+          key: executive_access,
+          variable_key: executive_access,
+          weight: 0.10,
+          transform: boolean_flag,
+        }
+  - key: urgency
+    display_name: Urgency
+    description: Draft unapproved urgency support score; urgency does not mean fit.
+    family: support
+    subject_type: organization
+    version: 0.1.0-draft
+    status: draft
+    approval_status: draft_unapproved
+    minimum_completeness: 0.40
+    range: [0, 100]
+    tiers: { high: 75, medium: 50, low: 0 }
+    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    recommendation_policy: { strategic_priority: 6, next_action: Verify time-sensitive trigger. }
+    components:
+      - {
+          key: dated_trigger,
+          variable_key: dated_trigger,
+          weight: 0.35,
+          transform: trigger_recency,
+          required: true,
+          transform_config: { fresh_days: 14, stale_days: 120 },
+        }
+      - {
+          key: contract_timing,
+          variable_key: contract_renewal_timing,
+          weight: 0.25,
+          transform: trigger_recency,
+          transform_config: { fresh_days: 30, stale_days: 365 },
+        }
+      - {
+          key: pain_severity,
+          variable_key: provider_pain,
+          weight: 0.25,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: leadership_growth_event,
+          variable_key: leadership_growth_event,
+          weight: 0.15,
+          transform: boolean_flag,
+        }
+  - key: revenue_potential
+    display_name: Revenue Potential
+    description: Draft unapproved revenue potential support score; revenue is not qualification.
+    family: support
+    subject_type: organization
+    version: 0.1.0-draft
+    status: draft
+    approval_status: draft_unapproved
+    minimum_completeness: 0.45
+    range: [0, 100]
+    tiers: { high: 75, medium: 50, low: 0 }
+    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    recommendation_policy:
+      { strategic_priority: 7, next_action: Validate volume and economics bands. }
+    components:
+      - {
+          key: payroll_volume,
+          variable_key: payroll_client_count,
+          weight: 0.35,
+          transform: range_midpoint_band,
+          required: true,
+          transform_config:
+            {
+              bands:
+                [{ max: 24, score: 20 }, { min: 25, max: 99, score: 55 }, { min: 100, score: 90 }],
+            },
+        }
+      - {
+          key: typical_size,
+          variable_key: typical_client_employee_count,
+          weight: 0.25,
+          transform: range_midpoint_band,
+          transform_config:
+            {
+              bands:
+                [{ max: 24, score: 30 }, { min: 25, max: 250, score: 85 }, { min: 251, score: 65 }],
+            },
+        }
+      - {
+          key: motion_economics,
+          variable_key: estimated_revenue,
+          weight: 0.25,
+          transform: currency_band,
+          transform_config:
+            {
+              bands:
+                [
+                  { max_minor: 49999999, score: 30 },
+                  { min_minor: 50000000, max_minor: 199999999, score: 60 },
+                  { min_minor: 200000000, score: 85 },
+                ],
+            },
+        }
+      - {
+          key: range_confidence,
+          variable_key: range_confidence,
+          weight: 0.15,
+          transform: percentage_linear,
+        }
+  - key: accessibility
+    display_name: Accessibility
+    description: Draft unapproved lawful and practical reachability support score.
+    family: support
+    subject_type: organization
+    version: 0.1.0-draft
+    status: draft
+    approval_status: draft_unapproved
+    minimum_completeness: 0.45
+    range: [0, 100]
+    tiers: { high: 75, medium: 50, low: 0 }
+    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    recommendation_policy:
+      { strategic_priority: 8, next_action: Confirm reachable authorized contact path. }
+    components:
+      - {
+          key: verified_contact,
+          variable_key: verified_contact,
+          weight: 0.30,
+          transform: boolean_flag,
+          required: true,
+        }
+      - { key: decision_role, variable_key: decision_role, weight: 0.25, transform: boolean_flag }
+      - {
+          key: relationship_access,
+          variable_key: relationship_access,
+          weight: 0.25,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }
+      - {
+          key: channel_permission,
+          variable_key: channel_permission,
+          weight: 0.20,
+          transform: boolean_flag,
+          required: true,
+        }
+  - key: data_confidence
+    display_name: Data Confidence
+    description: Draft unapproved reliability support score.
+    family: support
+    subject_type: organization
+    version: 0.1.0-draft
+    status: draft
+    approval_status: draft_unapproved
+    minimum_completeness: 0.40
+    range: [0, 100]
+    tiers: { high: 75, medium: 50, low: 0 }
+    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    recommendation_policy:
+      { strategic_priority: 9, next_action: Improve evidence quality, recency, and agreement. }
+    components:
+      - {
+          key: evidence_quality,
+          variable_key: evidence_quality,
+          weight: 0.35,
+          transform: percentage_linear,
+          required: true,
+        }
+      - {
+          key: agreement,
+          variable_key: cross_source_agreement,
+          weight: 0.25,
+          transform: percentage_linear,
+        }
+      - { key: recency, variable_key: evidence_recency, weight: 0.25, transform: percentage_linear }
+      - {
+          key: verification,
+          variable_key: verification_level,
+          weight: 0.15,
+          transform: ordinal_linear,
+          transform_config: { min: 0, max: 4 },
+        }

@@ -1,0 +1,57 @@
+key: influence
+version: 0.1.0-draft
+status: draft
+approval_status: draft_unapproved
+activation_allowed: false
+range: [0, 100]
+minimum_completeness: 0.55
+subject_policy:
+  phase_1_subject: organization_primary
+  contact_level_aggregation: deferred_pending_approval
+tiers:
+  high: 75
+  medium: 50
+  low: 0
+components:
+  - component_key: decision_influence
+    variable_key: client_decision_influence
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.25
+    required: true
+    direction: '+'
+  - component_key: interaction_frequency
+    variable_key: client_interaction_frequency
+    subject: organization
+    transform: enum_rubric
+    weight: 0.15
+    required: false
+    direction: '+'
+  - component_key: trust
+    variable_key: trusted_advisor_status
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.20
+    required: false
+    direction: '+'
+  - component_key: recommendation_authority
+    variable_key: recommendation_authority
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.25
+    required: true
+    direction: '+'
+  - component_key: executive_access
+    variable_key: executive_access
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.15
+    required: false
+    direction: '+'
+missing_data_behavior: unknown_not_zero_required_missing_blocks_final
+confidence_behavior: required_low_confidence_or_stale_provisional
+production_activation_blockers:
+  - business_scoring_owner_approval_missing
+  - SCR-002_pending
+  - BUS-001_pending
+  - CONF-007_open

@@ -1,0 +1,63 @@
+key: data_confidence
+version: 0.1.0-draft
+status: draft
+approval_status: draft_unapproved
+activation_allowed: false
+range: [0, 100]
+minimum_completeness: 1.0
+tiers:
+  high: 75
+  medium: 50
+  low: 0
+input_policy:
+  type: confidence_assessment
+  policy_file: config/scoring/confidence_policy.v0.1.0-draft.yaml
+components:
+  - component_key: evidence_quality_source_reliability
+    confidence_component_key: sourceReliability
+    input_type: confidence_assessment_component
+    transform: unit_interval_to_score
+    weight: 0.20
+    required: true
+    direction: '+'
+  - component_key: evidence_quality_specificity
+    confidence_component_key: specificity
+    input_type: confidence_assessment_component
+    transform: unit_interval_to_score
+    weight: 0.20
+    required: true
+    direction: '+'
+  - component_key: recency
+    confidence_component_key: recency
+    input_type: confidence_assessment_component
+    transform: unit_interval_to_score
+    weight: 0.20
+    required: true
+    direction: '+'
+  - component_key: agreement
+    confidence_component_key: crossSourceAgreement
+    input_type: confidence_assessment_component
+    transform: unit_interval_to_score
+    weight: 0.20
+    required: true
+    direction: '+'
+  - component_key: verification_extraction_certainty
+    confidence_component_key: extractionCertainty
+    input_type: confidence_assessment_component
+    transform: unit_interval_to_score
+    weight: 0.20
+    required: true
+    direction: '+'
+mapping_gaps:
+  - no_variable_dictionary_key_for_evidence_quality
+  - no_variable_dictionary_key_for_agreement
+  - no_variable_dictionary_key_for_recency
+  - no_variable_dictionary_key_for_verification
+missing_data_behavior: any_required_component_missing_unassessed_null
+confidence_behavior: delegates_to_draft_confidence_policy
+production_activation_blockers:
+  - business_scoring_owner_approval_missing
+  - SCR-002_pending
+  - BUS-001_pending
+  - confidence_policy_approval_missing
+  - CONF-007_open
