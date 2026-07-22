@@ -10,9 +10,9 @@
 6. [UI Screen Catalog](09-ui/UI_SCREEN_CATALOG.md) and [Dashboard Specification](10-dashboards/DASHBOARD_SPECIFICATION.md) — operator experience.
 7. [Implementation Constitution](11-implementation/IMPLEMENTATION_CONSTITUTION.md), [Architecture Review Checklist](11-implementation/16_ARCHITECTURE_REVIEW_CHECKLIST.md), [Implementation Roadmap](11-implementation/IMPLEMENTATION_ROADMAP.md), and [Testing Master Plan](12-testing/TESTING_MASTER_PLAN.md) — delivery and review rules.
 8. [Architecture Decision Records](adr/README.md) — Prompt 1 accepted decisions (DEC-001–012).
-9. [Database setup](development/DATABASE_SETUP.md) and [Migration Guide](development/MIGRATION_GUIDE.md) — local database operations.
+9. [Database setup](development/DATABASE_SETUP.md), [Migration Guide](development/MIGRATION_GUIDE.md), [Evidence and Provenance Guide](development/EVIDENCE_AND_PROVENANCE_GUIDE.md), and [Variable Definition Guide](development/VARIABLE_DEFINITION_GUIDE.md) — local database and Prompt 3 domain operations.
 10. [Phase 1 Exit Contract](13-exit-contract/PHASE_1_EXIT_CONTRACT.md) and [machine-readable checklist](13-exit-contract/phase_1_exit_contract.yaml) — definition of done.
-11. [Prompt 0 readiness](00-readiness/PROMPT_0_READINESS_REPORT.md), [Prompt 2 implementation](prompts/PROMPT_2_CANONICAL_DATA_MODEL.md), and [specification reviews](01-reviews/) — readiness and prompt reviews.
+11. [Prompt 0 readiness](00-readiness/PROMPT_0_READINESS_REPORT.md), [Prompt 2 implementation](prompts/PROMPT_2_CANONICAL_DATA_MODEL.md), [Prompt 3 implementation](prompts/PROMPT_3_VARIABLES_EVIDENCE_PROVENANCE.md), and [specification reviews](01-reviews/) — readiness and prompt reviews.
 
 ## Conflict policy
 
@@ -49,10 +49,13 @@ docs/
 │   └── phase_1_exit_contract.yaml
 ├── development/
 │   ├── DATABASE_SETUP.md
-│   └── MIGRATION_GUIDE.md
+│   ├── EVIDENCE_AND_PROVENANCE_GUIDE.md
+│   ├── MIGRATION_GUIDE.md
+│   └── VARIABLE_DEFINITION_GUIDE.md
 └── prompts/
     ├── PROMPT_1_ENGINEERING_FOUNDATION.md
-    └── PROMPT_2_CANONICAL_DATA_MODEL.md
+    ├── PROMPT_2_CANONICAL_DATA_MODEL.md
+    └── PROMPT_3_VARIABLES_EVIDENCE_PROVENANCE.md
 ```
 
 ## Change control

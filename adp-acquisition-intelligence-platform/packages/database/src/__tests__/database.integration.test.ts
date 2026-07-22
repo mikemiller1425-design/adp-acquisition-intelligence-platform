@@ -272,7 +272,9 @@ describe.sequential('database integration tooling', () => {
           .set({ helpText: 'Rewritten active version.' })
           .where(eq(variableDefinitionVersions.id, version.id)),
       ).rejects.toSatisfy((error: unknown) =>
-        errorText(error).includes('active variable_definition_versions rows are immutable'),
+        errorText(error).includes(
+          'active variable_definition_versions material fields are immutable',
+        ),
       );
 
       await client.db.insert(variableValues).values({

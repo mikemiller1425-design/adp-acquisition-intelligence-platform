@@ -1,6 +1,6 @@
 # Database Architecture
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 
 ## Conventions
 
@@ -128,3 +128,16 @@ Prompt 2 implements the canonical Phase 1 foundation tables in `packages/databas
 - Organization/contact archive behavior is exposed through application services; direct hard deletion of canonical organization/contact rows is rejected.
 - Consent corrections use supersession. Material permission/restriction/suppression fields are not rewritten in place.
 - Operational-state multi-write flows are transaction-compatible through `DatabaseClient.withTransaction` and transaction-scoped repository executors.
+
+## Prompt 3 implementation notes
+
+Prompt 3 implements variables, evidence, and provenance tables in `packages/database/src/schema/evidence.ts`, `packages/database/src/schema/variables.ts`, and migration `0002_lyrical_daimon_hellstrom.sql`.
+
+- Added tables: `sources`, `evidence_records`, `confidence_assessments`, `research_observations`, `variable_definitions`, `variable_definition_versions`, `variable_values`, `variable_value_evidence`, and `permission_evidence_links`.
+- Evidence records are subject-scoped to exactly one organization or contact. Material evidence fields are immutable after insert.
+- Variable definitions are versioned. Active version material fields are immutable; publishing a replacement version may only retire the prior active version.
+- Variable values preserve status semantics for `known`, `unknown`, `not_applicable`, `withheld`, `contradicted`, and `stale`.
+- Current value uniqueness is enforced for one current non-contradicted value per subject and variable definition.
+- Confidence assessments store component values and allow `aggregate_score` to remain null until an approved aggregation policy exists.
+- `permission_evidence_links` adds structured evidence provenance for consent rows without changing consent precedence.
+- Prompt 3 seeds 56 variable definitions from the current Variable Dictionary.

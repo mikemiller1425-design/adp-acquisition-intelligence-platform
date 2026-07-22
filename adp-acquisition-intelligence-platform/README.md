@@ -26,6 +26,8 @@ Database development:
 
 - [Database setup](docs/development/DATABASE_SETUP.md)
 - [Migration guide](docs/development/MIGRATION_GUIDE.md)
+- [Evidence and provenance guide](docs/development/EVIDENCE_AND_PROVENANCE_GUIDE.md)
+- [Variable definition guide](docs/development/VARIABLE_DEFINITION_GUIDE.md)
 
 ## Documentation
 

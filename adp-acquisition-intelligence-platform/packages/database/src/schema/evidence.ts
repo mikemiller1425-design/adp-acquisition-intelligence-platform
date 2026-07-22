@@ -50,7 +50,9 @@ export const sources = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('sources_locator_unique').on(table.locator).where(sql`${table.locator} is not null`),
+    uniqueIndex('sources_locator_unique')
+      .on(table.locator)
+      .where(sql`${table.locator} is not null`),
     index('sources_source_type_idx').on(table.sourceType),
     index('sources_status_idx').on(table.status),
     check(

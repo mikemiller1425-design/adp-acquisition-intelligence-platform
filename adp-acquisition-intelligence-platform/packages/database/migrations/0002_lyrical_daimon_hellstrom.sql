@@ -277,8 +277,15 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  IF OLD.lifecycle_status = 'active' AND to_jsonb(OLD) <> to_jsonb(NEW) THEN
-    RAISE EXCEPTION 'active variable_definition_versions rows are immutable; publish a new version instead.'
+  IF OLD.lifecycle_status = 'active'
+    AND NEW.lifecycle_status <> OLD.lifecycle_status
+    AND NEW.lifecycle_status <> 'retired' THEN
+    RAISE EXCEPTION 'active variable_definition_versions rows can only transition to retired.'
+      USING ERRCODE = 'P0001';
+  END IF;
+  IF OLD.lifecycle_status = 'active'
+    AND (to_jsonb(OLD) - 'lifecycle_status') <> (to_jsonb(NEW) - 'lifecycle_status') THEN
+    RAISE EXCEPTION 'active variable_definition_versions material fields are immutable; publish a new version instead.'
       USING ERRCODE = 'P0001';
   END IF;
   RETURN NEW;

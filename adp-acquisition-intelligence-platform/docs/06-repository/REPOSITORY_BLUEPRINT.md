@@ -1,6 +1,6 @@
 # Repository Blueprint
 
-**Version:** 1.1.0  
+**Version:** 1.2.0
 **Status:** Planned production repository contract
 
 ## Proposed production tree
@@ -112,4 +112,17 @@ Prompt 2 verified these planned responsibilities:
 - `apps/api/src/app.ts` readiness behavior — **verified** for database ping contract.
 
 Prompt 2 intentionally leaves collection, evidence, variables, scoring, discovery, outreach, opportunities, reporting, and UI feature packages in `planned` status for later prompts.
+
+## Prompt 3 implementation status
+
+Prompt 3 verified these planned responsibilities:
+
+- `packages/database/schema/*` — **verified** for Prompt 3 source, evidence, research observation, confidence assessment, variable definition/version/value, variable-value evidence, and permission-evidence link schema.
+- `packages/database/migrations/*` — **verified** for Prompt 3 migration journal order, empty-schema migration, seed compatibility, evidence material immutability, active variable definition version material immutability, and current-value uniqueness constraints.
+- `packages/database/seeds/variables.ts` — **verified** for the 56-definition variable dictionary seed and sample evidence/value provenance fixtures.
+- `packages/evidence/src/domain/*`, `application/*`, `infrastructure/*` — **verified** for source, evidence, confidence component, staleness, research observation, permission evidence link, and Postgres adapter behavior.
+- `packages/variables/src/domain/*`, `application/*`, `infrastructure/*` — **verified** for definition versioning, typed value validation, value confirmation/supersession, contradiction, manual override lineage, evidence links, and Postgres adapter behavior.
+- `packages/consent/src/application/consent-permission-service.ts` and `infrastructure/postgres-permission-repository.ts` — **verified** for additive evidence-record link support without changing Prompt 2 consent precedence.
+
+Prompt 3 intentionally leaves collection/import, scoring/completeness, discovery, outreach, opportunities, reporting, and UI feature packages in `planned` status for later prompts. Confidence aggregation weights remain unresolved by design.
 

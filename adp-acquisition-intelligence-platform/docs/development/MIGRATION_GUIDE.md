@@ -1,6 +1,6 @@
 # Migration Guide
 
-Prompt 2 uses forward-only Drizzle migrations under `packages/database/migrations`.
+The project uses forward-only Drizzle migrations under `packages/database/migrations`.
 
 ## Current migrations
 
@@ -9,6 +9,10 @@ Prompt 2 uses forward-only Drizzle migrations under `packages/database/migration
   - Hard-delete rejection for canonical organization/contact/consent rows.
   - Append-only enforcement for `audit_events` and `operational_state_transitions`.
   - Consent material-field immutability while allowing `superseded_by_id` and `revoked_at` updates.
+- `0002_lyrical_daimon_hellstrom.sql` — Prompt 3 variables, evidence, and provenance schema:
+  - Source, evidence, confidence, research observation, variable definition/version/value, variable evidence, and permission evidence link tables.
+  - Evidence material-field immutability trigger.
+  - Active variable definition version material-field immutability trigger, while allowing active versions to retire during replacement publication.
 
 ## Generate schema migrations
 
@@ -51,6 +55,8 @@ DATABASE_URL=postgres://adp:adp@localhost:5432/adp_acquisition_test pnpm --filte
 DATABASE_URL=postgres://adp:adp@localhost:5432/adp_acquisition_test pnpm --filter @adp/organizations test -- --run src/__tests__/organizations.integration.test.ts
 DATABASE_URL=postgres://adp:adp@localhost:5432/adp_acquisition_test pnpm --filter @adp/consent test -- --run src/__tests__/consent.integration.test.ts
 DATABASE_URL=postgres://adp:adp@localhost:5432/adp_acquisition_test pnpm --filter @adp/qualification test -- --run src/__tests__/operational-state.integration.test.ts
+TEST_DATABASE_URL=postgres://adp:adp@localhost:5432/adp_acquisition_test pnpm --filter @adp/evidence test
+TEST_DATABASE_URL=postgres://adp:adp@localhost:5432/adp_acquisition_test pnpm --filter @adp/variables test
 ```
 
 Before release hardening, rerun the same suite on the supported PostgreSQL version from `docker-compose.yml`.
@@ -65,3 +71,6 @@ Production migrations are forward-only. A bad migration is remediated with a new
 - Correct consent records by inserting a superseding record; do not rewrite material fields.
 - Treat `audit_events` and `operational_state_transitions` as append-only.
 - Use `DatabaseClient.withTransaction` for business operations that must commit state, audit, transition history, and outbox work together.
+- Correct evidence by inserting/superseding evidence records; do not rewrite material evidence fields.
+- Publish a new variable definition version for material definition changes; active version material fields are immutable.
+- Correct variable values by confirming a superseding value, marking contradiction/staleness, or applying a manual override with actor/reason metadata; do not rewrite history rows.
