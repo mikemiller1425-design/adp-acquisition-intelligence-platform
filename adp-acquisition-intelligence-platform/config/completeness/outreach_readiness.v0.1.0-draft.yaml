@@ -1,8 +1,8 @@
 key: outreach_readiness
-version: 0.1.0-draft
-status: draft
-approval_status: draft_unapproved
-activation_allowed: false
+version: 1.0.0
+status: active
+approval_status: approved
+activation_allowed: true
 criticality_groups:
   required:
     group_weight: 0.35

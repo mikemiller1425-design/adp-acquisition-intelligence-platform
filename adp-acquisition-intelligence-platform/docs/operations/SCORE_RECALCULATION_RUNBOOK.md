@@ -1,7 +1,7 @@
 # Score Recalculation Runbook
 
 **Status:** Prompt 5 draft operations runbook  
-**Production activation:** Blocked until approved active score definitions exist
+**Production activation:** Approved active Phase 1 baseline score definitions exist; unapproved future definitions remain blocked by activation guards.
 
 This runbook covers the Prompt 5 recalculation job contract. It is for engineering validation and later operations planning; it does not activate production scoring.
 
@@ -69,7 +69,7 @@ Use this procedure in local/CI validation:
 | Duplicate event did not create another job | Expected idempotency behavior | Reuse the existing job ID for tracing. |
 | `Score definition not found` | Draft was not seeded or active definition is required without approval | Seed draft definitions for validation or wait for approved activation. |
 | Job failed after marking running | Calculation or persistence error | Inspect `error_message`, score definition, and variable input payload. |
-| Confidence is `null` | Policy is unapproved and strict mode was used | Expected until confidence policy approval; do not substitute a default. |
+| Confidence is `null` | Policy is unapproved and strict mode was used, or required confidence components are missing | For unapproved future policies, record approval before activation; for missing components, do not substitute a default. |
 
 ## Operating constraints
 

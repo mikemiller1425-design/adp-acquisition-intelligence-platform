@@ -23,6 +23,13 @@ const completenessConfigPath = new URL(
   '../../../config/completeness/draft-completeness.v1.yaml',
   import.meta.url,
 );
+const PHASE_1_BASELINE_APPROVAL_METADATA = {
+  approved_at: '2026-07-22T00:00:00.000Z',
+  approved_by:
+    'repository owner (mikemiller1425-design) via Prompt 6 unblock instruction 2026-07-22',
+  approver: 'repository owner (mikemiller1425-design) via Prompt 6 unblock instruction 2026-07-22',
+  approval_scope: 'Phase 1 baseline approval of the draft mappings/weights already published',
+};
 
 export async function seedScoringDrafts(db: RepositoryExecutor): Promise<ScoringSeedSummary> {
   const [scoreDrafts, completenessDrafts] = await Promise.all([
@@ -47,6 +54,12 @@ async function seedScoreDraft(
   db: RepositoryExecutor,
   draft: Record<string, unknown>,
 ): Promise<void> {
+  const status = readDefinitionStatus(draft['status']);
+  const approvalStatus = readApprovalStatus(draft['approval_status']);
+  const approvalMetadata =
+    approvalStatus === 'approved' ? PHASE_1_BASELINE_APPROVAL_METADATA : null;
+  const publishedAt =
+    status === 'active' ? new Date(PHASE_1_BASELINE_APPROVAL_METADATA.approved_at) : null;
   const definition = first(
     await db
       .insert(scoreDefinitions)
@@ -56,8 +69,9 @@ async function seedScoreDraft(
         description: readString(draft, 'description'),
         family: readString(draft, 'family'),
         subjectType: readSubjectType(draft['subject_type']),
-        status: 'draft',
-        approvalStatus: 'draft_unapproved',
+        status,
+        approvalStatus,
+        approvalMetadata,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -67,8 +81,9 @@ async function seedScoreDraft(
           description: readString(draft, 'description'),
           family: readString(draft, 'family'),
           subjectType: readSubjectType(draft['subject_type']),
-          status: 'draft',
-          approvalStatus: 'draft_unapproved',
+          status,
+          approvalStatus,
+          approvalMetadata,
           updatedAt: sql`now()`,
         },
       })
@@ -88,8 +103,10 @@ async function seedScoreDraft(
         confidencePolicy: readRecord(draft['confidence_policy']),
         recommendationPolicy: readRecord(draft['recommendation_policy']),
         allowOptionalWeightRenormalization: true,
-        status: 'draft',
-        approvalStatus: 'draft_unapproved',
+        status,
+        approvalStatus,
+        approvalMetadata,
+        publishedAt,
       })
       .onConflictDoUpdate({
         target: [scoreDefinitionVersions.definitionId, scoreDefinitionVersions.version],
@@ -101,12 +118,21 @@ async function seedScoreDraft(
           confidencePolicy: readRecord(draft['confidence_policy']),
           recommendationPolicy: readRecord(draft['recommendation_policy']),
           allowOptionalWeightRenormalization: true,
-          status: 'draft',
-          approvalStatus: 'draft_unapproved',
+          status,
+          approvalStatus,
+          approvalMetadata,
+          publishedAt,
         },
       })
       .returning({ id: scoreDefinitionVersions.id }),
   );
+
+  if (status === 'active') {
+    await db
+      .update(scoreDefinitions)
+      .set({ currentVersionId: version.id, updatedAt: sql`now()` })
+      .where(eq(scoreDefinitions.id, definition.id));
+  }
 
   await db.delete(scoreComponents).where(eq(scoreComponents.scoreDefinitionVersionId, version.id));
   for (const [index, componentValue] of readArray(draft, 'components').entries()) {
@@ -131,6 +157,12 @@ async function seedCompletenessDraft(
   db: RepositoryExecutor,
   draft: Record<string, unknown>,
 ): Promise<void> {
+  const status = readDefinitionStatus(draft['status']);
+  const approvalStatus = readApprovalStatus(draft['approval_status']);
+  const approvalMetadata =
+    approvalStatus === 'approved' ? PHASE_1_BASELINE_APPROVAL_METADATA : null;
+  const publishedAt =
+    status === 'active' ? new Date(PHASE_1_BASELINE_APPROVAL_METADATA.approved_at) : null;
   const definition = first(
     await db
       .insert(completenessDefinitions)
@@ -140,8 +172,9 @@ async function seedCompletenessDraft(
         description: readString(draft, 'description'),
         purpose: readString(draft, 'purpose'),
         subjectType: readSubjectType(draft['subject_type']),
-        status: 'draft',
-        approvalStatus: 'draft_unapproved',
+        status,
+        approvalStatus,
+        approvalMetadata,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -151,37 +184,55 @@ async function seedCompletenessDraft(
           description: readString(draft, 'description'),
           purpose: readString(draft, 'purpose'),
           subjectType: readSubjectType(draft['subject_type']),
-          status: 'draft',
-          approvalStatus: 'draft_unapproved',
+          status,
+          approvalStatus,
+          approvalMetadata,
           updatedAt: sql`now()`,
         },
       })
       .returning({ id: completenessDefinitions.id }),
   );
 
-  await db
-    .insert(completenessDefinitionVersions)
-    .values({
-      definitionId: definition.id,
-      version: readString(draft, 'version'),
-      definition: {
-        variables: readArray(draft, 'variables'),
-        minimumCompleteness: readNumber(draft, 'minimum_completeness'),
-      },
-      status: 'draft',
-      approvalStatus: 'draft_unapproved',
-    })
-    .onConflictDoUpdate({
-      target: [completenessDefinitionVersions.definitionId, completenessDefinitionVersions.version],
-      set: {
+  const version = first(
+    await db
+      .insert(completenessDefinitionVersions)
+      .values({
+        definitionId: definition.id,
+        version: readString(draft, 'version'),
         definition: {
           variables: readArray(draft, 'variables'),
           minimumCompleteness: readNumber(draft, 'minimum_completeness'),
         },
-        status: 'draft',
-        approvalStatus: 'draft_unapproved',
-      },
-    });
+        status,
+        approvalStatus,
+        approvalMetadata,
+        publishedAt,
+      })
+      .onConflictDoUpdate({
+        target: [
+          completenessDefinitionVersions.definitionId,
+          completenessDefinitionVersions.version,
+        ],
+        set: {
+          definition: {
+            variables: readArray(draft, 'variables'),
+            minimumCompleteness: readNumber(draft, 'minimum_completeness'),
+          },
+          status,
+          approvalStatus,
+          approvalMetadata,
+          publishedAt,
+        },
+      })
+      .returning({ id: completenessDefinitionVersions.id }),
+  );
+
+  if (status === 'active') {
+    await db
+      .update(completenessDefinitions)
+      .set({ currentVersionId: version.id, updatedAt: sql`now()` })
+      .where(eq(completenessDefinitions.id, definition.id));
+  }
 }
 
 async function loadYamlArray(url: URL, key: string): Promise<Array<Record<string, unknown>>> {
@@ -230,6 +281,25 @@ function readRange(value: unknown): readonly [number, number] {
 function readSubjectType(value: unknown): 'organization' | 'contact' {
   if (value === 'organization' || value === 'contact') return value;
   throw new Error('Expected subject_type.');
+}
+
+function readDefinitionStatus(value: unknown): 'draft' | 'active' | 'retired' {
+  if (value === 'draft' || value === 'active' || value === 'retired') return value;
+  throw new Error('Expected status.');
+}
+
+function readApprovalStatus(
+  value: unknown,
+): 'draft_unapproved' | 'pending' | 'approved' | 'rejected' {
+  if (
+    value === 'draft_unapproved' ||
+    value === 'pending' ||
+    value === 'approved' ||
+    value === 'rejected'
+  ) {
+    return value;
+  }
+  throw new Error('Expected approval_status.');
 }
 
 function readRecord(value: unknown): Record<string, unknown> {

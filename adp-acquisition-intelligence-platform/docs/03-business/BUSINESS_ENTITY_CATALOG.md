@@ -25,6 +25,7 @@ Entities use UUID identifiers, UTC timestamps, archive metadata, and optimistic 
 | Score Definition | Versioned formula and thresholds | draft/active/retired; Scoring | component definitions and required variables |
 | Score Result | Reproducible evaluation | immutable; recalculation creates another result; Scoring | subject, definition/version, input snapshot |
 | Qualification Review | Human routing decision | pending/decided/superseded; Qualification | organization, scores, reviewer, reason |
+| Qualification Condition | Blocking condition attached to a conditional qualification outcome | open/satisfied/waived/cancelled; Qualification | qualification review, task, owner, due date, waiver metadata |
 | Disqualification Reason | Controlled terminal or delay reason | active/retired; Configuration | qualification and opportunity outcomes |
 | Discovery Template | Versioned question selection rules | draft/active/retired; Discovery | questions and motion/persona tags |
 | Discovery Question | Prompt plus response and mapping metadata | versioned/active/retired; Discovery | template, variable mappings |
@@ -54,6 +55,7 @@ Entities use UUID identifiers, UTC timestamps, archive metadata, and optimistic 
 - Organization is the root for prospect identity but does not own immutable audit or score history transactionally.
 - Organization **record_status** (active/archived) is distinct from `prospect_stage`, `research_status`, `outreach_status`, and `data_freshness_status`.
 - Variable Definition and Score Definition are versioned configuration aggregates. Published versions are immutable.
+- A conditional qualification outcome does not create a distinct prospect stage; it creates `Qualification Condition` records and blocking tasks while the organization routes to `prospect_stage=qualified`.
 - Discovery Session owns draft answers; confirmation invokes the Variables service rather than mutating values directly.
 - Sequence owns ordering of steps. Existing activities retain the version used when created.
 - Opportunity owns `opportunity_stage`; organization research and outreach statuses remain separately visible.

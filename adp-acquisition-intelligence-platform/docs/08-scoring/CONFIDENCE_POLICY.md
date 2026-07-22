@@ -1,11 +1,11 @@
 # Confidence Policy
 
-**Version:** 0.1.0-draft
-**Status:** Pre-implementation decision-gate draft
-**Approval status:** `draft_unapproved`
-**Production status:** inactive; engines must refuse production activation until approved
+**Version:** 1.0.0
+**Status:** Active Phase 1 baseline
+**Approval status:** `approved`
+**Production status:** active for Prompt 6 qualification entry under owner-approved Phase 1 baseline.
 
-Prompt 3 stores confidence components but intentionally leaves aggregate confidence null because no approved aggregation policy exists. This document proposes a draft policy for Prompt 5 implementation planning only. It does not approve confidence aggregation for production.
+Prompt 3 stores confidence components. This document approves the Phase 1 aggregate confidence policy for active scoring definitions. The approval is the repository-owner Prompt 6 unblock approval recorded in the conflict register and exit contract.
 
 ## Inputs from Prompt 3
 
@@ -13,15 +13,15 @@ Each component is nullable or a number in `[0, 1]`.
 
 | Component | Meaning | Required for aggregate? | approval_status |
 |---|---|---:|---|
-| `sourceReliability` | Reliability of the source behind the claim or evidence. | yes | draft_unapproved |
-| `specificity` | How specifically the evidence supports the claimed value. | yes | draft_unapproved |
-| `recency` | Whether the evidence is recent enough for the purpose. | yes | draft_unapproved |
-| `crossSourceAgreement` | Degree of agreement across available sources. | yes | draft_unapproved |
-| `extractionCertainty` | Confidence that extraction or interpretation captured the evidence correctly. | yes | draft_unapproved |
+| `sourceReliability` | Reliability of the source behind the claim or evidence. | yes | approved |
+| `specificity` | How specifically the evidence supports the claimed value. | yes | approved |
+| `recency` | Whether the evidence is recent enough for the purpose. | yes | approved |
+| `crossSourceAgreement` | Degree of agreement across available sources. | yes | approved |
+| `extractionCertainty` | Confidence that extraction or interpretation captured the evidence correctly. | yes | approved |
 
-## Draft aggregation formula
+## Approved Phase 1 baseline aggregation formula
 
-This formula is a **DRAFT** and must not be used for active production definitions.
+This formula is approved as the Phase 1 baseline. Later calibration must publish a superseding version rather than mutating `1.0.0`.
 
 Let:
 
@@ -31,7 +31,7 @@ Let:
 - `conflict_penalty` be `0.15` when the value or evidence is contradicted; otherwise `0`
 - `staleness_penalty` be `0.10` when the value or evidence is stale; otherwise `0`
 
-Draft aggregate:
+Approved aggregate:
 
 ```text
 if any required component is missing:
@@ -43,7 +43,7 @@ else:
   aggregate_status = "assessed"
 ```
 
-The equal-weight mean is deliberately simple for reviewability. It is not a business-approved statement that every component has equal importance.
+The equal-weight mean is deliberately simple for reviewability and is approved for Phase 1 baseline use.
 
 ## Required missing component behavior
 
@@ -57,22 +57,21 @@ If any required component is missing:
 
 ## Conflict and staleness behavior
 
-| Condition | Draft behavior | approval_status |
+| Condition | Approved Phase 1 baseline behavior | approval_status |
 |---|---|---|
-| Contradicted evidence/value | Apply `conflict_penalty = 0.15`; create or preserve research gap. | draft_unapproved |
-| Stale evidence/value | Apply `staleness_penalty = 0.10`; score result may become provisional when required input is stale. | draft_unapproved |
-| Contradicted and stale | Apply both penalties; clamp final aggregate to `[0, 1]`. | draft_unapproved |
-| No freshness policy | Do not penalize solely for age; report `no_policy` staleness status. | draft_unapproved |
+| Contradicted evidence/value | Apply `conflict_penalty = 0.15`; create or preserve research gap. | approved |
+| Stale evidence/value | Apply `staleness_penalty = 0.10`; score result may become provisional when required input is stale. | approved |
+| Contradicted and stale | Apply both penalties; clamp final aggregate to `[0, 1]`. | approved |
+| No freshness policy | Do not penalize solely for age; report `no_policy` staleness status. | approved |
 
 ## Activation guard
 
 The engine must refuse production activation when:
 
 - `approval_status` is not approved
-- policy version is a draft
 - replay/golden tests for the approved formula are missing
-- any score definition attempts to persist aggregate confidence from this draft as final production confidence
+- any score definition attempts to persist aggregate confidence from an unapproved policy as final production confidence
 
 ## Relationship to Data Confidence score
 
-The `data_confidence` score family may reference this draft policy in inactive draft configuration. The score family still has no approved Variable Dictionary key mapping for its narrative components, and production activation remains blocked until `business_scoring_owner` approval closes SCR-002/BUS-001/BUS-002 and CONF-007.
+The `data_confidence` score family references this approved policy. It uses confidence assessment components rather than inventing Variable Dictionary keys for evidence quality, agreement, recency, or verification.

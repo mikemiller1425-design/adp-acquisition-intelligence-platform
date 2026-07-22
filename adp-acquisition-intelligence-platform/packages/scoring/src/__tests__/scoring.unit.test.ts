@@ -324,6 +324,20 @@ describe('Prompt 5 definition activation guardrails', () => {
         actor: { userId: null, roles: ['researcher'] },
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    const published = await service.publish({
+      key: 'approval_metadata_required',
+      version: 'test',
+      approvalStatus: 'approved',
+      approvalMetadata: {
+        approved_by:
+          'repository owner (mikemiller1425-design) via Prompt 6 unblock instruction 2026-07-22',
+      },
+      actor: { userId: null, roles: ['admin'] },
+    });
+
+    expect(published.status).toBe('active');
+    expect(published.approvalStatus).toBe('approved');
   });
 });
 
@@ -423,8 +437,19 @@ class MemoryDefinitionRepository {
     return Promise.resolve(null);
   }
 
-  publish(): Promise<ScoreDefinitionVersion> {
-    throw new Error('Publish should not be reached without approval metadata and admin role.');
+  publish(input: {
+    key: string;
+    approvalStatus: ScoreDefinitionVersion['approvalStatus'];
+  }): Promise<ScoreDefinitionVersion> {
+    const definition = this.definitions.get(input.key);
+    if (definition === undefined) throw new Error(`Definition not found: ${input.key}`);
+    const published = {
+      ...definition,
+      status: 'active' as const,
+      approvalStatus: input.approvalStatus,
+    };
+    this.definitions.set(input.key, published);
+    return Promise.resolve(published);
   }
 }
 

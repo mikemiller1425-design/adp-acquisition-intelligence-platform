@@ -51,7 +51,7 @@ Only one current non-contradicted value per subject/definition/effective context
 - `score_recalculation_jobs` — idempotent recalculation queue for variable/definition events.
 - `qualification_reviews`, `qualification_review_scores`, `disqualification_reasons`
 
-Index score results by subject, definition/version, and calculated time. A published score definition cannot be updated. Prompt 5 draft definitions are inactive until `business_scoring_owner` approval closes SCR-002 and CONF-007.
+Index score results by subject, definition/version, and calculated time. A published score definition cannot be updated. Prompt 6 unblock activates the Prompt 5 Phase 1 baseline after repository-owner approval closes SCR-002 and CONF-007 for entry.
 
 ### Discovery
 
@@ -162,7 +162,7 @@ Prompt 4 implements collection and identity-resolution tables in `packages/datab
 Prompt 5 implements draft completeness/scoring tables in `packages/database/src/schema/scoring.ts` and migration `0004_prompt_5_scoring_engine.sql`.
 
 - Added tables: `completeness_definitions`, `completeness_definition_versions`, `completeness_results`, `score_definitions`, `score_definition_versions`, `score_components`, `score_input_snapshots`, `score_results`, `score_factors`, and `score_recalculation_jobs`.
-- Active score/completeness definitions require approved metadata; draft unapproved definitions remain inactive.
+- Active score/completeness definitions require approved metadata; unapproved definitions remain inactive.
 - Score input snapshots, score results, and score factors are append-only for deterministic replay and auditability.
 - Score recalculation jobs are deduplicated by idempotency key.
-- Draft seeds create nine score definitions without activating any definition; SCR-002 remains pending until business approval exists.
+- Seeds create nine active approved score definitions and approved completeness definitions with repository-owner Phase 1 baseline approval metadata.

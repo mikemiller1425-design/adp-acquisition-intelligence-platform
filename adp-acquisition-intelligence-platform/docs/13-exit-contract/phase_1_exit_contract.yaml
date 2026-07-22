@@ -75,16 +75,26 @@ gates:
             commit: ece8350c8444baf655c6c7d145274fa88b669288
             environment: cursor-cloud-pg17
             executed_at: "2026-07-22T23:14:00Z"
-            result: draft_engine_exists_for_nine_required_families_definitions_inactive
+            result: active_phase_1_baseline_exists_for_nine_required_families_pending_full_exit_replay
       - id: SCR-002
         requirement: active_score_rubrics_and_weights_have_business_approval
-        status: pending
+        status: passed
         evidence:
           - artifact: docs/01-reviews/PROMPT_5_HANDOFF.md
-            commit: ece8350c8444baf655c6c7d145274fa88b669288
+            commit: prompt-6-owner-authorized-baseline-activation
             environment: cursor-cloud-pg17
-            executed_at: "2026-07-22T23:14:00Z"
-            result: blocked_business_scoring_owner_approval_pending_definitions_draft_inactive
+            executed_at: "2026-07-22T23:36:00Z"
+            result: owner_approved_phase_1_baseline_READY_FOR_PROMPT_6
+          - artifact: docs/08-scoring/SCORE_COMPONENT_VARIABLE_MAPPING.md
+            commit: prompt-6-owner-authorized-baseline-activation
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:36:00Z"
+            result: v1_0_0_active_phase_1_baseline_approved_by_repository_owner_mikemiller1425_design
+          - artifact: packages/database/seeds/scoring.ts
+            commit: prompt-6-owner-authorized-baseline-activation
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:36:00Z"
+            result: seeds_status_active_approval_status_approved_with_jsonb_approval_metadata
       - id: SCR-003
         requirement: scores_are_versioned_deterministic_and_replayable
         status: pending
@@ -93,7 +103,7 @@ gates:
             commit: ece8350c8444baf655c6c7d145274fa88b669288
             environment: cursor-cloud-pg17
             executed_at: "2026-07-22T23:14:00Z"
-            result: draft_golden_replay_exists_pending_approved_definition_replay
+            result: golden_replay_exists_for_phase_1_baseline_pending_full_exit_replay_evidence
       - id: SCR-004
         requirement: output_includes_status_tier_confidence_completeness_factors_gaps_action_and_snapshot
         status: pending
@@ -102,7 +112,7 @@ gates:
             commit: ece8350c8444baf655c6c7d145274fa88b669288
             environment: cursor-cloud-pg17
             executed_at: "2026-07-22T23:14:00Z"
-            result: draft_output_and_snapshot_contract_exists_pending_active_approval
+            result: output_and_snapshot_contract_exists_with_active_phase_1_baseline_pending_full_exit_evidence
       - id: SCR-005
         requirement: low_completeness_and_conflicts_do_not_create_false_precision
         status: pending
@@ -111,7 +121,7 @@ gates:
             commit: ece8350c8444baf655c6c7d145274fa88b669288
             environment: cursor-cloud-pg17
             executed_at: "2026-07-22T23:14:00Z"
-            result: draft_tests_cover_missing_semantics_and_confidence_null_pending_approved_policy
+            result: tests_cover_missing_semantics_and_unapproved_confidence_null_behavior_phase_1_policy_approved
       - id: SCR-006
         requirement: recommendation_override_requires_authorization_reason_and_preserves_computed_result
         status: pending
@@ -120,7 +130,7 @@ gates:
             commit: ece8350c8444baf655c6c7d145274fa88b669288
             environment: cursor-cloud-pg17
             executed_at: "2026-07-22T23:14:00Z"
-            result: draft_override_metadata_path_exists_pending_qualification_authorization_composition
+            result: override_metadata_path_exists_pending_qualification_authorization_composition
   workflow:
     required: true
     owner: product

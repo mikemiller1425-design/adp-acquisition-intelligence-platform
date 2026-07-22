@@ -113,8 +113,8 @@ Status: `open` | `decided` | `deferred`
 
 | ID | Topic | Owner | Earliest safe prompt |
 |---|---|---|---|
-| BUS-001 | Score weights/rubrics approval | business_scoring_owner | 5 |
-| BUS-002 | Completeness purpose weights | business_scoring_owner | 5 |
-| BUS-003 | CONF-002 conditionally_qualified | product_owner | before 6 |
+| BUS-001 | Score weights/rubrics approval | repository owner approved Phase 1 baseline via Prompt 6 unblock instruction 2026-07-22 | decided for Phase 1 |
+| BUS-002 | Completeness purpose weights | repository owner approved Phase 1 baseline via Prompt 6 unblock instruction 2026-07-22 | decided for Phase 1 |
+| BUS-003 | CONF-002 conditionally_qualified | resolved as review outcome routing to `prospect_stage=qualified` with blocking conditions | decided for Phase 1 |
 | ENG-001 | CONF-005 parallel state persistence | product + engineering | Prompt 1.5 |
 | ENG-002 | CONF-009 opt-out entity | product + security | Prompt 1.5 |

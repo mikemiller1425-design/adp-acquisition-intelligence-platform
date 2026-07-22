@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   auditEvents,
   checkDatabaseHealth,
+  completenessDefinitions,
   contacts,
   duplicateCandidates,
   evidenceRecords,
@@ -607,6 +608,12 @@ describe.sequential('database integration tooling', () => {
           .from(scoreDefinitions)
           .where(eq(scoreDefinitions.status, 'active')),
       ).value;
+      const activeCompletenessDefinitionCount = first(
+        await client.db
+          .select({ value: count() })
+          .from(completenessDefinitions)
+          .where(eq(completenessDefinitions.status, 'active')),
+      ).value;
       const evidenceRecordCount = first(
         await client.db.select({ value: count() }).from(evidenceRecords),
       ).value;
@@ -619,7 +626,8 @@ describe.sequential('database integration tooling', () => {
       expect(pendingOutboxCount).toBeGreaterThanOrEqual(1);
       expect(variableDefinitionCount).toBe(expectedVariableDefinitionCount);
       expect(scoreDefinitionCount).toBe(9);
-      expect(activeScoreDefinitionCount).toBe(0);
+      expect(activeScoreDefinitionCount).toBe(9);
+      expect(activeCompletenessDefinitionCount).toBeGreaterThanOrEqual(1);
       expect(evidenceRecordCount).toBeGreaterThanOrEqual(6);
       expect(permissionEvidenceLinkCount).toBeGreaterThanOrEqual(1);
     } finally {

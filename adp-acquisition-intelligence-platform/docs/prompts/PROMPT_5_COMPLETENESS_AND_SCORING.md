@@ -1,8 +1,8 @@
 # Prompt 5 — Completeness and Scoring
 
-**Status:** Draft engine implemented and locally verifiable  
-**Branch:** `cursor/prompt-5-completeness-scoring-dd2b`  
-**Production activation:** Blocked; definitions are `draft_unapproved` and inactive
+**Status:** Engine implemented; Phase 1 baseline approved for Prompt 6 entry
+**Branch:** `cursor/prompt-5-completeness-scoring-dd2b`
+**Production activation:** Active Phase 1 baseline approved by repository owner via Prompt 6 unblock instruction 2026-07-22
 
 ## Scope
 
@@ -11,11 +11,11 @@ Prompt 5 adds the draft completeness and scoring engine package surface needed f
 - Purpose-specific completeness calculation that keeps `known`, `unknown`, `not_applicable`, `withheld`, `contradicted`, and `stale` distinct.
 - Deterministic score calculation for the required draft families: acquisition fit, wholesale fit, CAS maturity, direct payroll opportunity, influence, urgency, revenue potential, accessibility, and data confidence.
 - Draft transform functions for ordinal, boolean, banded numeric/currency/range, percentage, enum, recency, and identity inputs.
-- Draft confidence aggregation behavior that returns `null` outside `allowDraft` mode when the policy is unapproved.
+- Confidence aggregation behavior that returns `null` outside `allowDraft` mode when a policy is unapproved; Phase 1 baseline policy is approved.
 - Immutable score input snapshots, score results, score factors, override metadata, and recalculation job persistence.
-- Draft YAML configuration and golden replay fixtures.
+- Active Phase 1 YAML configuration and golden replay fixtures.
 
-Prompt 5 does **not** approve score definitions, activate production scoring, or start Prompt 6 qualification/workflow behavior.
+Prompt 5 originally did **not** approve score definitions or start Prompt 6 qualification/workflow behavior. Prompt 6 unblock later recorded repository-owner Phase 1 baseline approval and activated the definitions for Prompt 6 entry.
 
 ## Implemented package surface
 
@@ -31,28 +31,28 @@ Key modules:
 - `application/scoring-service.ts` — definition lookup, variable input loading, calculation, snapshots, persistence, and previous-result chaining.
 - `application/definition-services.ts` — draft creation and explicit approval-metadata guard before publish.
 - `application/recalculation-service.ts` — outbox-event-to-score-recalculation queue contract and worker handler registration.
-- `infrastructure/config-loaders.ts` — draft YAML loaders.
+- `infrastructure/config-loaders.ts` — YAML loaders that preserve draft or active lifecycle metadata.
 - `infrastructure/postgres-repositories.ts` — Postgres repositories for definitions, inputs, results, overrides, and recalculation jobs.
 
 Supporting files:
 
-- `config/scoring/*.yaml` — draft, inactive score, confidence, and recommendation definitions.
+- `config/scoring/*.yaml` and `config/completeness/*.yaml` — active Phase 1 baseline score, confidence, recommendation, and completeness definitions.
 - `tests/fixtures/golden-scores/*.json` — replay fixtures for all nine score families.
 - `packages/database/migrations/0004_prompt_5_scoring_engine.sql` — Prompt 5 scoring/completeness persistence.
-- `packages/database/seeds/scoring.ts` — draft seed definitions; no active definitions are seeded.
+- `packages/database/seeds/scoring.ts` — seed definitions with active/approved lifecycle and approval metadata.
 
-## Draft-only activation boundary
+## Activation boundary
 
-All Prompt 5 score and completeness definitions remain `draft_unapproved`.
+Prompt 6 unblock approves the Prompt 5 baseline for Phase 1 and activates score/completeness definitions as `approval_status=approved`.
 
-The implementation intentionally blocks active use until:
+The implementation still blocks active use of future versions until:
 
-1. `business_scoring_owner` approves score mappings, transforms, weights, tiers, completeness thresholds, confidence aggregation, and recommendation policy.
-2. SCR-002 is updated with approval evidence.
-3. CONF-007 is resolved in the conflict register.
+1. owner approval evidence exists for the new version,
+2. SCR-002 is updated with approval evidence when applicable,
+3. conflict-register impacts are resolved,
 4. Approved definitions have replay/golden evidence for the approved version.
 
-Until those steps happen, services may calculate drafts only with explicit `allowDraft` intent for engineering validation.
+Unapproved draft definitions may calculate only with explicit `allowDraft` intent for engineering validation.
 
 ## Verification evidence
 
@@ -60,7 +60,7 @@ Prompt 5 automated coverage includes:
 
 - Transform family boundaries, defaults, validation failures, and clamping.
 - Completeness handling for explicit zero/false values vs unknown, N/A, withheld, contradicted, and stale values.
-- Draft confidence policy behavior: `null` aggregate outside `allowDraft`.
+- Confidence policy behavior: `null` aggregate outside `allowDraft` for unapproved policies.
 - Draft activation guards in service and PostgreSQL constraints.
 - Golden replay across all nine required score families.
 - Property-style checks for ordering, determinism, monotonic identity behavior, and 0-100 bounds.

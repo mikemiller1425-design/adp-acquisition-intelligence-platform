@@ -146,7 +146,7 @@ Prompt 5 created and draft-verified these planned responsibilities:
 - `packages/scoring/src/domain/*` — **verified for draft engine existence** with transforms, completeness, confidence-policy gating, deterministic scoring, recommendation tie handling, and weight validation.
 - `packages/scoring/src/application/*` — **verified for draft engine existence** with draft definition services, scoring/completeness services, recommendation service, override path, and recalculation service.
 - `packages/scoring/src/infrastructure/*` — **verified for draft engine existence** with draft config loaders and Postgres repositories.
-- `config/scoring/*.yaml` and `tests/fixtures/golden-scores/*` — **verified for draft engine existence** with inactive draft score, confidence, recommendation definitions, and golden fixtures for nine score families.
+- `config/scoring/*.yaml`, `config/completeness/*.yaml`, and `tests/fixtures/golden-scores/*` — **verified for active Phase 1 baseline scoring** with approved score, confidence, recommendation, completeness definitions, and golden fixtures for nine score families.
 
-Prompt 5 intentionally leaves all score/completeness definitions `draft_unapproved` and inactive. SCR-002 remains pending until `business_scoring_owner` approval is recorded and CONF-007 is resolved.
+Prompt 6 unblock records repository-owner approval for the Prompt 5 Phase 1 baseline. Score/completeness definitions are active with `approval_status=approved`; unapproved future calibration must publish a new version and still satisfy activation guards.
 

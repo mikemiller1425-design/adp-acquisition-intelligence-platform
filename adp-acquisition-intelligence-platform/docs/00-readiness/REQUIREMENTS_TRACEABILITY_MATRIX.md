@@ -1,8 +1,8 @@
 # Requirements Traceability Matrix
 
-**Version:** 1.1.0  
-**Status:** Prompt 0 baseline; updated Prompt 1.5 for CONF-005/009  
-**Created:** 2026-07-22T18:33:53Z  
+**Version:** 1.1.0
+**Status:** Prompt 0 baseline; updated Prompt 1.5 for CONF-005/009
+**Created:** 2026-07-22T18:33:53Z
 **Updated:** 2026-07-22T19:15:56Z
 
 Maps Phase 1 requirements from canonical sources through entities, modules, UI, prompts, tests, and exit-contract checks.
@@ -89,7 +89,7 @@ Legend: **Prompt** = implementation prompt; **Test** = primary automated layer; 
 |---|---|---|---|---|---|---|---|
 | Qualification outcomes + structured reasons | Functional §3.6; State Machine | Qualification Review, Disqualification Reason | qualification/review-service | UI-12, UI-13 | 6 | Transition matrix | WFL-001 |
 | Transition guards, history, exceptions, next tasks | State Machine contract | Stage History, Task | qualification + workflow config | Org 360, UI-22 | 6 | Scenario/guards | WFL-002 |
-| `conditionally_qualified` behavior | Functional §3.6 (**conflict CONF-002**) | TBD | qualification | UI-13 | 6 | Blocked until CONF-002 | WFL-001 |
+| `conditionally_qualified` behavior | Functional §3.6; State Machine (**CONF-002 resolved**) | Qualification Review, Task | qualification | UI-13 | 6 | Condition tasks block discovery/outreach until satisfied or waived | WFL-001 |
 | Territory/duplicate/relationship blocks | State Machine blocked | Organization flags, Assignment | qualification + auth | UI-13 | 6 | Authz | DAT-004, WFL-002 |
 
 ---
@@ -159,7 +159,7 @@ Legend: **Prompt** = implementation prompt; **Test** = primary automated layer; 
 
 ## Coverage notes
 
-1. **Unprovable until human gates:** SCR-002, QAR-002, DAT-005, all `required_signoffs`.  
-2. **Blocked by open conflicts:** WFL-001 path for `conditionally_qualified` (CONF-002); SCR-001 complete family configs (CONF-007). CONF-005 and CONF-009 are **resolved** in Prompt 1.5.  
-3. **Campaign UI gap (CONF-013)** threatens QAR-005 “no DB edits” if campaigns are required in the happy path—resolve before Prompt 8/11.  
+1. **Unprovable until human gates:** SCR-002, QAR-002, DAT-005, all `required_signoffs`.
+2. **Resolved Prompt 6 entry conflicts:** WFL-001 path for `conditionally_qualified` (CONF-002) and SCR-001/SCR-002 baseline score activation (CONF-007) are resolved for Phase 1. CONF-005 and CONF-009 are **resolved** in Prompt 1.5.
+3. **Campaign UI gap (CONF-013)** threatens QAR-005 “no DB edits” if campaigns are required in the happy path—resolve before Prompt 8/11.
 4. Traceability IDs above are stable for Prompt evidence linking; extend rows when ADRs add requirements—do not delete historical rows.

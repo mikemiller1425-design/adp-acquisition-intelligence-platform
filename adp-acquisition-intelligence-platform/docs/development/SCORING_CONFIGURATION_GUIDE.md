@@ -1,35 +1,36 @@
 # Scoring Configuration Guide
 
-**Status:** Prompt 5 draft configuration guide  
-**Production activation:** Blocked until SCR-002 and CONF-007 approvals are recorded
+**Status:** Active Phase 1 baseline configuration guide
+**Production activation:** Approved for Phase 1 baseline; unapproved future changes remain blocked by activation guards
 
-This guide explains how to work with Prompt 5 scoring configuration without treating draft definitions as business-approved production scoring.
+This guide explains how to work with the owner-approved Phase 1 baseline scoring configuration and how to keep future calibration changes versioned and guarded.
 
 ## Configuration files
 
-Prompt 5 draft files live in `config/scoring`:
+Prompt 5/6 baseline files live in `config/scoring` and `config/completeness`:
 
-- `draft-scores.v1.yaml` — aggregate draft file for all nine score families.
-- `<score_key>.v0.1.0-draft.yaml` — per-score draft files for review.
-- `confidence_policy.v0.1.0-draft.yaml` — inactive draft confidence policy.
-- `recommendation_policy.v0.1.0-draft.yaml` — inactive draft recommendation policy.
+- `draft-scores.v1.yaml` — aggregate active file for all nine score families.
+- `<score_key>.v0.1.0-draft.yaml` — historical filenames containing active `version: 1.0.0` Phase 1 baseline metadata.
+- `confidence_policy.v0.1.0-draft.yaml` — active Phase 1 confidence policy.
+- `recommendation_policy.v0.1.0-draft.yaml` — active Phase 1 recommendation policy.
+- `config/completeness/draft-completeness.v1.yaml` — active completeness seed config.
 
-Every draft definition must remain:
+Active Phase 1 baseline definitions must use:
 
 ```yaml
-status: draft
-approval_status: draft_unapproved
-activation_allowed: false
+status: active
+approval_status: approved
+activation_allowed: true
 ```
 
-Do not change these to active values until `business_scoring_owner` approval exists and the exit contract is updated by an approval/release change.
+Approval is recorded as repository owner (mikemiller1425-design) via Prompt 6 unblock instruction 2026-07-22. Later calibration must publish a superseding version and include fresh approval evidence; do not mutate the meaning of `1.0.0`.
 
 ## Score definition fields
 
 Each score definition includes:
 
 - `key` — stable score key, such as `wholesale_fit`.
-- `version` — semantic definition version; Prompt 5 uses `0.1.0-draft`.
+- `version` — semantic definition version; Phase 1 baseline uses `1.0.0`.
 - `family` — `motion` or `support`.
 - `subject_type` — `organization` or `contact`.
 - `minimum_completeness` — draft threshold used by the engine.
@@ -67,20 +68,22 @@ Prompt 5 implements these transforms in `packages/scoring/src/domain/transforms.
 
 Unknown, missing, N/A, withheld, contradicted, and stale values are handled before transforms. Do not encode missing data as zero.
 
-## Loading and saving drafts
+## Loading and saving definitions
 
 Use the package loaders and services:
 
 ```ts
 import { ScoreDefinitionService, loadScoreDrafts } from '@adp/scoring';
 
-const drafts = await loadScoreDrafts('config/scoring/draft-scores.v1.yaml');
-for (const draft of drafts) {
-  await new ScoreDefinitionService(definitionRepository).createDraft(draft);
+const definitions = await loadScoreDrafts('config/scoring/draft-scores.v1.yaml');
+for (const definition of definitions) {
+  if (definition.status === 'draft') {
+    await new ScoreDefinitionService(definitionRepository).createDraft(definition);
+  }
 }
 ```
 
-`createDraft` forces `status='draft'` and `approvalStatus='draft_unapproved'`.
+`createDraft` still forces draft lifecycle for unapproved definitions. Approved activation uses `publish` with `approvalStatus: 'approved'` and explicit approval metadata, while database seeds can load active approved baseline config directly.
 
 ## Activation guard
 
@@ -91,17 +94,17 @@ Publishing requires:
 - explicit `approvalMetadata`,
 - database constraints that allow active status only with approval.
 
-This guard exists to prevent accidental activation. It is not a business approval substitute.
+This guard exists to prevent accidental activation. It is not an approval substitute for future versions.
 
-## Draft replay workflow
+## Baseline replay workflow
 
-Use draft replay only for engineering validation:
+Use replay for engineering validation and later calibration:
 
-1. Update the draft YAML and golden fixture together.
+1. Update a new versioned YAML and golden fixture together.
 2. Run `pnpm --filter @adp/scoring test`.
 3. Confirm golden fixtures cover all nine score families.
 4. Record changes in Prompt 5 docs or approval packets.
-5. Keep SCR-002 pending until approved definitions replace the draft.
+5. Keep future versions inactive until approval evidence is recorded.
 
 ## Approval package checklist
 

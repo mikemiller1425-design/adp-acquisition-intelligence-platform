@@ -1,10 +1,10 @@
 # Specification Conflict Register
 
-**Version:** 1.1.0  
-**Status:** Open tracking register from Prompt 0; CONF-005/009 resolved in Prompt 1.5  
-**Policy:** Do not silently resolve. Coordinated canonical updates + ADR required before consuming prompts implement conflicting behavior.  
-**Created:** 2026-07-22T18:33:53Z  
-**Updated:** 2026-07-22T22:56:00Z
+**Version:** 1.1.0
+**Status:** Open tracking register from Prompt 0; CONF-005/009 resolved in Prompt 1.5; CONF-002/007/015/016 resolved for Prompt 6 entry
+**Policy:** Do not silently resolve. Coordinated canonical updates + ADR required before consuming prompts implement conflicting behavior.
+**Created:** 2026-07-22T18:33:53Z
+**Updated:** 2026-07-22T23:36:00Z
 
 Status values: `open` | `resolved` | `accepted_risk` | `superseded`
 
@@ -37,8 +37,16 @@ Severity: `critical` | `high` | `medium` | `low`
 | Impact | Qualification workspace cannot implement an authoritative outcome; guards, next tasks, and dashboards undefined for this path |
 | Recommended resolution | Either (A) add `CONDITIONALLY_QUALIFIED` with entry/exit criteria, required fields, and allowed next transitions, or (B) remove/rename the outcome in the Functional Spec and map intent to `qualified` + constraint flags / `nurture` |
 | Required approver | product_owner |
-| Status | open |
+| Status | **resolved** |
 | Target prompt | before Prompt 6 |
+| Resolved in | Prompt 6 unblock (`2026-07-22`) |
+| Selected resolution | `conditionally_qualified` is a qualification-review outcome, not a `prospect_stage`. It routes to `prospect_stage=qualified`, records blocking `qualification_conditions`, creates blocking tasks with owner and due date, blocks discovery/outreach until all conditions are satisfied or waived, and preserves the computed recommendation separately from reviewer outcome. |
+| Documents updated | `PHASE_1_FUNCTIONAL_SPECIFICATION.md`, `WORKFLOW_STATE_MACHINE.md`, `OPERATIONAL_STATE_AND_CONSENT_MODEL.md`, `BUSINESS_ENTITY_CATALOG.md`, `REQUIREMENTS_TRACEABILITY_MATRIX.md` |
+
+### CONF-002 resolution history
+
+1. **2026-07-22 Prompt 0:** Finding opened — review outcome existed without state-machine semantics.
+2. **2026-07-22 Prompt 6 unblock:** Canonical resolution selected the `qualified` + blocking-conditions model; status → resolved.
 
 ---
 
@@ -120,9 +128,18 @@ Severity: `critical` | `high` | `medium` | `low`
 | Impact | Prompt 5 cannot build complete deterministic configs without inventing variables or dropping components; SCR-001/SCR-004 at risk |
 | Recommended resolution | For each score family, publish a table: component_id → variable_key(s) → transform → required/optional. Add any missing variable definitions to the dictionary before activation. Keep weights unapproved until SCR-002 |
 | Required approver | business_scoring_owner |
-| Status | open |
+| Status | **resolved** |
 | Target prompt | before Prompt 5 |
-| Prompt 5 note | Mapping draft published in `docs/08-scoring/SCORE_COMPONENT_VARIABLE_MAPPING.md`; still open pending business_scoring_owner approval |
+| Prompt 5 note | Mapping draft published in `docs/08-scoring/SCORE_COMPONENT_VARIABLE_MAPPING.md`; Prompt 6 unblock converted it to approved Phase 1 baseline v1.0.0 |
+| Resolved in | Prompt 6 unblock (`2026-07-22`) |
+| Selected resolution | `docs/08-scoring/SCORE_COMPONENT_VARIABLE_MAPPING.md` v1.0.0 is the approved Phase 1 baseline for component mappings, transforms, weights, tiers, completeness thresholds, confidence policy, and recommendation policy. Approval recorded as repository owner (mikemiller1425-design) via Prompt 6 unblock instruction 2026-07-22. No fake external approver email is asserted. |
+| Documents updated | `SCORE_COMPONENT_VARIABLE_MAPPING.md`, `CONFIDENCE_POLICY.md`, `COMPLETENESS_POLICY.md`, scoring/completeness YAML configs, `phase_1_exit_contract.yaml`, Prompt 5/6 readiness docs |
+
+### CONF-007 resolution history
+
+1. **2026-07-22 Prompt 0:** Finding opened — narrative score components lacked deterministic variable-key mapping.
+2. **2026-07-22 Prompt 5:** Draft mapping and inactive configs published for review.
+3. **2026-07-22 Prompt 6 unblock:** Repository owner authorized "fix them" for Prompt 6 entry blockers; approval recorded as Phase 1 baseline; status → resolved.
 
 ---
 
@@ -249,8 +266,16 @@ Severity: `critical` | `high` | `medium` | `low`
 | Impact | Ambiguous guards; exception path overuse |
 | Recommended resolution | Add re-entry transition rows: allowed targets, roles, required reason codes, side effects (reopen tasks, invalidate stale scores) |
 | Required approver | product_owner |
-| Status | open |
+| Status | **resolved** |
 | Target prompt | before Prompt 6 |
+| Resolved in | Prompt 6 unblock (`2026-07-22`) |
+| Selected resolution | Added `docs/workflows/REENTRY_POLICY.md` with from→to routes, roles, reason codes, command requirements, and side effects for `nurture`, `disqualified`, `duplicate`, `existing_relationship`, and `out_of_territory`. |
+| Documents updated | `REENTRY_POLICY.md`, `WORKFLOW_STATE_MACHINE.md`, `OPERATIONAL_STATE_AND_CONSENT_MODEL.md` |
+
+### CONF-015 resolution history
+
+1. **2026-07-22 Prompt 0:** Finding opened — routed-state re-entry only said "authorized reason."
+2. **2026-07-22 Prompt 6 unblock:** Detailed re-entry policy published and linked; status → resolved.
 
 ---
 
@@ -264,8 +289,16 @@ Severity: `critical` | `high` | `medium` | `low`
 | Impact | Research queue and review loop implementation guesswork |
 | Recommended resolution | Define `research_required → research → scored → review` (or direct return) with required outputs |
 | Required approver | product_owner |
-| Status | open |
+| Status | **resolved** |
 | Target prompt | before Prompt 6 |
+| Resolved in | Prompt 6 unblock (`2026-07-22`) |
+| Selected resolution | Canonical return path is `review → research_required → research → scored → review`. `review → research_required` creates blocking research tasks with owner and due date; research completion queues score recalculation; `scored → review` creates a renewed review task. |
+| Documents updated | `REENTRY_POLICY.md`, `WORKFLOW_STATE_MACHINE.md`, `OPERATIONAL_STATE_AND_CONSENT_MODEL.md` |
+
+### CONF-016 resolution history
+
+1. **2026-07-22 Prompt 0:** Finding opened — return path from `research_required` was incomplete.
+2. **2026-07-22 Prompt 6 unblock:** Return path and side effects documented with CONF-015 re-entry policy; status → resolved.
 
 ---
 
@@ -346,10 +379,10 @@ Severity: `critical` | `high` | `medium` | `low`
 
 ## Summary counts
 
-| Severity | Open | Resolved (Prompt 1.5) |
+| Severity | Open | Resolved (Prompt 1.5 / Prompt 6 unblock) |
 |---|---:|---:|
 | critical | 0 | 0 |
-| high | 2 (CONF-002, CONF-007) | 2 (CONF-005, CONF-009) |
-| medium | 12 | 0 |
+| high | 0 | 4 (CONF-002, CONF-005, CONF-007, CONF-009) |
+| medium | 10 | 2 (CONF-015, CONF-016) |
 | low | 5 | 0 |
-| **Total open** | **19** | — |
+| **Total open** | **15** | — |

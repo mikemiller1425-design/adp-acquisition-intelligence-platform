@@ -51,11 +51,11 @@ PASS_WITH_NON_BLOCKING_FINDINGS
 |---|---|---|---|
 | AR-INT-001 | medium | AuthN/AuthZ ports are stubs pending Entra OIDC adapter | later |
 | AR-INT-002 | low | pg-boss not wired; in-memory job scaffold only | Prompt 4 |
-| AR-INT-003 | medium | CONF-002 and CONF-007 remain open | before Prompts 5/6 |
+| AR-INT-003 | medium | CONF-002 and CONF-007 remained open at this review; resolved later by Prompt 6 unblock | resolved before Prompt 6 implementation |
 
 ## Deferred findings
 
-CONF-002, CONF-007, CONF-013, CONF-015 (and other unrelated open conflicts)
+At the time of this review: CONF-002, CONF-007, CONF-013, CONF-015 (and other unrelated open conflicts). Prompt 6 unblock later resolved CONF-002, CONF-007, CONF-015, and CONF-016 for Phase 1 entry.
 
 ## Specification deviations
 

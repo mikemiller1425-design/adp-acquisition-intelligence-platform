@@ -10,12 +10,15 @@ Canonical storage keys are `snake_case`. Diagrams may show Title Case labels. Pa
 raw → normalization → research → scored → review
                                       ↘ research_required ↗ research
 review → qualified → discovery_scheduled → discovery_completed
+      ↘ conditionally_qualified outcome routes to qualified with blocking conditions
       ↘ nurture                         → outreach_ready → outreach_active
       ↘ disqualified                                      → opportunity
       ↘ duplicate / existing_relationship / out_of_territory
 ```
 
-`nurture`, `disqualified`, `duplicate`, `existing_relationship`, and `out_of_territory` are routed states, not destructive deletion. Re-entry requires an authorized reason and creates an `operational_state_transitions` row (detailed re-entry matrix: CONF-015).
+`conditionally_qualified` is a qualification-review outcome, not a `prospect_stage`. It stores blocking `qualification_conditions`, routes to `prospect_stage=qualified`, creates blocking tasks, and blocks discovery/outreach until every condition is satisfied or waived.
+
+`nurture`, `disqualified`, `duplicate`, `existing_relationship`, and `out_of_territory` are routed states, not destructive deletion. Re-entry requires an authorized reason and creates an `operational_state_transitions` row. Detailed from/to rules, roles, reason codes, and side effects are in [Prospect Re-entry Policy](../workflows/REENTRY_POLICY.md).
 
 ## Canonical `prospect_stage` transitions
 
@@ -26,8 +29,9 @@ review → qualified → discovery_scheduled → discovery_completed
 | research → scored | applicable minimum inputs attempted; evidence attached | completeness and score run |
 | scored → review | results persisted and explainable | review task |
 | review → research_required | critical unknown/conflict | prioritized research gaps and due task |
-| research_required → research | gaps assigned / work resumed | research task |
+| research_required → research | gaps assigned / work resumed | research task; return path is `research → scored → review` |
 | review → qualified | reviewer accepts motion and no blocking policy flag | primary motion, next action |
+| review → qualified via `conditionally_qualified` outcome | reviewer accepts motion but requires blocking conditions | `qualification_conditions` with owner and due date, blocking tasks, computed recommendation preserved |
 | review → nurture | plausible but timing/readiness inadequate | revisit date/reason |
 | review → terminal route | structured reason and authorization | audit + closed tasks |
 | qualified → discovery_scheduled | contact, owner, date, agenda | session and participants |
@@ -63,6 +67,7 @@ Allowed values, initial/terminal values, matrices, actors, and side effects: [Op
 ## Blocked transitions
 
 - Any active pursuit when organization is unresolved duplicate, unauthorized territory, restricted, or an incompatible existing relationship.
+- Discovery or outreach after `conditionally_qualified` until every blocking qualification condition is satisfied or waived by an authorized reviewer/admin.
 - Outreach when opt-out/channel restriction/`unknown` permission applies, no recipient exists, or content lacks required human approval.
 - Opportunity creation from insufficient-data scoring without explicit reviewer exception.
 - Discovery completion while required session metadata or answer confirmation is incomplete.

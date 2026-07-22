@@ -71,7 +71,7 @@ Storage and API keys use `snake_case`. Diagrams MAY show Title Case labels that 
 | Canonical storage key | `organizations.prospect_stage` |
 | Allowed values | `raw`, `normalization`, `research`, `scored`, `review`, `research_required`, `qualified`, `discovery_scheduled`, `discovery_completed`, `outreach_ready`, `outreach_active`, `opportunity`, `nurture`, `disqualified`, `duplicate`, `existing_relationship`, `out_of_territory` |
 | Initial value | `raw` (manual draft or import before normalization completes) |
-| Terminal values | `disqualified`, `duplicate`, `existing_relationship`, `out_of_territory` are **routed/terminal for active pursuit** (not hard delete). `won`/`lost` are **opportunity** terminals, not prospect_stage values. Re-entry from routed states requires authorized reason (see State Machine; detailed re-entry matrix remains CONF-015) |
+| Terminal values | `disqualified`, `duplicate`, `existing_relationship`, `out_of_territory` are **routed/terminal for active pursuit** (not hard delete). `won`/`lost` are **opportunity** terminals, not prospect_stage values. Re-entry from routed states requires authorized reason per [Prospect Re-entry Policy](../workflows/REENTRY_POLICY.md). |
 | Entry criteria | Satisfies [Workflow State Machine](../07-workflows/WORKFLOW_STATE_MACHINE.md) guards for the target value |
 | Exit criteria | Target transition allowed; required outputs present; no blocking policy unless authorized exception |
 | Allowed transitions | See §3.1 |
@@ -175,7 +175,7 @@ Primary happy path:
 
 `raw → normalization → research → scored → review → qualified → discovery_scheduled → discovery_completed → outreach_ready → outreach_active → opportunity`
 
-Also: `review → research_required → research` (then re-score path `research → scored → review`).  
+Also: `review → research_required → research` (then re-score path `research → scored → review`). `conditionally_qualified` is a review outcome that routes to `qualified` with blocking `qualification_conditions`; it is not a `prospect_stage` value.
 Routes from `review`: `nurture`, `disqualified`, `duplicate`, `existing_relationship`, `out_of_territory`.
 
 | From \ To | normalization | research | scored | review | research_required | qualified | discovery_scheduled | discovery_completed | outreach_ready | outreach_active | opportunity | nurture | disqualified | duplicate | existing_relationship | out_of_territory |
@@ -192,9 +192,9 @@ Routes from `review`: `nurture`, `disqualified`, `duplicate`, `existing_relation
 | outreach_ready | | | | | | | | | | Y | | R | | | | |
 | outreach_active | | | | | | | | | | | Y | R | | | | |
 | opportunity | | | | | | | | | | R | | R | | | | |
-| nurture / terminals | | | | | | R | | | | | | | | | | |
+| nurture / terminals | | R | | R | | R | | | | | | | | | | |
 
-Re-entry specifics beyond this summary remain tracked under CONF-015.
+Re-entry specifics beyond this summary are authoritative in [Prospect Re-entry Policy](../workflows/REENTRY_POLICY.md).
 
 ### 3.2 `research_status`
 

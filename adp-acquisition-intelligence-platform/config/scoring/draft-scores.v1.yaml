@@ -1,17 +1,18 @@
 scores:
   - key: acquisition_fit
     display_name: Acquisition Fit
-    description: Draft unapproved acquisition fit hypothesis.
+    description: Approved Phase 1 baseline acquisition fit hypothesis.
     family: motion
     subject_type: organization
-    version: 0.1.0-draft
-    status: draft
-    approval_status: draft_unapproved
+    version: 1.0.0
+    status: active
+    approval_status: approved
+    activation_allowed: true
     minimum_completeness: 0.55
     range: [0, 100]
     tiers: { high: 75, medium: 50, low: 0 }
     confidence_policy:
-      approval_status: draft_unapproved
+      approval_status: approved
       base: evidence_average
     recommendation_policy:
       strategic_priority: 1
@@ -59,16 +60,17 @@ scores:
         transform_config: { min: 0, max: 4 }
   - key: wholesale_fit
     display_name: Wholesale Fit
-    description: Draft unapproved wholesale fit hypothesis from Prompt 5 specification.
+    description: Approved Phase 1 baseline wholesale fit hypothesis from Prompt 5 specification.
     family: motion
     subject_type: organization
-    version: 0.1.0-draft
-    status: draft
-    approval_status: draft_unapproved
+    version: 1.0.0
+    status: active
+    approval_status: approved
+    activation_allowed: true
     minimum_completeness: 0.55
     range: [0, 100]
     tiers: { high: 75, medium: 50, low: 0 }
-    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    confidence_policy: { approval_status: approved, base: evidence_average }
     recommendation_policy:
       strategic_priority: 2
       next_action: Validate payroll delivery model before wholesale outreach.
@@ -130,16 +132,17 @@ scores:
         }
   - key: cas_maturity
     display_name: CAS Maturity
-    description: Draft unapproved CAS maturity hypothesis.
+    description: Approved Phase 1 baseline CAS maturity hypothesis.
     family: motion
     subject_type: organization
-    version: 0.1.0-draft
-    status: draft
-    approval_status: draft_unapproved
+    version: 1.0.0
+    status: active
+    approval_status: approved
+    activation_allowed: true
     minimum_completeness: 0.50
     range: [0, 100]
     tiers: { high: 75, medium: 50, low: 0 }
-    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    confidence_policy: { approval_status: approved, base: evidence_average }
     recommendation_policy:
       { strategic_priority: 3, next_action: Research recurring advisory delivery depth. }
     components:
@@ -180,16 +183,17 @@ scores:
         }
   - key: direct_payroll_opportunity
     display_name: Direct Payroll Opportunity
-    description: Draft unapproved direct employer payroll opportunity hypothesis.
+    description: Approved Phase 1 baseline direct employer payroll opportunity hypothesis.
     family: motion
     subject_type: organization
-    version: 0.1.0-draft
-    status: draft
-    approval_status: draft_unapproved
+    version: 1.0.0
+    status: active
+    approval_status: approved
+    activation_allowed: true
     minimum_completeness: 0.55
     range: [0, 100]
     tiers: { high: 75, medium: 50, low: 0 }
-    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    confidence_policy: { approval_status: approved, base: evidence_average }
     recommendation_policy:
       { strategic_priority: 4, next_action: Research employer payroll timing and access. }
     components:
@@ -238,16 +242,17 @@ scores:
       - { key: access, variable_key: executive_access, weight: 0.10, transform: boolean_flag }
   - key: influence
     display_name: Influence
-    description: Draft unapproved influence support score.
+    description: Approved Phase 1 baseline influence support score.
     family: support
     subject_type: organization
-    version: 0.1.0-draft
-    status: draft
-    approval_status: draft_unapproved
+    version: 1.0.0
+    status: active
+    approval_status: approved
+    activation_allowed: true
     minimum_completeness: 0.45
     range: [0, 100]
     tiers: { high: 75, medium: 50, low: 0 }
-    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    confidence_policy: { approval_status: approved, base: evidence_average }
     recommendation_policy:
       { strategic_priority: 5, next_action: Identify decision influence evidence. }
     components:
@@ -287,16 +292,17 @@ scores:
         }
   - key: urgency
     display_name: Urgency
-    description: Draft unapproved urgency support score; urgency does not mean fit.
+    description: Approved Phase 1 baseline urgency support score; urgency does not mean fit.
     family: support
     subject_type: organization
-    version: 0.1.0-draft
-    status: draft
-    approval_status: draft_unapproved
+    version: 1.0.0
+    status: active
+    approval_status: approved
+    activation_allowed: true
     minimum_completeness: 0.40
     range: [0, 100]
     tiers: { high: 75, medium: 50, low: 0 }
-    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    confidence_policy: { approval_status: approved, base: evidence_average }
     recommendation_policy: { strategic_priority: 6, next_action: Verify time-sensitive trigger. }
     components:
       - {
@@ -329,16 +335,17 @@ scores:
         }
   - key: revenue_potential
     display_name: Revenue Potential
-    description: Draft unapproved revenue potential support score; revenue is not qualification.
+    description: Approved Phase 1 baseline revenue potential support score; revenue is not qualification.
     family: support
     subject_type: organization
-    version: 0.1.0-draft
-    status: draft
-    approval_status: draft_unapproved
+    version: 1.0.0
+    status: active
+    approval_status: approved
+    activation_allowed: true
     minimum_completeness: 0.45
     range: [0, 100]
     tiers: { high: 75, medium: 50, low: 0 }
-    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    confidence_policy: { approval_status: approved, base: evidence_average }
     recommendation_policy:
       { strategic_priority: 7, next_action: Validate volume and economics bands. }
     components:
@@ -388,16 +395,17 @@ scores:
         }
   - key: accessibility
     display_name: Accessibility
-    description: Draft unapproved lawful and practical reachability support score.
+    description: Approved Phase 1 baseline lawful and practical reachability support score.
     family: support
     subject_type: organization
-    version: 0.1.0-draft
-    status: draft
-    approval_status: draft_unapproved
+    version: 1.0.0
+    status: active
+    approval_status: approved
+    activation_allowed: true
     minimum_completeness: 0.45
     range: [0, 100]
     tiers: { high: 75, medium: 50, low: 0 }
-    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    confidence_policy: { approval_status: approved, base: evidence_average }
     recommendation_policy:
       { strategic_priority: 8, next_action: Confirm reachable authorized contact path. }
     components:
@@ -425,16 +433,17 @@ scores:
         }
   - key: data_confidence
     display_name: Data Confidence
-    description: Draft unapproved reliability support score.
+    description: Approved Phase 1 baseline reliability support score.
     family: support
     subject_type: organization
-    version: 0.1.0-draft
-    status: draft
-    approval_status: draft_unapproved
+    version: 1.0.0
+    status: active
+    approval_status: approved
+    activation_allowed: true
     minimum_completeness: 0.40
     range: [0, 100]
     tiers: { high: 75, medium: 50, low: 0 }
-    confidence_policy: { approval_status: draft_unapproved, base: evidence_average }
+    confidence_policy: { approval_status: approved, base: evidence_average }
     recommendation_policy:
       { strategic_priority: 9, next_action: Improve evidence quality, recency, and agreement. }
     components:

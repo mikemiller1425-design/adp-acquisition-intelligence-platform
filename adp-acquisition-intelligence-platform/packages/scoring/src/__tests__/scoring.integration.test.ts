@@ -142,6 +142,18 @@ describe.sequential('Prompt 5 scoring integration', () => {
           actor: { userId: null, roles: ['admin'] },
         }),
       ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      const approved = await definitionService.publish({
+        key: 'cannot_publish',
+        version: '0.1.0-draft',
+        approvalStatus: 'approved',
+        approvalMetadata: {
+          approved_by:
+            'repository owner (mikemiller1425-design) via Prompt 6 unblock instruction 2026-07-22',
+        },
+        actor: { userId: null, roles: ['admin'] },
+      });
+      expect(approved.status).toBe('active');
+      expect(approved.approvalStatus).toBe('approved');
 
       const organization = first(
         await client.db

@@ -15,7 +15,7 @@ Prompt 1.5 published a canonical **Operational State and Consent Model** and upd
 1. **CONF-005** — Five parallel operational dimensions are independently persisted and transitioned (`prospect_stage`, `research_status`, `outreach_status`, `data_freshness_status`, `opportunity_stage`) with current-state columns, shared append-only history, and a transition service. They are not collapsed into one organization status.
 2. **CONF-009** — Consent/channel permission/suppression is a first-class model with entities, tables, precedence, services, UI (UI-27), import/outreach/export behavior, and tests. `unknown` is never `allowed`. No legal-compliance claim is made.
 
-Unrelated conflicts (including CONF-002, CONF-007) remain open by design.
+Unrelated conflicts (including CONF-002, CONF-007) remained open by design at Prompt 1.5 review time. Prompt 6 unblock later resolved CONF-002, CONF-007, CONF-015, and CONF-016 for Phase 1 entry.
 
 **Integration note:** On the Prompt 1 + 1.5 integration branch, Prompt 1 ADRs/handoff/architecture review are present and **DEC-001–012 are decided**, including **DEC-003 single-tenant**. The original Prompt 1.5-only PR lacked Prompt 1; that gap is closed here.
 
@@ -86,9 +86,9 @@ Service: `ConsentPermissionService`; OutreachService must evaluate before outbou
 | Item | Notes |
 |---|---|
 | Prompt 1 ADRs (DEC-001–012), esp. **DEC-003 tenant** | **Resolved on integration branch** via ADR-001–012 |
-| CONF-002 `conditionally_qualified` | Still open; before Prompt 6 |
-| CONF-007 score component → variable map | Still open; before Prompt 5 |
-| CONF-015 routed-state re-entry matrix detail | Partially constrained; full matrix still open |
+| CONF-002 `conditionally_qualified` | Resolved by Prompt 6 unblock as review outcome routing to `qualified` with blocking conditions |
+| CONF-007 score component → variable map | Resolved by Prompt 6 unblock via approved Phase 1 scoring baseline |
+| CONF-015 routed-state re-entry matrix detail | Resolved by Prompt 6 unblock in `docs/workflows/REENTRY_POLICY.md` |
 | CONF-017 cardinality nuance | Phase 1 rule set (one open opp per org per motion); leave CONF-017 open for product confirm |
 | CONF-013 campaign UI | Still open |
 | Exact freshness thresholds (aging vs stale ages) | Config-driven; numeric windows not frozen (acceptable for Prompt 2 schema) |
@@ -154,17 +154,17 @@ review:
       target_prompt: 3
     - id: AR-1.5-003
       severity: low
-      status: accepted_risk
-      finding: CONF-015 re-entry matrix remains open; Prompt 1.5 matrices cover primary paths only.
-      impact: Edge re-entry from routed states still needs product detail before Prompt 6.
-      required_action: Expand re-entry table in State Machine before Prompt 6.
+      status: resolved_later_prompt_6_unblock
+      finding: CONF-015 re-entry matrix remained open at Prompt 1.5; Prompt 6 unblock later resolved it.
+      impact: Edge re-entry from routed states is now covered by docs/workflows/REENTRY_POLICY.md.
+      required_action: None for Prompt 6 entry; implement policy enforcement in Prompt 6 workflow services.
       owner: product_owner
       target_prompt: 6
   deferred_findings:
-    - CONF-002
-    - CONF-007
+    - CONF-002 (resolved later by Prompt 6 unblock)
+    - CONF-007 (resolved later by Prompt 6 unblock)
     - CONF-013
-    - CONF-015
+    - CONF-015 (resolved later by Prompt 6 unblock)
     - CONF-017
   specification_deviations: []
   exit_contract_evidence_updated: []
@@ -210,7 +210,7 @@ review:
 
 1. Prompt 2 MUST implement the Operational State and Consent Model as specified (no alternate collapsed status design).
 2. Prompt 2 MUST follow **ADR-003 single-tenant** (no speculative `tenant_id`).
-3. Do not invent resolutions for CONF-002 / CONF-007 in Prompt 2 schema beyond nullable extension points if strictly necessary—and prefer not to.
+3. Prompt 2 schema should continue to follow the Prompt 6 unblock resolutions for CONF-002 / CONF-007 rather than inventing alternate semantics.
 4. Preserve Prompt 1 ADRs and foundation packages.
 
 ---

@@ -64,7 +64,8 @@ function assertDraft(status: string, approvalStatus: string): void {
   if (status === 'active' || approvalStatus === 'approved') {
     throw new AppError({
       code: 'VALIDATION_FAILED',
-      message: 'Prompt 5 definitions must be created as draft_unapproved drafts',
+      message:
+        'Draft creation requires draft_unapproved lifecycle; publish approved definitions with approval metadata for activation',
     });
   }
 }

@@ -1,8 +1,8 @@
 key: direct_payroll_opportunity
-version: 0.1.0-draft
-status: draft
-approval_status: draft_unapproved
-activation_allowed: false
+version: 1.0.0
+status: active
+approval_status: approved
+activation_allowed: true
 range: [0, 100]
 minimum_completeness: 0.55
 tiers:
@@ -82,8 +82,11 @@ components:
     direction: '+'
 missing_data_behavior: unknown_not_zero_required_missing_blocks_final
 confidence_behavior: required_low_confidence_or_stale_provisional
-production_activation_blockers:
-  - business_scoring_owner_approval_missing
-  - SCR-002_pending
-  - BUS-001_pending
-  - CONF-007_open
+activation_evidence:
+  approval_status: approved
+  approved_at: '2026-07-22T00:00:00Z'
+  approved_by: repository owner (mikemiller1425-design) via Prompt 6 unblock instruction 2026-07-22
+  scope: Phase 1 baseline approval of the draft mappings/weights already published
+  notes:
+    - SCR-002 Phase 1 baseline approved for Prompt 6 entry
+    - CONF-007 resolved in docs/00-readiness/SPECIFICATION_CONFLICT_REGISTER.md

@@ -169,7 +169,7 @@ export class PostgresScoreDefinitionRepository implements ScoreDefinitionReposit
           updatedAt: sql`now()`,
         })
         .where(eq(scoreDefinitions.id, current.definitionId as string));
-      const published = await this.findActiveByKey(input.key);
+      const published = await this.findByKeyAndStatus(input.key, 'active', tx);
       if (published === null) throw new Error(`Published score definition not found: ${input.key}`);
       return published;
     });
@@ -178,8 +178,9 @@ export class PostgresScoreDefinitionRepository implements ScoreDefinitionReposit
   private async findByKeyAndStatus(
     key: string,
     status?: 'active',
+    db: Db = this.db,
   ): Promise<ScoreDefinitionVersion | null> {
-    const rows = await this.db
+    const rows = await db
       .select({ definition: scoreDefinitions, version: scoreDefinitionVersions })
       .from(scoreDefinitions)
       .innerJoin(
@@ -195,7 +196,7 @@ export class PostgresScoreDefinitionRepository implements ScoreDefinitionReposit
       .limit(1);
     const row = rows[0];
     if (row === undefined) return null;
-    const components = await this.db
+    const components = await db
       .select()
       .from(scoreComponents)
       .where(eq(scoreComponents.scoreDefinitionVersionId, row.version.id))

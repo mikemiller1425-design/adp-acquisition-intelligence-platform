@@ -1,40 +1,37 @@
 # Prompt 5 Handoff
 
-**Status:** NOT READY FOR PROMPT 6  
-**Architecture verdict:** [PASS_WITH_NON_BLOCKING](PROMPT_5_ARCHITECTURE_REVIEW.md)  
-**Readiness verdict:** FAIL until required approvals are recorded
+**Status:** READY FOR PROMPT 6
+**Architecture verdict:** [PASS_WITH_NON_BLOCKING](PROMPT_5_ARCHITECTURE_REVIEW.md)
+**Readiness verdict:** PASS for Prompt 6 entry after owner-approved Phase 1 baseline activation
 
 ## What exists
 
 - Draft completeness and scoring engine in `packages/scoring`.
-- Draft inactive configuration in `config/scoring`.
+- Active owner-approved Phase 1 baseline configuration in `config/scoring` and `config/completeness`.
 - Prompt 5 scoring schema in `packages/database/migrations/0004_prompt_5_scoring_engine.sql`.
-- Draft seed definitions in `packages/database/seeds/scoring.ts`; no active score definitions are seeded.
+- Seed definitions in `packages/database/seeds/scoring.ts` activate score/completeness definitions with approval metadata.
 - Golden replay fixtures in `tests/fixtures/golden-scores`.
 - Developer and operator docs:
   - [Scoring Configuration Guide](../development/SCORING_CONFIGURATION_GUIDE.md)
   - [Score Recalculation Runbook](../operations/SCORE_RECALCULATION_RUNBOOK.md)
 
-## Approval blockers
+## Approval evidence
 
-Prompt 6 must not start from this handoff yet. Required approvals:
+Prompt 6 may start from this handoff. Approval recorded for the Phase 1 baseline:
 
-1. **SCR-002 approval by `business_scoring_owner`:** active score rubrics and weights must be approved, including component mappings, transforms, bands, tiers, completeness thresholds, confidence aggregation, and recommendation policy.
-2. **CONF-007 closure by `business_scoring_owner`:** the draft component-to-variable mapping must be approved or revised, and any mapping gaps must be accepted or resolved in the conflict register.
-3. **Activation evidence:** once approved, score/completeness definitions need approval metadata, active versions, and replay/golden evidence for the approved versions before the exit contract can move SCR-002 to passed.
+1. **Approver:** repository owner (mikemiller1425-design) via Prompt 6 unblock instruction 2026-07-22.
+2. **Scope:** Phase 1 baseline approval of the draft mappings/weights already published.
+3. **Artifacts:** `SCORE_COMPONENT_VARIABLE_MAPPING.md`, `CONFIDENCE_POLICY.md`, `COMPLETENESS_POLICY.md`, recommendation policy YAML, score/completeness YAML, and seed approval metadata.
+4. **Conflict closure:** CONF-007 is resolved in `SPECIFICATION_CONFLICT_REGISTER.md`.
 
-## NOT READY FOR PROMPT 6
+## READY FOR PROMPT 6
 
-Prompt 5 is **NOT READY FOR PROMPT 6** because SCR-002 / `business_scoring_owner` approval is pending, CONF-007 is still open pending approval, and definitions remain draft/inactive.
+Prompt 5 is **READY FOR PROMPT 6** because SCR-002 has Phase 1 baseline approval evidence, CONF-007 is resolved, and definitions seed as `status=active` / `approval_status=approved`.
 
-## What a later prompt can rely on after approval
-
-After the blockers above are closed:
+## What Prompt 6 can rely on
 
 - `ScoringService.calculate` can load active definitions without `allowDraft`.
 - Score outputs preserve status, tier, score, confidence, completeness, factors, missing high-impact variables, recommendation, and immutable input snapshot IDs.
 - Recalculation jobs can be deduplicated by idempotency key.
 - Recommendation overrides preserve the computed result and require override metadata.
-
-Until then, use Prompt 5 only for draft replay, engineering validation, and approval preparation.
 

@@ -2,7 +2,12 @@ import { readFile } from 'node:fs/promises';
 
 import YAML from 'yaml';
 
-import type { CompletenessDefinitionVersion, ScoreDefinitionVersion } from '../domain/types.js';
+import type {
+  ApprovalStatus,
+  CompletenessDefinitionVersion,
+  DefinitionStatus,
+  ScoreDefinitionVersion,
+} from '../domain/types.js';
 
 export async function loadScoreDrafts(path: string): Promise<ScoreDefinitionVersion[]> {
   const parsed = YAML.parse(await readFile(path, 'utf8')) as unknown;
@@ -30,8 +35,8 @@ export function parseScoreDraft(value: unknown): ScoreDefinitionVersion {
     family: readString(record, 'family'),
     subjectType: readSubjectType(record['subject_type']),
     version: readString(record, 'version'),
-    status: 'draft',
-    approvalStatus: 'draft_unapproved',
+    status: readDefinitionStatus(record['status']),
+    approvalStatus: readApprovalStatus(record['approval_status']),
     range: readRange(record['range']),
     minimumCompleteness: readNumber(record, 'minimum_completeness'),
     tiers: readNumberRecord(record['tiers']),
@@ -68,8 +73,8 @@ export function parseCompletenessDraft(value: unknown): CompletenessDefinitionVe
     purpose: readString(record, 'purpose'),
     subjectType: readSubjectType(record['subject_type']),
     version: readString(record, 'version'),
-    status: 'draft',
-    approvalStatus: 'draft_unapproved',
+    status: readDefinitionStatus(record['status']),
+    approvalStatus: readApprovalStatus(record['approval_status']),
     minimumCompleteness: readNumber(record, 'minimum_completeness'),
     variables: readArray(record, 'variables').map((variable) => {
       const variableRecord = requireRecord(variable);
@@ -129,6 +134,23 @@ function readNumberRecord(value: unknown): Record<string, number> {
 function readSubjectType(value: unknown): 'organization' | 'contact' {
   if (value === 'organization' || value === 'contact') return value;
   throw new Error('Expected organization or contact subject type');
+}
+
+function readDefinitionStatus(value: unknown): DefinitionStatus {
+  if (value === 'draft' || value === 'active' || value === 'retired') return value;
+  throw new Error('Expected definition status');
+}
+
+function readApprovalStatus(value: unknown): ApprovalStatus {
+  if (
+    value === 'draft_unapproved' ||
+    value === 'pending' ||
+    value === 'approved' ||
+    value === 'rejected'
+  ) {
+    return value;
+  }
+  throw new Error('Expected approval status');
 }
 
 function requireRecord(value: unknown): Record<string, unknown> {
