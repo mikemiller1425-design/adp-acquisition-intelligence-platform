@@ -1,0 +1,23 @@
+.wrapper {
+  margin-bottom: var(--space-md);
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.select {
+  min-width: 14rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.select:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}

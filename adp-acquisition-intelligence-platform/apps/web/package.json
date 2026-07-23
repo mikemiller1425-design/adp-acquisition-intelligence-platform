@@ -1,0 +1,30 @@
+{
+  "name": "@adp/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "smoke:health": "tsx src/smoke-health.ts"
+  },
+  "dependencies": {
+    "@adp/contracts": "workspace:*",
+    "@adp/database": "workspace:*",
+    "@adp/platform": "workspace:*",
+    "@adp/reporting": "workspace:*",
+    "next": "16.2.11",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "tsx": "^4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

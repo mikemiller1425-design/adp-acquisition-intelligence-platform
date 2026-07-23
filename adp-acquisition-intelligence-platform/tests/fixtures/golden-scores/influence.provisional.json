@@ -1,0 +1,35 @@
+{
+  "scoreKey": "influence",
+  "family": "support",
+  "components": [
+    {
+      "key": "decision_influence",
+      "weight": 0.6,
+      "transform": "ordinal_linear",
+      "required": true,
+      "transformConfig": { "min": 0, "max": 4 }
+    },
+    {
+      "key": "trust",
+      "weight": 0.4,
+      "transform": "ordinal_linear",
+      "transformConfig": { "min": 0, "max": 4 }
+    }
+  ],
+  "inputs": [
+    {
+      "componentKey": "decision_influence",
+      "value": 3,
+      "valueStatus": "known",
+      "confidenceStatus": "unassessed"
+    },
+    {
+      "componentKey": "trust",
+      "value": 3,
+      "valueStatus": "known",
+      "confidenceStatus": "provisional",
+      "confidenceScore": 0.55
+    }
+  ],
+  "expected": { "status": "provisional", "tier": "high", "score": 75 }
+}

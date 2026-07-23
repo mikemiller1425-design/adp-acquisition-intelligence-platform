@@ -1,0 +1,111 @@
+.stub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-lg);
+  padding: 0;
+  list-style: none;
+}
+
+.stub-actions li {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 0.85rem;
+}
+
+.detail-panel {
+  padding: var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--space-md);
+  margin: 0;
+}
+
+.detail-grid dt {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-grid dd {
+  margin: 0.15rem 0 0;
+  font-weight: 500;
+}
+
+.tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tab-list a {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.tab-list a:hover {
+  background: var(--color-surface-muted);
+}
+
+.form-panel {
+  display: grid;
+  gap: var(--space-md);
+  max-width: 32rem;
+}
+
+.form-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: 0.85rem;
+}
+
+.form-panel input,
+.form-panel select,
+.form-panel textarea {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.form-panel button {
+  justify-self: start;
+  padding: 0.45rem 0.85rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.form-panel button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.channel-disabled {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+}
+
+.section-heading {
+  margin: var(--space-xl) 0 var(--space-md);
+  font-size: 1rem;
+}

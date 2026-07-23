@@ -1,0 +1,25 @@
+{
+  "name": "@adp/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "smoke:health": "tsx src/smoke-health.ts"
+  },
+  "dependencies": {
+    "@adp/contracts": "workspace:*",
+    "@adp/platform": "workspace:*",
+    "fastify": "5.10.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

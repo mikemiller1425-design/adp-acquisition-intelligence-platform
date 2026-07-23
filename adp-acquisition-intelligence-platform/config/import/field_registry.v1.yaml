@@ -1,0 +1,732 @@
+version: field_registry.v1
+schema_version: 1
+description: Versioned CSV/manual import field registry for Prompt 4 collection workflows.
+fields:
+  - key: organization_display_name
+    label: Organization Display Name
+    aliases: [company, company_name, organization, organization_name, firm_name]
+    destination: organization.display_name
+    type: string
+    required: true
+    normalization_rule: trim_whitespace
+    validation_rule: non_empty_string
+    blank_behavior: reject_if_required
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: high
+    help: Primary organization name shown to users.
+    version: field_registry.v1
+  - key: organization_legal_name
+    label: Organization Legal Name
+    aliases: [legal_name, registered_name]
+    destination: organization.legal_name
+    type: string
+    required: false
+    normalization_rule: trim_whitespace
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: Legal or registered organization name when supplied.
+    version: field_registry.v1
+  - key: organization_domain
+    label: Organization Domain
+    aliases: [domain, website_domain, website, url]
+    destination: organization.domain
+    type: domain
+    required: false
+    normalization_rule: normalize_domain
+    validation_rule: valid_domain_or_url
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: high
+    help: Website domain used for duplicate matching and organization identity.
+    version: field_registry.v1
+  - key: organization_existing_relationship_flag
+    label: Existing Relationship
+    aliases: [existing_relationship, existing_client, current_relationship]
+    destination: organization.existing_relationship_flag
+    type: boolean
+    required: false
+    normalization_rule: parse_boolean
+    validation_rule: boolean
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Indicates a known existing relationship with the organization.
+    version: field_registry.v1
+  - key: organization_alias
+    label: Organization Alias
+    aliases: [alias, dba, doing_business_as, alternate_name]
+    destination: organization.alias
+    type: string
+    required: false
+    normalization_rule: trim_whitespace
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: Alternate name or DBA for duplicate matching and lookup.
+    version: field_registry.v1
+  - key: location_name
+    label: Location Name
+    aliases: [office_name, site_name, branch_name]
+    destination: location.name
+    type: string
+    required: false
+    normalization_rule: trim_whitespace
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Friendly name for the imported organization location.
+    version: field_registry.v1
+  - key: location_address_line_1
+    label: Location Address Line 1
+    aliases: [address, address_1, street, street_address]
+    destination: location.address_line_1
+    type: string
+    required: false
+    normalization_rule: normalize_address_line
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: First postal address line for a location.
+    version: field_registry.v1
+  - key: location_address_line_2
+    label: Location Address Line 2
+    aliases: [address_2, suite, unit]
+    destination: location.address_line_2
+    type: string
+    required: false
+    normalization_rule: normalize_address_line
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Secondary postal address line for a location.
+    version: field_registry.v1
+  - key: location_city
+    label: Location City
+    aliases: [city, town]
+    destination: location.city
+    type: string
+    required: false
+    normalization_rule: trim_title_case
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: City for the imported location.
+    version: field_registry.v1
+  - key: location_region
+    label: Location Region
+    aliases: [state, province, region]
+    destination: location.region
+    type: string
+    required: false
+    normalization_rule: normalize_region_code
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: State, province, or region for the imported location.
+    version: field_registry.v1
+  - key: location_postal_code
+    label: Location Postal Code
+    aliases: [postal_code, zip, zip_code]
+    destination: location.postal_code
+    type: string
+    required: false
+    normalization_rule: normalize_postal_code
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: Postal code for the imported location.
+    version: field_registry.v1
+  - key: location_country_code
+    label: Location Country Code
+    aliases: [country, country_code]
+    destination: location.country_code
+    type: string
+    required: false
+    normalization_rule: normalize_iso_country_code
+    validation_rule: iso_3166_alpha_2
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Two-letter ISO country code for the imported location.
+    version: field_registry.v1
+  - key: location_phone
+    label: Location Phone
+    aliases: [office_phone, main_phone, business_phone]
+    destination: location.phone
+    type: phone
+    required: false
+    normalization_rule: normalize_phone_e164
+    validation_rule: phone
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: Main phone number for the imported location.
+    version: field_registry.v1
+  - key: location_is_primary
+    label: Primary Location
+    aliases: [primary_location, is_primary_office, headquarters]
+    destination: location.is_primary
+    type: boolean
+    required: false
+    normalization_rule: parse_boolean
+    validation_rule: boolean
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Marks the imported location as the organization's primary location.
+    version: field_registry.v1
+  - key: contact_first_name
+    label: Contact First Name
+    aliases: [first_name, given_name]
+    destination: contact.first_name
+    type: string
+    required: false
+    normalization_rule: trim_whitespace
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: Contact first or given name.
+    version: field_registry.v1
+  - key: contact_last_name
+    label: Contact Last Name
+    aliases: [last_name, surname, family_name]
+    destination: contact.last_name
+    type: string
+    required: false
+    normalization_rule: trim_whitespace
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: Contact last or family name.
+    version: field_registry.v1
+  - key: contact_display_name
+    label: Contact Display Name
+    aliases: [contact_name, full_name, name]
+    destination: contact.display_name
+    type: string
+    required: false
+    normalization_rule: trim_whitespace
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: Contact display name; may be composed from first and last name by import code.
+    version: field_registry.v1
+  - key: contact_title
+    label: Contact Title
+    aliases: [title, job_title, role_title]
+    destination: contact.title
+    type: string
+    required: false
+    normalization_rule: trim_whitespace
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Contact job title.
+    version: field_registry.v1
+  - key: contact_email
+    label: Contact Email
+    aliases: [email, email_address, work_email]
+    destination: contact.email
+    type: email
+    required: false
+    normalization_rule: normalize_email
+    validation_rule: email
+    blank_behavior: leave_blank
+    sensitivity: restricted
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: high
+    help: Work email address for the contact.
+    version: field_registry.v1
+  - key: contact_phone
+    label: Contact Phone
+    aliases: [phone, mobile_phone, direct_phone]
+    destination: contact.phone
+    type: phone
+    required: false
+    normalization_rule: normalize_phone_e164
+    validation_rule: phone
+    blank_behavior: leave_blank
+    sensitivity: restricted
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: Direct or mobile phone number for the contact.
+    version: field_registry.v1
+  - key: contact_linkedin_url
+    label: Contact LinkedIn URL
+    aliases: [linkedin, linkedin_url, linkedin_profile]
+    destination: contact.linkedin_url
+    type: url
+    required: false
+    normalization_rule: normalize_url
+    validation_rule: url
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: LinkedIn profile URL for contact identity matching.
+    version: field_registry.v1
+  - key: contact_role_key
+    label: Contact Role Key
+    aliases: [role_key, contact_role, persona]
+    destination: contact_role.role_key
+    type: string
+    required: false
+    normalization_rule: normalize_key
+    validation_rule: key
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Stable role key for the contact's relationship to the organization.
+    version: field_registry.v1
+  - key: contact_role_name
+    label: Contact Role Name
+    aliases: [role_name, contact_role_name, persona_name]
+    destination: contact_role.role_name
+    type: string
+    required: false
+    normalization_rule: trim_whitespace
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Human-readable role name for the contact's relationship.
+    version: field_registry.v1
+  - key: contact_role_seniority
+    label: Contact Role Seniority
+    aliases: [seniority, contact_seniority]
+    destination: contact_role.seniority
+    type: string
+    required: false
+    normalization_rule: normalize_key
+    validation_rule: string
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Seniority band or level associated with a contact role.
+    version: field_registry.v1
+  - key: assignment_owner_email
+    label: Assignment Owner Email
+    aliases: [owner_email, assigned_owner_email, account_owner]
+    destination: assignment.user_email
+    type: email
+    required: false
+    normalization_rule: normalize_email
+    validation_rule: email
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: none
+    duplicate_relevance: none
+    help: User email used to resolve the account assignment owner.
+    version: field_registry.v1
+  - key: assignment_territory_key
+    label: Assignment Territory Key
+    aliases: [territory, territory_key, assigned_territory]
+    destination: assignment.territory_key
+    type: string
+    required: false
+    normalization_rule: normalize_key
+    validation_rule: key
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: none
+    duplicate_relevance: none
+    help: Territory key used to resolve an account assignment.
+    version: field_registry.v1
+  - key: assignment_role
+    label: Assignment Role
+    aliases: [owner_role, assignment_role]
+    destination: assignment.assignment_role
+    type: string
+    required: false
+    normalization_rule: normalize_key
+    validation_rule: key
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: none
+    duplicate_relevance: none
+    help: Role for the account assignment, such as owner.
+    version: field_registry.v1
+  - key: consent_email_permission_state
+    label: Email Permission State
+    aliases: [email_permission, email_consent, email_allowed]
+    destination: consent.contact_channel_permission.email
+    type: enum
+    required: false
+    normalization_rule: normalize_permission_state
+    validation_rule: permission_state
+    blank_behavior: leave_blank
+    sensitivity: restricted
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Permission state for contacting the imported contact by email.
+    version: field_registry.v1
+  - key: consent_phone_permission_state
+    label: Phone Permission State
+    aliases: [phone_permission, phone_consent, phone_allowed]
+    destination: consent.contact_channel_permission.phone
+    type: enum
+    required: false
+    normalization_rule: normalize_permission_state
+    validation_rule: permission_state
+    blank_behavior: leave_blank
+    sensitivity: restricted
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Permission state for contacting the imported contact by phone.
+    version: field_registry.v1
+  - key: firm_type
+    label: Firm Type
+    aliases: [firm_category, company_type, organization_type]
+    destination: variable:firm_type
+    type: enum
+    required: false
+    normalization_rule: normalize_enum_key
+    validation_rule: variable_definition:firm_type
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: medium
+    help: Existing Prompt 3 variable for primary firm category.
+    version: field_registry.v1
+  - key: employee_count
+    label: Employee Count
+    aliases: [employees, number_of_employees, headcount]
+    destination: variable:employee_count
+    type: integer
+    required: false
+    normalization_rule: parse_integer
+    validation_rule: variable_definition:employee_count
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for organization employee count.
+    version: field_registry.v1
+  - key: estimated_revenue
+    label: Estimated Revenue
+    aliases: [revenue, annual_revenue, revenue_range]
+    destination: variable:estimated_revenue
+    type: currency_range
+    required: false
+    normalization_rule: parse_currency_range
+    validation_rule: variable_definition:estimated_revenue
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for estimated annual revenue range.
+    version: field_registry.v1
+  - key: office_count
+    label: Office Count
+    aliases: [offices, locations, location_count]
+    destination: variable:office_count
+    type: integer
+    required: false
+    normalization_rule: parse_integer
+    validation_rule: variable_definition:office_count
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for number of active offices.
+    version: field_registry.v1
+  - key: geographic_coverage
+    label: Geographic Coverage
+    aliases: [coverage, service_area, states_served]
+    destination: variable:geographic_coverage
+    type: categorized_list
+    required: false
+    normalization_rule: parse_categorized_list
+    validation_rule: variable_definition:geographic_coverage
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for regions or states served.
+    version: field_registry.v1
+  - key: years_in_business
+    label: Years in Business
+    aliases: [years_active, company_age, age]
+    destination: variable:years_in_business
+    type: integer
+    required: false
+    normalization_rule: parse_integer
+    validation_rule: variable_definition:years_in_business
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for approximate years since formation.
+    version: field_registry.v1
+  - key: ownership_type
+    label: Ownership Type
+    aliases: [ownership, ownership_model]
+    destination: variable:ownership_type
+    type: enum
+    required: false
+    normalization_rule: normalize_enum_key
+    validation_rule: variable_definition:ownership_type
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for observed ownership model.
+    version: field_registry.v1
+  - key: growth_stage
+    label: Growth Stage
+    aliases: [growth, growth_posture]
+    destination: variable:growth_stage
+    type: enum
+    required: false
+    normalization_rule: normalize_enum_key
+    validation_rule: variable_definition:growth_stage
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for current growth posture.
+    version: field_registry.v1
+  - key: typical_client_employee_count
+    label: Typical Client Employee Count
+    aliases: [typical_client_size, client_employee_count, average_client_size]
+    destination: variable:typical_client_employee_count
+    type: integer_range
+    required: false
+    normalization_rule: parse_integer_range
+    validation_rule: variable_definition:typical_client_employee_count
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for typical client employee-count range.
+    version: field_registry.v1
+  - key: payroll_offered
+    label: Payroll Offered
+    aliases: [offers_payroll, payroll_services, payroll]
+    destination: variable:payroll_offered
+    type: boolean
+    required: false
+    normalization_rule: parse_boolean
+    validation_rule: variable_definition:payroll_offered
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for whether payroll services are offered.
+    version: field_registry.v1
+  - key: bookkeeping_offered
+    label: Bookkeeping Offered
+    aliases: [offers_bookkeeping, bookkeeping_services]
+    destination: variable:bookkeeping_offered
+    type: boolean
+    required: false
+    normalization_rule: parse_boolean
+    validation_rule: variable_definition:bookkeeping_offered
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for whether bookkeeping services are offered.
+    version: field_registry.v1
+  - key: cas_offered
+    label: CAS Offered
+    aliases: [offers_cas, client_accounting_services, advisory_services]
+    destination: variable:cas_offered
+    type: boolean
+    required: false
+    normalization_rule: parse_boolean
+    validation_rule: variable_definition:cas_offered
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for whether CAS services are offered.
+    version: field_registry.v1
+  - key: fractional_cfo_offered
+    label: Fractional CFO Offered
+    aliases: [offers_fractional_cfo, fractional_cfo]
+    destination: variable:fractional_cfo_offered
+    type: boolean
+    required: false
+    normalization_rule: parse_boolean
+    validation_rule: variable_definition:fractional_cfo_offered
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for whether fractional CFO services are offered.
+    version: field_registry.v1
+  - key: payroll_delivery_model
+    label: Payroll Delivery Model
+    aliases: [payroll_model, payroll_delivery, delivery_model]
+    destination: variable:payroll_delivery_model
+    type: enum
+    required: false
+    normalization_rule: normalize_enum_key
+    validation_rule: variable_definition:payroll_delivery_model
+    blank_behavior: leave_blank
+    sensitivity: internal
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for how payroll services are delivered.
+    version: field_registry.v1
+  - key: payroll_client_count
+    label: Payroll Client Count
+    aliases: [payroll_clients, payroll_client_range]
+    destination: variable:payroll_client_count
+    type: integer_range
+    required: false
+    normalization_rule: parse_integer_range
+    validation_rule: variable_definition:payroll_client_count
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for estimated payroll client-count range.
+    version: field_registry.v1
+  - key: average_payroll_size
+    label: Average Payroll Size
+    aliases: [avg_payroll_size, payroll_size, average_payroll_employees]
+    destination: variable:average_payroll_size
+    type: integer_range
+    required: false
+    normalization_rule: parse_integer_range
+    validation_rule: variable_definition:average_payroll_size
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for typical employee count per payroll.
+    version: field_registry.v1
+  - key: multi_state_client_share
+    label: Multi-State Client Share
+    aliases: [multi_state_share, multi_state_clients]
+    destination: variable:multi_state_client_share
+    type: percentage
+    required: false
+    normalization_rule: parse_percentage
+    validation_rule: variable_definition:multi_state_client_share
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for share of clients operating in multiple states.
+    version: field_registry.v1
+  - key: staffing_pressure
+    label: Staffing Pressure
+    aliases: [staffing_strain, hiring_pressure, capacity_strain]
+    destination: variable:staffing_pressure
+    type: ordinal_rubric
+    required: false
+    normalization_rule: parse_ordinal_rubric
+    validation_rule: variable_definition:staffing_pressure
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for hiring, retention, or capacity strain.
+    version: field_registry.v1
+  - key: technology_maturity
+    label: Technology Maturity
+    aliases: [tech_maturity, technology_stack_maturity]
+    destination: variable:technology_maturity
+    type: ordinal_rubric
+    required: false
+    normalization_rule: parse_ordinal_rubric
+    validation_rule: variable_definition:technology_maturity
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for integration, workflow, and data maturity.
+    version: field_registry.v1
+  - key: process_standardization
+    label: Process Standardization
+    aliases: [process_maturity, standardization]
+    destination: variable:process_standardization
+    type: ordinal_rubric
+    required: false
+    normalization_rule: parse_ordinal_rubric
+    validation_rule: variable_definition:process_standardization
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for repeatability and documentation maturity.
+    version: field_registry.v1
+  - key: current_payroll_provider
+    label: Current Payroll Provider
+    aliases: [payroll_provider, current_provider, provider]
+    destination: variable:current_payroll_provider
+    type: string
+    required: false
+    normalization_rule: trim_whitespace
+    validation_rule: variable_definition:current_payroll_provider
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for known current payroll provider.
+    version: field_registry.v1
+  - key: known_provider_issue
+    label: Known Provider Issue
+    aliases: [provider_issue, payroll_provider_issue, dissatisfaction_reason]
+    destination: variable:known_provider_issue
+    type: controlled_multiselect
+    required: false
+    normalization_rule: parse_controlled_multiselect
+    validation_rule: variable_definition:known_provider_issue
+    blank_behavior: leave_blank
+    sensitivity: confidential
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for supported provider issue categories.
+    version: field_registry.v1
+  - key: contract_renewal_date
+    label: Contract Renewal Date
+    aliases: [renewal_date, provider_renewal_date]
+    destination: variable:contract_renewal_date
+    type: date
+    required: false
+    normalization_rule: parse_date
+    validation_rule: variable_definition:contract_renewal_date
+    blank_behavior: leave_blank
+    sensitivity: restricted
+    evidence_behavior: create_import_evidence
+    duplicate_relevance: low
+    help: Existing Prompt 3 variable for provider contract renewal date.
+    version: field_registry.v1
