@@ -1,4 +1,4 @@
-import { InMemoryJobDispatcher } from '@adp/platform';
+import { InMemoryJobDispatcher, type JobEnvelope, type JobHandler } from '@adp/platform';
 import {
   createResearchRuntime,
   FixtureRetrievalPort,
@@ -19,8 +19,56 @@ const FIXTURE_HTML = `<!doctype html><html><body>
 <p>Client accounting services and fractional CFO available.</p>
 </body></html>`;
 
+const FIXTURE_PAGES: Record<string, { body: string }> = {
+  'https://acme-advisory.test/': { body: FIXTURE_HTML },
+  'https://acme-advisory.test/about': { body: FIXTURE_HTML },
+  'https://acme-advisory.test/services': { body: FIXTURE_HTML },
+  'https://beta-advisory.test/': { body: FIXTURE_HTML },
+  'https://beta-advisory.test/about': { body: FIXTURE_HTML },
+  'https://beta-advisory.test/services': { body: FIXTURE_HTML },
+};
+
+/**
+ * Defers research.run.execute so pause/resume can interleave between targets.
+ * Other research jobs still run inline (Phase 1.1 fixture workflow).
+ */
+export class DeferredResearchExecuteDispatcher extends InMemoryJobDispatcher {
+  private readonly deferred: Array<JobEnvelope & { jobId: string }> = [];
+  private seq = 0;
+
+  override async enqueue(job: JobEnvelope): Promise<{ jobId: string }> {
+    if (job.name === 'research.run.execute') {
+      this.seq += 1;
+      const jobId = `deferred_research_${this.seq}`;
+      this.deferred.push({ ...job, jobId });
+      this.jobs.push({ ...job, jobId });
+      return { jobId };
+    }
+    return super.enqueue(job);
+  }
+
+  pendingResearchExecuteCount(): number {
+    return this.deferred.length;
+  }
+
+  async processNextResearchExecute(): Promise<boolean> {
+    const next = this.deferred.shift();
+    if (!next) return false;
+    const handler = this.get(next.name) as JobHandler | undefined;
+    if (!handler) return false;
+    await handler(next);
+    return true;
+  }
+
+  async drainResearchExecute(max = 50): Promise<number> {
+    let n = 0;
+    while (n < max && (await this.processNextResearchExecute())) n += 1;
+    return n;
+  }
+}
+
 export type WebResearchRuntime = ResearchRuntime & {
-  jobs: InMemoryJobDispatcher;
+  jobs: DeferredResearchExecuteDispatcher;
 };
 
 declare global {
@@ -28,11 +76,7 @@ declare global {
 }
 
 function attachFixtureRetrieval(runtime: ResearchRuntime): void {
-  const retrieval = new FixtureRetrievalPort({
-    'https://acme-advisory.test/': { body: FIXTURE_HTML },
-    'https://acme-advisory.test/about': { body: FIXTURE_HTML },
-    'https://acme-advisory.test/services': { body: FIXTURE_HTML },
-  });
+  const retrieval = new FixtureRetrievalPort(FIXTURE_PAGES);
   (runtime as unknown as { retrieval: FixtureRetrievalPort }).retrieval = retrieval;
   (runtime as unknown as { collection: TargetedCollectionService }).collection =
     new TargetedCollectionService(
@@ -51,7 +95,8 @@ function attachFixtureRetrieval(runtime: ResearchRuntime): void {
 
 /**
  * Process-scoped research runtime for the web app.
- * Honors ADP_RESEARCH_PROVIDER=memory|postgres. Live network is never enabled.
+ * Honors ADP_RESEARCH_PROVIDER=memory|postgres.
+ * Live network remains gated by ADP_LIVE_RESEARCH_ENABLED (default false).
  * Job handlers are the same registerResearchJobHandlers used by apps/worker.
  */
 export async function getWebResearchRuntime(): Promise<WebResearchRuntime> {
@@ -61,7 +106,7 @@ export async function getWebResearchRuntime(): Promise<WebResearchRuntime> {
   attachFixtureRetrieval(base);
   await seedFixtureApprovedSource(base.uow, base.database?.db ?? null);
 
-  const jobs = new InMemoryJobDispatcher();
+  const jobs = new DeferredResearchExecuteDispatcher();
   registerResearchJobHandlers(jobs, base);
 
   const runtime: WebResearchRuntime = { ...base, jobs };
@@ -110,7 +155,6 @@ export async function drainRecalculationOutbox(runtime?: WebResearchRuntime): Pr
   for (const eventType of snapshot.outboxEventTypes) {
     if (eventType !== 'intelligence.recalculation_requested') continue;
   }
-  // Prefer explicit org ids from claims accepted in this session.
   for (const claim of snapshot.claims) {
     if (claim.reviewStatus !== 'accepted' && claim.reviewStatus !== 'accepted_corrected') continue;
     await rt.jobs.enqueue({
