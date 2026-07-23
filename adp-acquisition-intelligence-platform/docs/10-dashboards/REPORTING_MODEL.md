@@ -92,8 +92,7 @@ Transactional events use `aggregateType` `organization` or `user` (valid `subjec
 - Filtered table retrieval: &lt; 2s for fixture datasets (&lt; 100 organizations) with pagination
 - Bounded integration tests document pagination behavior; production 100k-org claims deferred to Prompt 12
 
-## Deferred to Prompt 11
+## Deferred to Prompt 12
 
-- Dashboard UI screens and chart widgets
-- URL-persisted filter UX
-- Empty/loading/error UI states (DSH-005 UI portions)
+- Production-scale performance acceptance
+- Browser E2E login→dashboard→prospect→export flow

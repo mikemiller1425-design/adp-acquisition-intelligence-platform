@@ -1,0 +1,124 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-lg);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.brandTitle {
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+.envBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-env-badge);
+  border: 1px solid var(--color-border);
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.timezone,
+.taskIndicator,
+.user {
+  white-space: nowrap;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: var(--nav-width) 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.nav {
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  padding: var(--space-md);
+  overflow-y: auto;
+}
+
+.navSection + .navSection {
+  margin-top: var(--space-lg);
+}
+
+.navSectionLabel {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.navList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navLink,
+.navLinkActive {
+  display: block;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.navLink:hover {
+  background: var(--color-surface-muted);
+  text-decoration: none;
+}
+
+.navLinkActive {
+  background: #e8f0fa;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.content {
+  padding: var(--space-lg);
+  overflow-x: auto;
+}
+
+@media (max-width: 900px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+
+  .nav {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+}

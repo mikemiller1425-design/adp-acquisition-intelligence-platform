@@ -75,9 +75,15 @@ importers:
       '@adp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@adp/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@adp/platform':
         specifier: workspace:*
         version: link:../../packages/platform
+      '@adp/reporting':
+        specifier: workspace:*
+        version: link:../../packages/reporting
       next:
         specifier: 16.2.11
         version: 16.2.11(react-dom@19.2.8(react@19.2.8))(react@19.2.8)

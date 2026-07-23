@@ -1,0 +1,33 @@
+.state {
+  padding: var(--space-xl);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  max-width: 36rem;
+}
+
+.title {
+  margin: 0 0 var(--space-sm);
+  font-size: 1.1rem;
+}
+
+.message {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.retry {
+  display: inline-block;
+  margin-top: var(--space-md);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.retry:hover {
+  background: var(--color-accent-hover);
+  text-decoration: none;
+}
