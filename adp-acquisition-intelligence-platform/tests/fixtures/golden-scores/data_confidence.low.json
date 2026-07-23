@@ -1,0 +1,35 @@
+{
+  "scoreKey": "data_confidence",
+  "family": "support",
+  "components": [
+    {
+      "key": "evidence_quality",
+      "weight": 0.5,
+      "transform": "percentage_linear",
+      "required": true
+    },
+    {
+      "key": "verification",
+      "weight": 0.5,
+      "transform": "enum_map",
+      "transformConfig": { "map": { "none": 0, "source": 40, "verified": 90 } }
+    }
+  ],
+  "inputs": [
+    {
+      "componentKey": "evidence_quality",
+      "value": 30,
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    },
+    {
+      "componentKey": "verification",
+      "value": "none",
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    }
+  ],
+  "expected": { "status": "final", "tier": "low", "score": 15 }
+}

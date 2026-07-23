@@ -1,0 +1,35 @@
+key: direct_payroll_score_readiness
+version: 1.0.0
+status: active
+approval_status: approved
+activation_allowed: true
+criticality_groups:
+  required:
+    group_weight: 0.30
+    variable_keys:
+      - firm_type
+      - employee_count
+  high_impact:
+    group_weight: 0.55
+    variable_keys:
+      - growth_stage
+      - rapid_hiring
+      - geographic_coverage
+      - multi_state_growth
+      - provider_satisfaction
+      - known_provider_issue
+      - contract_renewal_date
+      - executive_access
+  contextual:
+    group_weight: 0.15
+    variable_keys:
+      - current_payroll_provider
+      - office_count
+      - technology_dissatisfaction
+      - competitive_openness
+state_behavior:
+  unknown: incomplete_not_zero
+  not_applicable: exclude_only_when_definition_permits
+  withheld: incomplete_visible_withheld
+  contradicted: incomplete_create_research_gap
+  stale: incomplete_refresh_required

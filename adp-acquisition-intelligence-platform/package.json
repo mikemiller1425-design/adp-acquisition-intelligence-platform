@@ -1,0 +1,38 @@
+{
+  "name": "adp-acquisition-intelligence-platform",
+  "private": true,
+  "packageManager": "pnpm@11.15.1",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "db:migrate": "pnpm --filter @adp/database db:migrate",
+    "db:seed": "pnpm --filter @adp/database db:seed",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "deps:check": "pnpm exec dependency-cruiser --config tooling/dependency-cruiser.cjs apps packages",
+    "validate:docs": "node tooling/validate-docs.mjs",
+    "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm deps:check && pnpm test && pnpm build && pnpm validate:docs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^24.10.1",
+    "dependency-cruiser": "^17.3.6",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.5.0",
+    "prettier": "^3.7.4",
+    "turbo": "2.10.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.50.0",
+    "vitest": "4.1.10",
+    "yaml": "^2.8.2"
+  },
+  "type": "module"
+}

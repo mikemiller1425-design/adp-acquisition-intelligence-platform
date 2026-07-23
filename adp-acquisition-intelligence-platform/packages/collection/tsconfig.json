@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../contracts" },
+    { "path": "../database" },
+    { "path": "../platform" },
+    { "path": "../organizations" },
+    { "path": "../evidence" },
+    { "path": "../variables" },
+    { "path": "../consent" }
+  ]
+}
