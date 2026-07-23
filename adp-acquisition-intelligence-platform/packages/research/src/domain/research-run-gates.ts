@@ -29,10 +29,7 @@ export type LaunchGateContext = {
 };
 
 const LIVE_MODES: ResearchRunMode[] = ['archive_first_live_fallback', 'live_official_site_only'];
-const ARCHIVE_MODES: ResearchRunMode[] = [
-  'archive_only',
-  'archive_first_live_fallback',
-];
+const ARCHIVE_MODES: ResearchRunMode[] = ['archive_only', 'archive_first_live_fallback'];
 
 export function evaluateLaunchGates(ctx: LaunchGateContext): {
   allowed: boolean;

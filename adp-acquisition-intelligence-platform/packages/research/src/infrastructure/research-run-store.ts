@@ -207,7 +207,10 @@ export class InMemoryResearchRunRepository implements ResearchRunRepository {
     this.checkpoints.set(this.checkpointId(runId, checkpointKey), { ...payload });
   }
 
-  async getCheckpoint(runId: string, checkpointKey: string): Promise<Record<string, unknown> | null> {
+  async getCheckpoint(
+    runId: string,
+    checkpointKey: string,
+  ): Promise<Record<string, unknown> | null> {
     const row = this.checkpoints.get(this.checkpointId(runId, checkpointKey));
     return row ? { ...row } : null;
   }
@@ -449,7 +452,10 @@ export class PostgresResearchRunRepository implements ResearchRunRepository {
       });
   }
 
-  async getCheckpoint(runId: string, checkpointKey: string): Promise<Record<string, unknown> | null> {
+  async getCheckpoint(
+    runId: string,
+    checkpointKey: string,
+  ): Promise<Record<string, unknown> | null> {
     const rows = await this.db
       .select()
       .from(researchRunCheckpoints)

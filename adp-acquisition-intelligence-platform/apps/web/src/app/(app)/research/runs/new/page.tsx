@@ -65,7 +65,11 @@ export default async function NewResearchRunPage({ searchParams }: PageProps) {
       searchParams={query}
     >
       <div className="detail-panel" data-testid="research-run-new">
-        <form action={previewOrLaunchResearchRunAction} className="form-panel" data-testid="research-run-form">
+        <form
+          action={previewOrLaunchResearchRunAction}
+          className="form-panel"
+          data-testid="research-run-form"
+        >
           <label>
             Run name
             <input name="name" defaultValue={defaults.name} required data-testid="run-name" />
@@ -207,9 +211,7 @@ export default async function NewResearchRunPage({ searchParams }: PageProps) {
                 <dd data-testid="estimated-runtime">{estimatedRuntimeMinutes}</dd>
               </div>
             </dl>
-            {!previewed ? (
-              <p>Run Preview to compute estimates and evaluate launch gates.</p>
-            ) : null}
+            {!previewed ? <p>Run Preview to compute estimates and evaluate launch gates.</p> : null}
           </section>
 
           <section data-testid="run-gate-status" aria-label="Approval and safety">
@@ -231,7 +233,9 @@ export default async function NewResearchRunPage({ searchParams }: PageProps) {
               </div>
               <div>
                 <dt>Live research enabled</dt>
-                <dd data-testid="live-research-enabled">{liveResearchEnabled ? 'true' : 'false'}</dd>
+                <dd data-testid="live-research-enabled">
+                  {liveResearchEnabled ? 'true' : 'false'}
+                </dd>
               </div>
             </dl>
             <p data-testid="confirmation-summary">

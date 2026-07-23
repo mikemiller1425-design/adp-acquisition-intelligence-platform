@@ -51,7 +51,8 @@ export class PostgresDurableJobStore implements DurableJobStore {
       )
       RETURNING id, name, payload, idempotency_key, correlation_id, status, attempts, max_attempts, last_error
     `);
-    const row = (rows as unknown as { rows?: Record<string, unknown>[] }).rows?.[0] ??
+    const row =
+      (rows as unknown as { rows?: Record<string, unknown>[] }).rows?.[0] ??
       (Array.isArray(rows) ? (rows as Record<string, unknown>[])[0] : null);
     if (!row) return null;
     return {
@@ -95,9 +96,7 @@ export class PostgresDurableJobStore implements DurableJobStore {
       .set({
         status: dead ? 'dead' : 'queued',
         lastError: error,
-        availableAt: dead
-          ? new Date()
-          : new Date(Date.now() + (retryDelayMs ?? 0)),
+        availableAt: dead ? new Date() : new Date(Date.now() + (retryDelayMs ?? 0)),
         lockedAt: null,
         lockedBy: null,
         updatedAt: new Date(),
@@ -142,7 +141,10 @@ export class PostgresDurableJobStore implements DurableJobStore {
 
 /** In-memory durable store for unit tests (survives dispatcher rebuild within process). */
 export class InMemoryDurableJobStore implements DurableJobStore {
-  readonly jobs = new Map<string, DurableJobRecord & { availableAt: number; maxAttempts: number }>();
+  readonly jobs = new Map<
+    string,
+    DurableJobRecord & { availableAt: number; maxAttempts: number }
+  >();
   private heartbeats = new Map<string, Date>();
 
   async enqueue(job: {
