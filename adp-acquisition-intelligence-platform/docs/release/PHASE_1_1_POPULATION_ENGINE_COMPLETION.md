@@ -4,6 +4,8 @@
 **Date:** 2026-07-23  
 **Branch:** `cursor/phase-1-1-population-engine-dd2b`  
 **Baseline:** `1e98880f742a739bbfc44167c549fd4ebc8cd5c0` (PR #19 OPEN stacked)  
+**Tip commit:** `75255a254f640fcd79bdd7b9b38e0f8b550e2a6a`  
+**Draft PR:** #20  
 **Recommendation:** **READY FOR CONTROLLED PILOT**
 
 ---
