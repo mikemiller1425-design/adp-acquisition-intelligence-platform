@@ -131,12 +131,43 @@ gates:
             environment: cursor-cloud-pg17
             executed_at: "2026-07-22T23:14:00Z"
             result: override_metadata_path_exists_pending_qualification_authorization_composition
+          - artifact: packages/qualification/src/__tests__/qualification-workflow.integration.test.ts
+            commit: prompt-6-qualification-workflow
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:56:00Z"
+            result: prompt_6_integration_preserves_score_result_after_qualification_recommendation_override
   workflow:
     required: true
     owner: product
     checks:
-      - {id: WFL-001, requirement: qualification_outcomes_and_structured_reasons_work, status: pending, evidence: []}
-      - {id: WFL-002, requirement: transition_guards_history_exceptions_and_next_tasks_work, status: pending, evidence: []}
+      - id: WFL-001
+        requirement: qualification_outcomes_and_structured_reasons_work
+        status: pending
+        evidence:
+          - artifact: packages/qualification/src/__tests__/qualification-workflow.integration.test.ts
+            commit: prompt-6-qualification-workflow
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:56:00Z"
+            result: prompt_6_service_and_pg_tests_cover_qualification_outcomes_conditions_reasons_overrides_pending_ui_e2e
+          - artifact: docs/workflows/QUALIFICATION_DECISION_MATRIX.md
+            commit: prompt-6-qualification-workflow
+            environment: documentation
+            executed_at: "2026-07-22T23:56:00Z"
+            result: executable_matrix_documented_pending_full_phase_1_release_evidence
+      - id: WFL-002
+        requirement: transition_guards_history_exceptions_and_next_tasks_work
+        status: pending
+        evidence:
+          - artifact: packages/qualification/src/__tests__/qualification-workflow.integration.test.ts
+            commit: prompt-6-qualification-workflow
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-22T23:56:00Z"
+            result: prompt_6_tests_cover_operational_transition_history_reentry_rollback_and_next_tasks_pending_later_workflows
+          - artifact: docs/workflows/REENTRY_POLICY.md
+            commit: prompt-6-qualification-workflow
+            environment: documentation
+            executed_at: "2026-07-22T23:56:00Z"
+            result: reentry_policy_enforced_by_service_pending_full_exit_e2e
       - {id: WFL-003, requirement: discovery_agenda_verbatim_answers_confirmed_mappings_and_rescoring_work, status: pending, evidence: []}
       - {id: WFL-004, requirement: outreach_templates_sequences_approvals_activities_responses_and_followups_work, status: pending, evidence: []}
       - {id: WFL-005, requirement: opt_out_and_channel_restrictions_block_incompatible_outreach, status: pending, evidence: []}

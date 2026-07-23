@@ -65,6 +65,17 @@ Prompt 4 adds collection package coverage across:
 - E2E service test for a 25+ organization import with malformed rows, exact and ambiguous duplicates, dry-run, review, commit, provenance, report, and reversal.
 - Performance test for 10k-row CSV validation/parsing with duration and heap logging.
 
+## Prompt 6 verified test evidence
+
+Prompt 6 adds qualification workflow coverage across:
+
+- PostgreSQL 17 integration tests for qualification review queueing, score-result links, conditional qualification, blocking condition tasks, research-required gaps, nurture, disqualification, consent indicators, authorization denial, optimistic concurrency rollback, transition rollback, re-entry history, and condition resolution/waiver.
+- Database migration tests for Prompt 6 tables, seeded disqualification reason catalog, and hard-delete rejection triggers.
+- Contract tests for qualification review request, decision, condition, re-entry, and transition-preview payloads.
+- Existing operational-state tests remain green after adding routed-state re-entry transitions from `REENTRY_POLICY.md`.
+
+Prompt 6 does not add browser E2E coverage because the web app is still a foundation shell; UI evidence remains required in later UI composition prompts.
+
 ## Test ownership
 
 Domain owners maintain unit/golden tests; platform/database owners maintain migration/resilience/security harnesses; web owners maintain component/accessibility tests; QA/release owner maintains E2E and exit evidence. A change that alters behavior updates the tests in the same change.

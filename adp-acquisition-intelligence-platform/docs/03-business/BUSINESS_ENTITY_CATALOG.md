@@ -24,9 +24,10 @@ Entities use UUID identifiers, UTC timestamps, archive metadata, and optimistic 
 | Variable Value | Effective typed value for a subject | proposed/current/superseded/contradicted/stale; Variables | definition, subject, evidence, override |
 | Score Definition | Versioned formula and thresholds | draft/active/retired; Scoring | component definitions and required variables |
 | Score Result | Reproducible evaluation | immutable; recalculation creates another result; Scoring | subject, definition/version, input snapshot |
-| Qualification Review | Human routing decision | pending/decided/superseded; Qualification | organization, scores, reviewer, reason |
-| Qualification Condition | Blocking condition attached to a conditional qualification outcome | open/satisfied/waived/cancelled; Qualification | qualification review, task, owner, due date, waiver metadata |
-| Disqualification Reason | Controlled terminal or delay reason | active/retired; Configuration | qualification and opportunity outcomes |
+| Qualification Review | Human routing decision workspace | pending/in_review/decided/superseded/cancelled; Qualification | organization, scores, reviewer, reason, consent indicators |
+| Qualification Decision | Append-only qualification outcome history | immutable; supersession inserts a new row; Qualification | review, organization, outcome, reason, prior decision |
+| Qualification Condition | Blocking condition attached to a conditional qualification outcome | pending/resolved/waived/cancelled; Qualification | qualification review, task, owner, due date, waiver metadata |
+| Disqualification Reason | Controlled terminal or delay reason | active/archived with version; Configuration | qualification and opportunity outcomes |
 | Discovery Template | Versioned question selection rules | draft/active/retired; Discovery | questions and motion/persona tags |
 | Discovery Question | Prompt plus response and mapping metadata | versioned/active/retired; Discovery | template, variable mappings |
 | Discovery Session | Planned/completed interaction | planned/in_progress/completed/cancelled; Discovery | organization, contacts, answers, score runs |

@@ -49,9 +49,14 @@ Only one current non-contradicted value per subject/definition/effective context
 - `score_results` — score, tier, confidence, completeness, status, calculated_at, immutable explanation, recommendation, duration, previous-result, and override metadata.
 - `score_factors` — transformed score, weight, contribution, variable reference, status, and explanation.
 - `score_recalculation_jobs` — idempotent recalculation queue for variable/definition events.
-- `qualification_reviews`, `qualification_review_scores`, `disqualification_reasons`
+- `qualification_reviews` — review lifecycle (`pending`, `in_review`, `decided`, `superseded`, `cancelled`), assigned/requesting users, computed/reviewer recommendation snapshots, required gaps, consent indicators, and optimistic record version.
+- `qualification_review_scores` — immutable links from a review to score result IDs.
+- `qualification_conditions` — blocking/non-blocking conditions with owner, due date, status (`pending`, `resolved`, `waived`, `cancelled`), task link, and waiver/resolution metadata.
+- `qualification_decisions` — append-only qualification decision history; changes insert a new row with `supersedes_decision_id`.
+- `disqualification_reasons` — seeded, versioned controlled catalog for terminal/routed outcomes.
+- `qualification_recommendation_overrides` — reviewer recommendation overrides that preserve computed score results.
 
-Index score results by subject, definition/version, and calculated time. A published score definition cannot be updated. Prompt 6 unblock activates the Prompt 5 Phase 1 baseline after repository-owner approval closes SCR-002 and CONF-007 for entry.
+Index score results by subject, definition/version, and calculated time. A published score definition cannot be updated. Prompt 6 unblock activates the Prompt 5 Phase 1 baseline after repository-owner approval closes SCR-002 and CONF-007 for entry. Prompt 6 migration `0005_prompt_6_qualification_workflow.sql` adds qualification workflow tables and rejects hard deletes on qualification review/history rows.
 
 ### Discovery
 

@@ -11,6 +11,7 @@ import {
   checkDatabaseHealth,
   completenessDefinitions,
   contacts,
+  disqualificationReasons,
   duplicateCandidates,
   evidenceRecords,
   importBatches,
@@ -20,6 +21,7 @@ import {
   organizationLocations,
   organizations,
   permissionEvidenceLinks,
+  qualificationReviews,
   scoreDefinitions,
   sources,
   users,
@@ -91,7 +93,7 @@ describe.sequential('database integration tooling', () => {
     expect(after).toBeGreaterThan(0);
   });
 
-  it('applies the Prompt 4 migration after the Prompt 3 schema migrations', async () => {
+  it('applies the Prompt 6 migration after the Prompt 5 schema migrations', async () => {
     await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
     const client = createTestDatabaseClient(testDatabaseUrl);
 
@@ -101,13 +103,14 @@ describe.sequential('database integration tooling', () => {
         await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
       ) as { entries: Array<{ tag: string }> };
 
-      expect(journalCount).toBe(5);
+      expect(journalCount).toBe(6);
       expect(journal.entries.map((row) => row.tag)).toEqual([
         '0000_parched_electro',
         '0001_integrity_guards',
         '0002_lyrical_daimon_hellstrom',
         '0003_melted_inertia',
         '0004_prompt_5_scoring_engine',
+        '0005_prompt_6_qualification_workflow',
       ]);
     } finally {
       await client.close();
@@ -678,6 +681,102 @@ describe.sequential('database integration tooling', () => {
 
       expect(committedCount).toBe(1);
       expect(rolledBackCount).toBe(0);
+    } finally {
+      await client.close();
+    }
+  });
+
+  it('applies Prompt 6 qualification tables, reason catalog, and deletion guards', async () => {
+    await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
+    const client = createTestDatabaseClient(testDatabaseUrl);
+
+    try {
+      const tables = await client.sql<{ table_name: string }[]>`
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name in (
+            'qualification_reviews',
+            'qualification_review_scores',
+            'qualification_conditions',
+            'qualification_decisions',
+            'disqualification_reasons',
+            'qualification_recommendation_overrides'
+          )
+        order by table_name
+      `;
+      expect(tables.map((row) => row.table_name)).toEqual([
+        'disqualification_reasons',
+        'qualification_conditions',
+        'qualification_decisions',
+        'qualification_recommendation_overrides',
+        'qualification_review_scores',
+        'qualification_reviews',
+      ]);
+
+      const triggers = await client.sql<{ tgname: string }[]>`
+        select tgname
+        from pg_trigger
+        where tgname in (
+          'qualification_reviews_prevent_delete',
+          'qualification_review_scores_prevent_delete',
+          'qualification_conditions_prevent_delete',
+          'qualification_decisions_prevent_delete',
+          'disqualification_reasons_prevent_delete',
+          'qualification_recommendation_overrides_prevent_delete'
+        )
+        order by tgname
+      `;
+      expect(triggers.map((row) => row.tgname)).toEqual([
+        'disqualification_reasons_prevent_delete',
+        'qualification_conditions_prevent_delete',
+        'qualification_decisions_prevent_delete',
+        'qualification_recommendation_overrides_prevent_delete',
+        'qualification_review_scores_prevent_delete',
+        'qualification_reviews_prevent_delete',
+      ]);
+
+      const reasonCount = first(
+        await client.db.select({ value: count() }).from(disqualificationReasons),
+      ).value;
+      expect(reasonCount).toBeGreaterThanOrEqual(15);
+
+      const user = first(
+        await client.db
+          .insert(users)
+          .values({
+            externalSubjectId: 'auth0|prompt6-db',
+            email: 'prompt6-db@example.com',
+            displayName: 'Prompt 6 DB',
+            status: 'active',
+          })
+          .returning({ id: users.id }),
+      );
+      const org = first(
+        await client.db
+          .insert(organizations)
+          .values({
+            displayName: 'Prompt 6 DB Advisors',
+            normalizedName: 'prompt 6 db advisors',
+            normalizedDomain: 'prompt6-db.example.com',
+          })
+          .returning({ id: organizations.id }),
+      );
+      const review = first(
+        await client.db
+          .insert(qualificationReviews)
+          .values({
+            organizationId: org.id,
+            requestedByUserId: user.id,
+          })
+          .returning({ id: qualificationReviews.id }),
+      );
+
+      await expect(
+        client.db.delete(qualificationReviews).where(eq(qualificationReviews.id, review.id)),
+      ).rejects.toSatisfy((error: unknown) =>
+        errorText(error).includes('hard delete is not allowed for qualification workflow tables'),
+      );
     } finally {
       await client.close();
     }

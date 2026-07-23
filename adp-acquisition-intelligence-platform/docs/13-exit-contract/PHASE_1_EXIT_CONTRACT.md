@@ -36,3 +36,16 @@ Exceptions require owner, rationale, risk, compensating control, expiration, and
 ## Completion rule
 
 All YAML items marked `required: true` must be `passed`, all blocking defects and architecture findings closed, required sign-offs recorded, and the reference end-to-end scenario completed without direct database intervention. Otherwise Phase 1 is not complete. Review procedure and severity rules are defined in the [Architecture Review Checklist](../11-implementation/16_ARCHITECTURE_REVIEW_CHECKLIST.md).
+
+## Prompt 6 evidence update
+
+Prompt 6 contributes partial automated evidence for release gate 6 (Operations):
+
+- qualification review persistence and decision history,
+- conditional qualification blocking conditions and tasks,
+- score-result preservation during reviewer overrides,
+- routed-state re-entry policy enforcement,
+- qualification audit/outbox event adapters,
+- PG17 integration tests and contract tests.
+
+This does **not** complete release gate 6. Discovery mapping/recalculation, outreach tracking, opportunities/stage history, UI workflows, E2E evidence, and release sign-offs remain pending in later prompts.

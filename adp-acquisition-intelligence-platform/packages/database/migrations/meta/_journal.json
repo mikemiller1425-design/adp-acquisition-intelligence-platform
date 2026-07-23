@@ -36,6 +36,13 @@
       "when": 1784761000000,
       "tag": "0004_prompt_5_scoring_engine",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784763900000,
+      "tag": "0005_prompt_6_qualification_workflow",
+      "breakpoints": true
     }
   ]
 }

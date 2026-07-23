@@ -41,7 +41,7 @@ Scores are deterministic functions of a versioned definition and immutable input
 
 ### 3.6 Qualification review
 
-Review outcomes are `qualified`, `conditionally_qualified`, `research_required`, `nurture`, `disqualified`, `duplicate`, `existing_relationship`, and `out_of_territory`. The reviewer sees evidence, score explanations, completeness, unknowns, and conflicts. Overrides require reason and actor; policy-sensitive outcomes may require a reviewer role. A decision creates a next task or terminal reason.
+Review outcomes are `qualified`, `conditionally_qualified`, `research_required`, `nurture`, `disqualified`, `duplicate`, `existing_relationship`, and `out_of_territory`. The reviewer sees evidence, score explanations, completeness, unknowns, and conflicts. Overrides require reason and actor; policy-sensitive outcomes require reviewer/admin capability. A decision creates a next task or terminal reason, appends immutable `qualification_decisions` history, and routes prospect-stage changes through `OperationalStateService`.
 
 `conditionally_qualified` is a qualification-review outcome, not a `prospect_stage` value. It routes the organization to `prospect_stage=qualified`, preserves the computed recommendation separately from the reviewer outcome, records `qualification_conditions`, and creates blocking tasks. Each blocking condition MUST have an owner, due date, reason code, status, and waiver metadata when waived. Discovery and outreach are blocked until every blocking condition is satisfied or waived by an authorized reviewer/admin.
 

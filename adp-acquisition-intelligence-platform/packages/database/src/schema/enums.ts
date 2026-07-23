@@ -201,6 +201,37 @@ export const scoreRecalculationJobStatusEnum = pgEnum('score_recalculation_job_s
   'skipped',
 ]);
 
+export const qualificationReviewStatusEnum = pgEnum('qualification_review_status', [
+  'pending',
+  'in_review',
+  'decided',
+  'superseded',
+  'cancelled',
+]);
+
+export const qualificationOutcomeEnum = pgEnum('qualification_outcome', [
+  'qualified',
+  'conditionally_qualified',
+  'research_required',
+  'nurture',
+  'disqualified',
+  'duplicate',
+  'existing_relationship',
+  'out_of_territory',
+]);
+
+export const qualificationConditionTypeEnum = pgEnum('qualification_condition_type', [
+  'blocking',
+  'non_blocking',
+]);
+
+export const qualificationConditionStatusEnum = pgEnum('qualification_condition_status', [
+  'pending',
+  'resolved',
+  'waived',
+  'cancelled',
+]);
+
 export const variableDataTypeEnum = pgEnum('variable_data_type', [
   'boolean',
   'integer',

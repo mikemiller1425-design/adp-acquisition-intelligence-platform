@@ -58,14 +58,6 @@ type Matrix<TState extends string> = Partial<
   Record<TState, Partial<Record<TState, TransitionRule>>>
 >;
 
-const terminalProspectStages = [
-  'nurture',
-  'disqualified',
-  'duplicate',
-  'existing_relationship',
-  'out_of_territory',
-] as const satisfies readonly ProspectStage[];
-
 export const prospectStageMatrix: Matrix<ProspectStage> = {
   raw: { normalization: 'Y' },
   normalization: { research: 'Y', duplicate: 'R' },
@@ -87,11 +79,12 @@ export const prospectStageMatrix: Matrix<ProspectStage> = {
   outreach_ready: { outreach_active: 'Y', nurture: 'R' },
   outreach_active: { opportunity: 'Y', nurture: 'R' },
   opportunity: { outreach_active: 'R', nurture: 'R' },
+  nurture: { qualified: 'R', research: 'R', review: 'R' },
+  disqualified: { review: 'R', research: 'R' },
+  duplicate: { research: 'R', review: 'R' },
+  existing_relationship: { review: 'R', qualified: 'R' },
+  out_of_territory: { research: 'R', review: 'R', qualified: 'R' },
 };
-
-for (const stage of terminalProspectStages) {
-  prospectStageMatrix[stage] = { qualified: 'R' };
-}
 
 export const researchStatusMatrix: Matrix<ResearchStatus> = {
   not_started: { in_progress: 'Y', gaps_open: 'Y', paused: 'Y' },

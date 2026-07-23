@@ -150,3 +150,15 @@ Prompt 5 created and draft-verified these planned responsibilities:
 
 Prompt 6 unblock records repository-owner approval for the Prompt 5 Phase 1 baseline. Score/completeness definitions are active with `approval_status=approved`; unapproved future calibration must publish a new version and still satisfy activation guards.
 
+## Prompt 6 implementation status
+
+Prompt 6 verified these planned responsibilities:
+
+- `packages/database/schema/qualification.ts` and migration `0005_prompt_6_qualification_workflow.sql` — **verified** for qualification reviews, review-score links, conditions, append-only decisions, disqualification reason catalog, recommendation overrides, indexes, constraints, and hard-delete protection.
+- `packages/qualification/src/domain/*` — **verified** for executable qualification decision and re-entry matrices, role capabilities, outcomes, and condition state vocabularies.
+- `packages/qualification/src/application/*` — **verified** for review request/start/decide, condition resolve/waive, recommendation override preservation, disqualification catalog reads, transition coordination through `OperationalStateService`, re-entry policy enforcement, and review workspace aggregation.
+- `packages/qualification/src/infrastructure/*` — **verified** for Postgres repositories, task port adapter, audit adapter, and outbox adapter.
+- `packages/contracts/src/index.ts` — **verified** for qualification queue/request/start/decide, condition, re-entry, and transition-preview Zod contracts.
+
+Prompt 6 intentionally defers Fastify route wiring and Next review pages because the current apps are foundation shells and do not yet contain vertical qualification UI slices.
+
