@@ -1,0 +1,20 @@
+version: entity-resolution-v1
+rules:
+  - id: domain_strong_not_conclusive
+    description: Domain match is strong but not universally conclusive when conflicting legal identity exists.
+  - id: name_only_no_auto_merge
+    description: Name similarity alone must not automatically merge organizations.
+  - id: no_uncontrolled_auto_merge
+    description: Likely matches require human review; exact links allowed only with strong multi-signal or domain+identity.
+  - id: preserve_provenance
+    description: Merges must use existing merge services and preserve provenance.
+decisions:
+  - create_new
+  - link_existing
+  - create_location
+  - possible_duplicate
+  - ambiguous_review
+  - reject
+  - restricted
+  - existing_relationship
+  - out_of_territory

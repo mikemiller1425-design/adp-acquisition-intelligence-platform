@@ -103,7 +103,7 @@ describe.sequential('database integration tooling', () => {
         await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
       ) as { entries: Array<{ tag: string }> };
 
-      expect(journalCount).toBe(10);
+      expect(journalCount).toBe(11);
       expect(journal.entries.map((row) => row.tag)).toEqual([
         '0000_parched_electro',
         '0001_integrity_guards',
@@ -115,6 +115,32 @@ describe.sequential('database integration tooling', () => {
         '0007_square_galactus',
         '0008_bizarre_tarantula',
         '0009_prompt_10_reporting',
+        '0010_phase_1_1_population_research',
+      ]);
+
+      const researchCore = await client.sql<{ table_name: string }[]>`
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name in (
+            'population_sources',
+            'raw_candidates',
+            'approved_sources',
+            'collection_runs',
+            'source_snapshots',
+            'extracted_claims',
+            'collection_coverage'
+          )
+        order by table_name
+      `;
+      expect(researchCore.map((row) => row.table_name)).toEqual([
+        'approved_sources',
+        'collection_coverage',
+        'collection_runs',
+        'extracted_claims',
+        'population_sources',
+        'raw_candidates',
+        'source_snapshots',
       ]);
 
       const discoveryTables = await client.sql<{ table_name: string }[]>`

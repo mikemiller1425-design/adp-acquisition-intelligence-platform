@@ -15,7 +15,8 @@
   "dependencies": {
     "@adp/contracts": "workspace:*",
     "@adp/platform": "workspace:*",
-    "fastify": "5.10.0"
+    "fastify": "5.10.0",
+    "@adp/research": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.21.0",

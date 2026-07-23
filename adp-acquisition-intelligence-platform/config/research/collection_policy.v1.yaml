@@ -1,0 +1,23 @@
+version: collection-policy-v1
+pilot_limits:
+  rows_per_population_import: 10000
+  organizations_per_resolution_batch: 1000
+  organizations_per_collection_run: 100
+  pages_per_organization: 8
+  concurrent_domains: 5
+  requests_per_domain_per_minute: 10
+  response_size_bytes: 1048576
+  extraction_batch_size: 50
+  review_backlog_warn: 500
+  max_retries: 3
+  snapshot_retention_days: 90
+rules:
+  bulk_before_live: true
+  archive_before_live: true
+  claims_require_human_review: true
+  collectors_cannot_confirm_variables: true
+  collectors_cannot_write_scores: true
+  no_arbitrary_external_link_crawl: true
+  no_linkedin_scraping: true
+  no_auth_bypass: true
+  no_captcha_circumvention: true

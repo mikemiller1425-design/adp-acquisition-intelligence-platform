@@ -33,7 +33,7 @@
 | 19 | Security controls evidence | [PUBLIC_SOURCE_SECURITY_MODEL.md](../research/PUBLIC_SOURCE_SECURITY_MODEL.md) |
 | 20 | AuthZ capabilities | Role allowlist in `authz.ts` (admin/ops/reviewer/sales/viewer) |
 | 21 | Claim → intelligence integration | Evidence + variable **propose** + score recalc **request** on accept only |
-| 22 | Package automated tests | **30 passed** (`vitest` unit + service E2E-style + 10k dry-run perf) |
+| 22 | Package automated tests | **15 passed** in `@adp/research` (14 unit/integration-style + 1×10k dry-run); full monorepo `pnpm validate` green |
 | 23 | Browser E2E | Fixture/smoke pending full Playwright — deterministic package E2E covered (RB-006 remains OPEN) |
 | 24 | Documentation set | `docs/research/*` (12 docs) + architecture review + baseline gate + this report |
 | 25 | Architecture review | [PHASE_1_1_POPULATION_ENGINE_ARCHITECTURE_REVIEW.md](../01-reviews/PHASE_1_1_POPULATION_ENGINE_ARCHITECTURE_REVIEW.md) — **PASS WITH EXPLICIT OPEN OWNER APPROVALS**; **0** blocking engineering findings for controlled pilot |

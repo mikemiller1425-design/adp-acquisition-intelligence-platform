@@ -1,0 +1,48 @@
+export const RESEARCH_JOB_TYPES = [
+  'population.import.requested',
+  'population.normalize.requested',
+  'population.resolve.requested',
+  'enrichment.bulk.requested',
+  'enrichment.archive.requested',
+  'research.priority.requested',
+  'collection.run.requested',
+  'collection.target.queued',
+  'collection.page.retrieve',
+  'collection.snapshot.persist',
+  'collection.extraction.requested',
+  'collection.coverage.recalculate',
+  'intelligence.recalculation.requested',
+] as const;
+
+export type ResearchJobType = (typeof RESEARCH_JOB_TYPES)[number];
+
+export const RESEARCH_EVENTS = [
+  'population.source_registered',
+  'population.import_created',
+  'population.row_normalized',
+  'population.organization_created',
+  'population.organization_matched',
+  'population.duplicate_flagged',
+  'population.resolution_review_requested',
+  'research.priority_calculated',
+  'research.source_registered',
+  'research.source_enabled',
+  'research.source_suspended',
+  'research.collection_run_created',
+  'research.collection_run_started',
+  'research.retrieval_completed',
+  'research.retrieval_blocked',
+  'research.retrieval_failed',
+  'research.snapshot_created',
+  'research.extraction_completed',
+  'research.claim_proposed',
+  'research.claim_accepted',
+  'research.claim_corrected',
+  'research.claim_rejected',
+  'research.collection_run_completed',
+  'research.collection_run_cancelled',
+  'research.kill_switch_activated',
+  'intelligence.recalculation_requested',
+] as const;
+
+export type ResearchEventType = (typeof RESEARCH_EVENTS)[number];

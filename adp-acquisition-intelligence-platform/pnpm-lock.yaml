@@ -118,6 +118,9 @@ importers:
       '@adp/platform':
         specifier: workspace:*
         version: link:../../packages/platform
+      '@adp/research':
+        specifier: workspace:*
+        version: link:../../packages/research
       fastify:
         specifier: 5.10.0
         version: 5.10.0
@@ -394,6 +397,46 @@ importers:
       yaml:
         specifier: ^2.8.2
         version: 2.9.0
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.13.3)(vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(tsx@4.23.1)(yaml@2.9.0))
+
+  packages/research:
+    dependencies:
+      '@adp/collection':
+        specifier: workspace:*
+        version: link:../collection
+      '@adp/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@adp/database':
+        specifier: workspace:*
+        version: link:../database
+      '@adp/evidence':
+        specifier: workspace:*
+        version: link:../evidence
+      '@adp/organizations':
+        specifier: workspace:*
+        version: link:../organizations
+      '@adp/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@adp/scoring':
+        specifier: workspace:*
+        version: link:../scoring
+      '@adp/variables':
+        specifier: workspace:*
+        version: link:../variables
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(postgres@3.4.8)
       zod:
         specifier: ^4.4.3
         version: 4.4.3
