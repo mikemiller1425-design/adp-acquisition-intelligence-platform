@@ -28,6 +28,7 @@ import {
   type RepositoryExecutor,
 } from '../src/index.js';
 import { seedDiscoveryLibrary, type DiscoverySeedSummary } from './discovery.js';
+import { seedOpportunityLibrary, type OpportunitySeedSummary } from './opportunities.js';
 import { seedOutreachLibrary, type OutreachSeedSummary } from './outreach.js';
 import { seedScoringDrafts, type ScoringSeedSummary } from './scoring.js';
 import { seedVariables, type VariableSeedSummary } from './variables.js';
@@ -56,6 +57,7 @@ interface SeedSummary {
   scoring: ScoringSeedSummary;
   discovery: DiscoverySeedSummary;
   outreach: OutreachSeedSummary;
+  opportunities: OpportunitySeedSummary;
 }
 
 interface SeedIds {
@@ -103,6 +105,7 @@ export async function runSeed(databaseUrl: string): Promise<SeedSummary> {
       const scoringSummary = await seedScoringDrafts(tx);
       const discoverySummary = await seedDiscoveryLibrary(tx, required(ids.users, 'admin'));
       const outreachSummary = await seedOutreachLibrary(tx, required(ids.users, 'admin'));
+      const opportunitySummary = await seedOpportunityLibrary(tx, required(ids.users, 'admin'));
       await seedAuditAndOutbox(tx, ids);
 
       return {
@@ -118,6 +121,7 @@ export async function runSeed(databaseUrl: string): Promise<SeedSummary> {
         scoring: scoringSummary,
         discovery: discoverySummary,
         outreach: outreachSummary,
+        opportunities: opportunitySummary,
       };
     });
   } finally {

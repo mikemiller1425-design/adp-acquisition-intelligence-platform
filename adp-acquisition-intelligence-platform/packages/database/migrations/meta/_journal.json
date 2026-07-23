@@ -57,6 +57,13 @@
       "when": 1784766274542,
       "tag": "0007_square_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784766856491,
+      "tag": "0008_bizarre_tarantula",
+      "breakpoints": true
     }
   ]
 }

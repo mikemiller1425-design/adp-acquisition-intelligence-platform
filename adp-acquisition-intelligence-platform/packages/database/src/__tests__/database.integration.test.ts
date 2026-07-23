@@ -103,7 +103,7 @@ describe.sequential('database integration tooling', () => {
         await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
       ) as { entries: Array<{ tag: string }> };
 
-      expect(journalCount).toBe(8);
+      expect(journalCount).toBe(9);
       expect(journal.entries.map((row) => row.tag)).toEqual([
         '0000_parched_electro',
         '0001_integrity_guards',
@@ -113,6 +113,7 @@ describe.sequential('database integration tooling', () => {
         '0005_prompt_6_qualification_workflow',
         '0006_lowly_molly_hayes',
         '0007_square_galactus',
+        '0008_bizarre_tarantula',
       ]);
 
       const discoveryTables = await client.sql<{ table_name: string }[]>`
@@ -180,6 +181,43 @@ describe.sequential('database integration tooling', () => {
         'outreach_sequence_versions',
         'outreach_sequences',
         'response_classifications',
+      ]);
+
+      const opportunityTables = await client.sql<{ table_name: string }[]>`
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name in (
+            'opportunities',
+            'opportunity_contacts',
+            'opportunity_context_links',
+            'opportunity_eligibility_assessments',
+            'opportunity_history',
+            'opportunity_loss_reasons',
+            'opportunity_next_actions',
+            'opportunity_outcomes',
+            'opportunity_probabilities',
+            'opportunity_risk_flags',
+            'opportunity_stage_definitions',
+            'opportunity_stage_transitions',
+            'opportunity_values'
+          )
+        order by table_name
+      `;
+      expect(opportunityTables.map((row) => row.table_name)).toEqual([
+        'opportunities',
+        'opportunity_contacts',
+        'opportunity_context_links',
+        'opportunity_eligibility_assessments',
+        'opportunity_history',
+        'opportunity_loss_reasons',
+        'opportunity_next_actions',
+        'opportunity_outcomes',
+        'opportunity_probabilities',
+        'opportunity_risk_flags',
+        'opportunity_stage_definitions',
+        'opportunity_stage_transitions',
+        'opportunity_values',
       ]);
     } finally {
       await client.close();

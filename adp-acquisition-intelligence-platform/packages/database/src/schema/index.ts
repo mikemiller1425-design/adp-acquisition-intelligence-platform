@@ -7,6 +7,7 @@ export * from './enums.js';
 export * from './evidence.js';
 export * from './identity.js';
 export * from './operational-state.js';
+export * from './opportunities.js';
 export * from './organizations.js';
 export * from './outreach.js';
 export * from './qualification.js';

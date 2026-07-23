@@ -583,3 +583,48 @@ export const outreachSequenceStepStatusEnum = pgEnum('outreach_sequence_step_sta
   'skipped',
   'blocked',
 ]);
+
+export const opportunityContactRoleEnum = pgEnum('opportunity_contact_role', [
+  'economic_buyer',
+  'champion',
+  'influencer',
+  'technical_evaluator',
+  'legal_procurement',
+  'operations_contact',
+  'executive_sponsor',
+  'other',
+]);
+
+export const opportunityProbabilitySourceEnum = pgEnum('opportunity_probability_source', [
+  'manual',
+  'stage_default',
+]);
+
+export const opportunityNextActionStatusEnum = pgEnum('opportunity_next_action_status', [
+  'open',
+  'completed',
+  'cancelled',
+]);
+
+export const opportunityRiskFlagStatusEnum = pgEnum('opportunity_risk_flag_status', [
+  'open',
+  'resolved',
+  'dismissed',
+]);
+
+export const opportunityOutcomeTypeEnum = pgEnum('opportunity_outcome_type', [
+  'won',
+  'lost',
+  'nurture',
+]);
+
+export const opportunityLossReasonStatusEnum = pgEnum('opportunity_loss_reason_status', [
+  'active',
+  'retired',
+]);
+
+export const opportunityStageDefinitionStatusEnum = pgEnum('opportunity_stage_definition_status', [
+  'draft',
+  'active',
+  'retired',
+]);
