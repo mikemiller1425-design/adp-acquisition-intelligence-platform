@@ -10,7 +10,7 @@
 
 ## Decision
 
-**PASS WITH EXPLICIT OPEN OWNER APPROVALS** — No blocking **engineering** findings for a **controlled fixture-backed pilot**. Live public-source egress, licensed dataset enablement, production object-storage retention, and AI extraction remain owner-gated (RB-014…RB-017). Existing Phase 1 blockers RB-001…RB-009 are preserved OPEN. PR #19 remains OPEN (stacked; not merged by this agent).
+**PASS WITH EXPLICIT OPEN OWNER APPROVALS** — No blocking **engineering** findings for a **controlled fixture-backed pilot**. Live public-source egress, licensed dataset enablement, production object-storage retention, and AI extraction remain owner-gated (RB-014…RB-017). Existing Phase 1 blockers RB-001…RB-009 are preserved OPEN. PR #19 is **MERGED** onto `main`; this branch is rebased onto that tip.
 
 ## Checklist summary
 
@@ -85,7 +85,7 @@
 recommendation: READY_FOR_CONTROLLED_PILOT
 live_egress: NOT_READY
 blocking_engineering_findings: 0
-pr_19_merge_status: OPEN_STACKED
+pr_19_merge_status: MERGED
 playwright_research_e2e_memory_non_persistent: PASS
 playwright_research_e2e_postgres_persistent: PASS
 persistent_e2e_claimed: true

@@ -34,7 +34,9 @@ test.describe('Phase 1.1 research fixture workflow (memory / non-persistent)', (
 
     await page.goto('/research/extraction-review');
     await expect(page.getByTestId('extraction-review')).toBeVisible();
-    await expect(page.getByTestId('proposed-claim-count')).toContainText(/Proposed claims:\s*[1-9]/);
+    await expect(page.getByTestId('proposed-claim-count')).toContainText(
+      /Proposed claims:\s*[1-9]/,
+    );
 
     const acceptButton = page.locator('[data-testid^="accept-claim-"]').first();
     await expect(acceptButton).toBeVisible();

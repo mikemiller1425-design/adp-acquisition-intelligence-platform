@@ -34,13 +34,10 @@ import { ExtractionReviewService } from '../application/claim-review-service.js'
 import { ResearchPriorityService } from '../application/priority-service.js';
 import { FixtureRetrievalPort } from '../infrastructure/fixture-retrieval.js';
 import {
-  InMemoryEvidenceIntegration,
   InMemoryOrganizationLookup,
   InMemoryOutbox,
   InMemoryPopulationRepository,
   InMemoryPriorityRepository,
-  InMemoryScoreRecalc,
-  InMemoryVariableIntegration,
   InMemoryTransactionRunner,
   createInMemoryResearchUnitOfWork,
 } from '../infrastructure/in-memory.js';

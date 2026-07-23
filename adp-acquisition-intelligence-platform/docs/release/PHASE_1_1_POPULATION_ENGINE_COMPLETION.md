@@ -3,8 +3,8 @@
 **Version:** 1.2.0  
 **Date:** 2026-07-23  
 **Branch:** `cursor/phase-1-1-population-engine-dd2b`  
-**Baseline:** `1e98880f742a739bbfc44167c549fd4ebc8cd5c0` (PR #19 OPEN stacked — merge #19 before marking #20 ready)  
-**Tip commit:** (see branch HEAD after persistent E2E gate)  
+**Baseline:** `1e98880f742a739bbfc44167c549fd4ebc8cd5c0` (PR #19 MERGED; branch rebased onto main)  
+**Tip commit:** `34367e869d11a5d0ba1baa541f57e31173bac79f`  
 **Draft PR:** #20  
 **Recommendation:** **READY FOR CONTROLLED PILOT** (fixture-only). **NOT READY** for live public-source egress or production release.
 
@@ -17,7 +17,7 @@
 | 1 | Phase / prompt identity | Phase 1.1 Population & Research Engine |
 | 2 | Implementation branch | `cursor/phase-1-1-population-engine-dd2b` |
 | 3 | Baseline SHA | `1e98880f742a739bbfc44167c549fd4ebc8cd5c0` |
-| 4 | Stacked baseline / PR | PR **#19 OPEN** (unmerged Phase 1 tip; branch is ancestor of HEAD) |
+| 4 | Stacked baseline / PR | PR **#19 MERGED**; this branch rebased onto resulting `main` |
 | 5 | Baseline gate | [PHASE_1_1_BASELINE_GATE.md](../01-reviews/PHASE_1_1_BASELINE_GATE.md) — **PASS** |
 | 6 | Package delivered | `@adp/research` (`packages/research`) |
 | 7 | Migrations delivered | `0010_phase_1_1_population_research.sql`, `0011_phase_1_1_collection_attempts.sql` |
@@ -67,7 +67,7 @@
 | 14 | Playwright E2E | Memory labeled non-persistent; **PostgreSQL persistent E2E passed** (restart + SQL probe) |
 | 15 | Fixture approvals | `not_required_for_fixture` only for `adapterType=fixture` |
 | 16 | Docs / readiness | This report + architecture review updated |
-| 17 | PR #19 | Remains OPEN; HEAD contains `1e98880` as ancestor (cannot merge #19 from agent) |
+| 17 | PR #19 | **MERGED**; PR #20 rebased onto resulting `main` before re-validation |
 
 ---
 

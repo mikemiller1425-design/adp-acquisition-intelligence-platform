@@ -24,7 +24,6 @@ export type WebResearchRuntime = ResearchRuntime & {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
   var __adpResearchRuntime: WebResearchRuntime | undefined;
 }
 
@@ -37,17 +36,17 @@ function attachFixtureRetrieval(runtime: ResearchRuntime): void {
   (runtime as unknown as { retrieval: FixtureRetrievalPort }).retrieval = retrieval;
   (runtime as unknown as { collection: TargetedCollectionService }).collection =
     new TargetedCollectionService(
-    retrieval,
-    runtime.uow.claims,
-    runtime.uow.snapshots,
-    runtime.uow.extractionRuns,
-    runtime.uow.collectionAttempts,
-    runtime.uow.collectionRuns,
-    runtime.uow.approvedSources,
-    runtime.uow.rateLimits,
-    runtime.uow.concurrency,
-    runtime.uow.outbox,
-  );
+      retrieval,
+      runtime.uow.claims,
+      runtime.uow.snapshots,
+      runtime.uow.extractionRuns,
+      runtime.uow.collectionAttempts,
+      runtime.uow.collectionRuns,
+      runtime.uow.approvedSources,
+      runtime.uow.rateLimits,
+      runtime.uow.concurrency,
+      runtime.uow.outbox,
+    );
 }
 
 /**

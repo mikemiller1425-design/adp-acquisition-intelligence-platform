@@ -16,15 +16,11 @@ import {
 import { count, desc, eq } from 'drizzle-orm';
 
 import type { ApprovedSourceRecord } from '../domain/persistence-ports.js';
-import type {
-  ClaimRecord,
-  PopulationImportRecord,
-  RawCandidateRecord,
-} from '../domain/ports.js';
+import type { ClaimRecord, PopulationImportRecord, RawCandidateRecord } from '../domain/ports.js';
 import type { ResearchPriorityAssessment } from '../domain/research-priority.js';
 import type { CollectionRunRecord } from '../domain/persistence-ports.js';
 import type { ResearchUnitOfWork } from '../domain/persistence-ports.js';
-import {
+import type {
   InMemoryApprovedSourceRepository,
   InMemoryClaimRepository,
   InMemoryOrganizationLookup,
@@ -167,10 +163,12 @@ export async function getMemoryResearchWorkflowSnapshot(
   const imports = [...population.imports.values()];
   const candidates = [...population.candidates.values()].flat();
   const claims = [...claimsRepo.claims.values()];
-  const priorities = [...priorityRepo.assessments.entries()].map(([organizationId, assessment]) => ({
-    organizationId,
-    assessment,
-  }));
+  const priorities = [...priorityRepo.assessments.entries()].map(
+    ([organizationId, assessment]) => ({
+      organizationId,
+      assessment,
+    }),
+  );
   const claimsAwaiting = claims.filter((c) => c.reviewStatus === 'proposed').length;
   const claimsAccepted = claims.filter(
     (c) => c.reviewStatus === 'accepted' || c.reviewStatus === 'accepted_corrected',
@@ -208,7 +206,10 @@ export async function getMemoryResearchWorkflowSnapshot(
 export async function getPostgresResearchWorkflowSnapshot(
   db: RepositoryExecutor,
 ): Promise<ResearchWorkflowSnapshot> {
-  const importRows = await db.select().from(populationImports).orderBy(desc(populationImports.createdAt));
+  const importRows = await db
+    .select()
+    .from(populationImports)
+    .orderBy(desc(populationImports.createdAt));
   const candidateRows = await db.select().from(rawCandidates);
   const orgRows = await db
     .select({
@@ -219,7 +220,10 @@ export async function getPostgresResearchWorkflowSnapshot(
     .from(organizations)
     .orderBy(desc(organizations.createdAt))
     .limit(50);
-  const claimRows = await db.select().from(extractedClaims).orderBy(desc(extractedClaims.createdAt));
+  const claimRows = await db
+    .select()
+    .from(extractedClaims)
+    .orderBy(desc(extractedClaims.createdAt));
   const runRows = await db.select().from(collectionRuns).orderBy(desc(collectionRuns.createdAt));
   const priorityRows = await db.select().from(researchPriorityAssessments);
   const outboxRows = await db
@@ -341,9 +345,13 @@ export async function getPersistenceProbe(db: RepositoryExecutor) {
     population_imports: Number(
       (await db.select({ value: count() }).from(populationImports))[0]?.value ?? 0,
     ),
-    raw_candidates: Number((await db.select({ value: count() }).from(rawCandidates))[0]?.value ?? 0),
+    raw_candidates: Number(
+      (await db.select({ value: count() }).from(rawCandidates))[0]?.value ?? 0,
+    ),
     organizations: Number((await db.select({ value: count() }).from(organizations))[0]?.value ?? 0),
-    collection_runs: Number((await db.select({ value: count() }).from(collectionRuns))[0]?.value ?? 0),
+    collection_runs: Number(
+      (await db.select({ value: count() }).from(collectionRuns))[0]?.value ?? 0,
+    ),
     source_snapshots: Number(
       (await db.select({ value: count() }).from(sourceSnapshots))[0]?.value ?? 0,
     ),
@@ -353,7 +361,9 @@ export async function getPersistenceProbe(db: RepositoryExecutor) {
     evidence_records: Number(
       (await db.select({ value: count() }).from(evidenceRecords))[0]?.value ?? 0,
     ),
-    variable_values: Number((await db.select({ value: count() }).from(variableValues))[0]?.value ?? 0),
+    variable_values: Number(
+      (await db.select({ value: count() }).from(variableValues))[0]?.value ?? 0,
+    ),
     outbox_events: Number((await db.select({ value: count() }).from(outboxEvents))[0]?.value ?? 0),
     research_priority_assessments: Number(
       (await db.select({ value: count() }).from(researchPriorityAssessments))[0]?.value ?? 0,

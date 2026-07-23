@@ -31,21 +31,25 @@ async function waitReady(timeoutMs = 120_000) {
 async function startServer() {
   if (server) return;
   const webRoot = process.cwd();
-  server = spawn('pnpm', ['exec', 'next', 'dev', '--hostname', '127.0.0.1', '--port', String(PORT)], {
-    cwd: webRoot,
-    env: {
-      ...process.env,
-      DATABASE_URL:
-        process.env.DATABASE_URL ??
-        process.env.TEST_DATABASE_URL ??
-        'postgres://adp:adp@127.0.0.1:5433/adp_acquisition_test',
-      ADP_RESEARCH_PROVIDER: 'postgres',
-      // Demo actor ids are not seeded users; collection runs store requested_by as null.
-      ADP_WEB_USER_ROLES: 'admin,sales,reviewer',
-      ADP_ENV: 'development',
+  server = spawn(
+    'pnpm',
+    ['exec', 'next', 'dev', '--hostname', '127.0.0.1', '--port', String(PORT)],
+    {
+      cwd: webRoot,
+      env: {
+        ...process.env,
+        DATABASE_URL:
+          process.env.DATABASE_URL ??
+          process.env.TEST_DATABASE_URL ??
+          'postgres://adp:adp@127.0.0.1:5433/adp_acquisition_test',
+        ADP_RESEARCH_PROVIDER: 'postgres',
+        // Demo actor ids are not seeded users; collection runs store requested_by as null.
+        ADP_WEB_USER_ROLES: 'admin,sales,reviewer',
+        ADP_ENV: 'development',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
     },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  );
   let bootLog = '';
   server.stdout?.on('data', (chunk) => {
     bootLog += String(chunk);
@@ -147,7 +151,9 @@ test.describe('Phase 1.1 PostgreSQL persistent fixture workflow', () => {
     await page.goto('/research/collection-jobs');
     await expect(page.getByTestId('collection-runs-table')).toBeVisible();
     await page.goto('/research/extraction-review');
-    await expect(page.getByTestId('proposed-claim-count')).toContainText(/Proposed claims:\s*[1-9]/);
+    await expect(page.getByTestId('proposed-claim-count')).toContainText(
+      /Proposed claims:\s*[1-9]/,
+    );
 
     const acceptButton = page.locator('[data-testid^="accept-claim-"]').first();
     await acceptButton.click();

@@ -480,9 +480,7 @@ export class InMemoryTransactionRunner implements TransactionRunner {
 
     const snapshot = {
       evidence: Array.isArray(evidence.records) ? evidence.records.map((r) => ({ ...r })) : null,
-      variables: Array.isArray(variables.records)
-        ? variables.records.map((r) => ({ ...r }))
-        : null,
+      variables: Array.isArray(variables.records) ? variables.records.map((r) => ({ ...r })) : null,
       claims: new Map([...claims.claims.entries()].map(([k, v]) => [k, { ...v }])),
       outbox: outbox.events.map((e) => ({ ...e })),
     };
