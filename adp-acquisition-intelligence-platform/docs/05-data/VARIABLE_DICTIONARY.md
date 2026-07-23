@@ -1,6 +1,6 @@
 # Variable Dictionary
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Status:** Baseline taxonomy; weights remain versioned in score configuration
 
 ## Definition contract
@@ -95,7 +95,7 @@ Boolean or dated-event variables: `rapid_hiring`, `new_office`, `acquisition_eve
 
 ## Contact, assignment, and outcome variables
 
-Contact role, decision authority, channel permissions, accessibility, verified channel, and last verified date are contact-scoped. Territory, owner, existing ADP relationship, stage, last activity, and next action are operational fields rather than scoring variables unless explicitly versioned. Outcomes include contacted, responded, meeting booked, discovery completed, qualified, opportunity created, won/lost, nurture, no response, and disqualified.
+Contact role, decision authority, accessibility, verified channel, and last verified date are contact-scoped operational/profile fields. **Channel outreach permissions** (`allowed`/`unknown`/`restricted`/`opted_out`/`not_applicable`) are **not** scoring variables; they are consent aggregates defined in [Operational State and Consent Model](OPERATIONAL_STATE_AND_CONSENT_MODEL.md). Territory, owner, existing ADP relationship, parallel operational stages, last activity, and next action are operational fields rather than scoring variables unless explicitly versioned. Outcomes include contacted, responded, meeting booked, discovery completed, qualified, opportunity created, won/lost, nurture, no response, and disqualified.
 
 ## Confidence calculation inputs
 

@@ -1,0 +1,92 @@
+key: direct_payroll_opportunity
+version: 1.0.0
+status: active
+approval_status: approved
+activation_allowed: true
+range: [0, 100]
+minimum_completeness: 0.55
+tiers:
+  high: 75
+  medium: 50
+  low: 0
+components:
+  - component_key: employer_size_fit_type
+    variable_key: firm_type
+    subject: organization
+    transform: enum_rubric
+    weight: 0.05
+    required: true
+    direction: '+'
+  - component_key: employer_size_fit_employee_count
+    variable_key: employee_count
+    subject: organization
+    transform: capped_band
+    weight: 0.20
+    required: true
+    direction: '+'
+  - component_key: growth_stage
+    variable_key: growth_stage
+    subject: organization
+    transform: enum_rubric
+    weight: 0.10
+    required: false
+    direction: '+'
+  - component_key: rapid_hiring
+    variable_key: rapid_hiring
+    subject: organization
+    transform: dated_trigger_decay
+    weight: 0.10
+    required: false
+    direction: '+'
+  - component_key: multi_state_complexity_coverage
+    variable_key: geographic_coverage
+    subject: organization
+    transform: coverage_complexity
+    weight: 0.10
+    required: false
+    direction: '+'
+  - component_key: multi_state_growth
+    variable_key: multi_state_growth
+    subject: organization
+    transform: dated_trigger_decay
+    weight: 0.10
+    required: false
+    direction: '+'
+  - component_key: provider_pain_satisfaction
+    variable_key: provider_satisfaction
+    subject: organization
+    transform: inverse_ordinal_linear
+    weight: 0.10
+    required: false
+    direction: '-'
+  - component_key: provider_pain_issue
+    variable_key: known_provider_issue
+    subject: organization
+    transform: issue_presence
+    weight: 0.10
+    required: false
+    direction: '+'
+  - component_key: timing
+    variable_key: contract_renewal_date
+    subject: organization
+    transform: renewal_window
+    weight: 0.10
+    required: false
+    direction: '+'
+  - component_key: access
+    variable_key: executive_access
+    subject: organization
+    transform: ordinal_linear
+    weight: 0.05
+    required: false
+    direction: '+'
+missing_data_behavior: unknown_not_zero_required_missing_blocks_final
+confidence_behavior: required_low_confidence_or_stale_provisional
+activation_evidence:
+  approval_status: approved
+  approved_at: '2026-07-22T00:00:00Z'
+  approved_by: repository owner (mikemiller1425-design) via Prompt 6 unblock instruction 2026-07-22
+  scope: Phase 1 baseline approval of the draft mappings/weights already published
+  notes:
+    - SCR-002 Phase 1 baseline approved for Prompt 6 entry
+    - CONF-007 resolved in docs/00-readiness/SPECIFICATION_CONFLICT_REGISTER.md

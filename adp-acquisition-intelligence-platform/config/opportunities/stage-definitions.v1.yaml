@@ -1,0 +1,79 @@
+version: 1.0.0
+status: active
+stages:
+  - stage_key: open
+    version: '1.0.0'
+    display_name: Open
+    description: Initial opportunity created from validated commercial interest.
+    default_probability: 10
+    max_age_days: 14
+    entry_criteria:
+      required:
+        - human_confirmation
+        - assigned_owner
+    exit_criteria:
+      required_next_action: true
+  - stage_key: discovery_validation
+    version: '1.0.0'
+    display_name: Discovery Validation
+    description: Validate discovery findings and confirm fit for the motion.
+    default_probability: 20
+    max_age_days: 21
+    entry_criteria:
+      required:
+        - primary_contact_assigned
+    exit_criteria:
+      required_next_action: true
+  - stage_key: solution_alignment
+    version: '1.0.0'
+    display_name: Solution Alignment
+    description: Align solution scope and stakeholders.
+    default_probability: 40
+    max_age_days: 30
+    entry_criteria:
+      required:
+        - value_or_band_documented
+    exit_criteria:
+      required_next_action: true
+  - stage_key: commercial_review
+    version: '1.0.0'
+    display_name: Commercial Review
+    description: Commercial terms and pricing review in progress.
+    default_probability: 60
+    max_age_days: 30
+    entry_criteria:
+      required:
+        - probability_assessed
+    exit_criteria:
+      required_next_action: true
+  - stage_key: won
+    version: '1.0.0'
+    display_name: Won
+    description: Opportunity closed won.
+    default_probability: 100
+    max_age_days: null
+    entry_criteria:
+      terminal: true
+    exit_criteria: {}
+  - stage_key: lost
+    version: '1.0.0'
+    display_name: Lost
+    description: Opportunity closed lost with structured reason.
+    default_probability: 0
+    max_age_days: null
+    entry_criteria:
+      terminal: true
+      required:
+        - loss_reason
+    exit_criteria: {}
+  - stage_key: nurture
+    version: '1.0.0'
+    display_name: Nurture
+    description: Parked opportunity with revisit plan.
+    default_probability: 5
+    max_age_days: 90
+    entry_criteria:
+      required:
+        - nurture_reason
+    exit_criteria:
+      reopen_requires_reviewer: true

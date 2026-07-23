@@ -1,0 +1,39 @@
+key: discovery_readiness
+version: 1.0.0
+status: active
+approval_status: approved
+activation_allowed: true
+criticality_groups:
+  required:
+    group_weight: 0.35
+    variable_keys:
+      - firm_type
+      - payroll_offered
+      - payroll_delivery_model
+      - current_payroll_provider
+  high_impact:
+    group_weight: 0.50
+    variable_keys:
+      - payroll_client_count
+      - estimated_client_count
+      - cas_offered
+      - recurring_service_model
+      - provider_satisfaction
+      - known_provider_issue
+      - contract_renewal_date
+      - executive_access
+  contextual:
+    group_weight: 0.15
+    variable_keys:
+      - industry_concentration
+      - typical_client_employee_count
+      - average_payroll_size
+      - growth_stage
+      - competitive_openness
+state_behavior:
+  unknown: incomplete_not_zero
+  not_applicable: exclude_only_when_definition_permits
+  withheld: incomplete_visible_withheld
+  contradicted: incomplete_create_research_gap
+  stale: incomplete_refresh_required
+discovery_mapping_rule: user_confirmation_required_before_variable_value_change

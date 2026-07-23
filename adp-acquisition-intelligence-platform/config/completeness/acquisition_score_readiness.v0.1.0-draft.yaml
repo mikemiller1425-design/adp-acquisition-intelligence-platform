@@ -1,0 +1,32 @@
+key: acquisition_score_readiness
+version: 1.0.0
+status: active
+approval_status: approved
+activation_allowed: true
+criticality_groups:
+  required:
+    group_weight: 0.55
+    variable_keys:
+      - payroll_client_count
+      - operational_burden
+      - process_standardization
+  high_impact:
+    group_weight: 0.35
+    variable_keys:
+      - ownership_type
+      - succession_risk
+      - acquisition_interest
+      - margin_pressure
+  contextual:
+    group_weight: 0.10
+    variable_keys:
+      - payroll_offered
+      - payroll_delivery_model
+      - client_concentration_risk
+      - competitive_openness
+state_behavior:
+  unknown: incomplete_not_zero
+  not_applicable: exclude_only_when_definition_permits
+  withheld: incomplete_visible_withheld
+  contradicted: incomplete_create_research_gap
+  stale: incomplete_refresh_required

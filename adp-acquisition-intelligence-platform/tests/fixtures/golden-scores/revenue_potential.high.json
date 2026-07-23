@@ -1,0 +1,37 @@
+{
+  "scoreKey": "revenue_potential",
+  "family": "support",
+  "components": [
+    {
+      "key": "motion_economics",
+      "weight": 0.7,
+      "transform": "currency_band",
+      "required": true,
+      "transformConfig": {
+        "bands": [
+          { "max_minor": 49999999, "score": 30 },
+          { "min_minor": 50000000, "max_minor": 199999999, "score": 60 },
+          { "min_minor": 200000000, "score": 85 }
+        ]
+      }
+    },
+    { "key": "range_confidence", "weight": 0.3, "transform": "identity_passthrough" }
+  ],
+  "inputs": [
+    {
+      "componentKey": "motion_economics",
+      "value": { "minMinor": 200000000, "maxMinor": 300000000, "currency": "USD" },
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    },
+    {
+      "componentKey": "range_confidence",
+      "value": 80,
+      "valueStatus": "known",
+      "confidenceStatus": "assessed",
+      "confidenceScore": 0.8
+    }
+  ],
+  "expected": { "status": "final", "tier": "high", "score": 83.5 }
+}
