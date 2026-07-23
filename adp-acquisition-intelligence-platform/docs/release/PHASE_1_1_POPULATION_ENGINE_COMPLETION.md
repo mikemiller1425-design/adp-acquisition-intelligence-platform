@@ -4,7 +4,7 @@
 **Date:** 2026-07-23  
 **Branch:** `cursor/phase-1-1-population-engine-dd2b`  
 **Baseline:** `1e98880f742a739bbfc44167c549fd4ebc8cd5c0` (PR #19 MERGED; branch rebased onto main)  
-**Tip commit:** `34367e869d11a5d0ba1baa541f57e31173bac79f`  
+**Tip commit:** `5f6ff10dd8a464844e9eae0cfaed5cbc2b10080a` (validate + persistent E2E green; subsequent tip-SHA sync commits do not re-run gates)  
 **Draft PR:** #20  
 **Recommendation:** **READY FOR CONTROLLED PILOT** (fixture-only). **NOT READY** for live public-source egress or production release.
 
