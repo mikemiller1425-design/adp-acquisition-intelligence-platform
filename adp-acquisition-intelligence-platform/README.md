@@ -34,6 +34,7 @@ Database development:
 - [Scoring configuration guide](docs/development/SCORING_CONFIGURATION_GUIDE.md)
 - [Import recovery runbook](docs/operations/IMPORT_RECOVERY_RUNBOOK.md)
 - [Score recalculation runbook](docs/operations/SCORE_RECALCULATION_RUNBOOK.md)
+- [Prompt 12 ops runbooks](docs/14-runbooks/OPS_STARTUP_AND_VALIDATION.md)
 
 ## Documentation
 

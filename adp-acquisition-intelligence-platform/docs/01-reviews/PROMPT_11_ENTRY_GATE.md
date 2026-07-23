@@ -1,5 +1,7 @@
 # Prompt 11 Entry Gate
 
+> **Supersedes:** `cursor/prompt-11-entry-gate-blocked-dd2b` BLOCKED report (historical; Prompt 11 is complete on implementation branch).
+
 **Status:** PASSED  
 **Recorded at:** 2026-07-23 UTC  
 **Baseline branch:** `cursor/prompt-10-dashboard-reporting-dd2b`  

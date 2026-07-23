@@ -12,7 +12,8 @@
 8. [Architecture Decision Records](adr/README.md) — Prompt 1 accepted decisions (DEC-001–012).
 9. [Database setup](development/DATABASE_SETUP.md), [Migration Guide](development/MIGRATION_GUIDE.md), [Evidence and Provenance Guide](development/EVIDENCE_AND_PROVENANCE_GUIDE.md), [Variable Definition Guide](development/VARIABLE_DEFINITION_GUIDE.md), [Import Pipeline Guide](development/IMPORT_PIPELINE_GUIDE.md), [Normalization Policy](development/NORMALIZATION_POLICY.md), [Duplicate and Merge Guide](development/DUPLICATE_AND_MERGE_GUIDE.md), [Scoring Configuration Guide](development/SCORING_CONFIGURATION_GUIDE.md), [Import Recovery Runbook](operations/IMPORT_RECOVERY_RUNBOOK.md), and [Score Recalculation Runbook](operations/SCORE_RECALCULATION_RUNBOOK.md) — local database and Prompt 3/4/5 domain operations.
 10. [Phase 1 Exit Contract](13-exit-contract/PHASE_1_EXIT_CONTRACT.md) and [machine-readable checklist](13-exit-contract/phase_1_exit_contract.yaml) — definition of done.
-11. [Prompt 0 readiness](00-readiness/PROMPT_0_READINESS_REPORT.md), [Prompt 2 implementation](prompts/PROMPT_2_CANONICAL_DATA_MODEL.md), [Prompt 3 implementation](prompts/PROMPT_3_VARIABLES_EVIDENCE_PROVENANCE.md), [Prompt 4 implementation](prompts/PROMPT_4_COLLECTION_AND_IDENTITY_RESOLUTION.md), [Prompt 5 implementation](prompts/PROMPT_5_COMPLETENESS_AND_SCORING.md), [Prompt 6 implementation](prompts/PROMPT_6_QUALIFICATION_AND_WORKFLOW.md), [Prompt 6 entry gate](01-reviews/PROMPT_6_ENTRY_GATE.md), and [specification reviews](01-reviews/) — readiness and prompt reviews.
+11. [Prompt 12 runbooks](14-runbooks/OPS_STARTUP_AND_VALIDATION.md) — startup, health, migrate, seed, validate, consent incidents, export expiry, backup/restore rehearsal.
+12. [Prompt 0 readiness](00-readiness/PROMPT_0_READINESS_REPORT.md), [Prompt 2 implementation](prompts/PROMPT_2_CANONICAL_DATA_MODEL.md), [Prompt 3 implementation](prompts/PROMPT_3_VARIABLES_EVIDENCE_PROVENANCE.md), [Prompt 4 implementation](prompts/PROMPT_4_COLLECTION_AND_IDENTITY_RESOLUTION.md), [Prompt 5 implementation](prompts/PROMPT_5_COMPLETENESS_AND_SCORING.md), [Prompt 6 implementation](prompts/PROMPT_6_QUALIFICATION_AND_WORKFLOW.md), [Prompt 6 entry gate](01-reviews/PROMPT_6_ENTRY_GATE.md), and [specification reviews](01-reviews/) — readiness and prompt reviews.
 
 ## Conflict policy
 
@@ -47,6 +48,11 @@ docs/
 ├── 13-exit-contract/
 │   ├── PHASE_1_EXIT_CONTRACT.md
 │   └── phase_1_exit_contract.yaml
+├── 14-runbooks/
+│   ├── OPS_STARTUP_AND_VALIDATION.md
+│   ├── CONSENT_OPT_OUT_INCIDENT.md
+│   ├── EXPORT_EXPIRY.md
+│   └── BACKUP_RESTORE_REHEARSAL.md
 ├── development/
 │   ├── DATABASE_SETUP.md
 │   ├── DUPLICATE_AND_MERGE_GUIDE.md

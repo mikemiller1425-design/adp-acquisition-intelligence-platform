@@ -1,5 +1,7 @@
 # Prompt 10 Entry Gate
 
+> **Supersedes:** `cursor/prompt-10-entry-gate-blocked-dd2b` BLOCKED report (historical; Prompt 10 is complete on implementation branch).
+
 **Status:** PASSED  
 **Recorded at:** 2026-07-23 UTC  
 **Baseline branch:** `cursor/prompt-9-opportunity-dd2b`  

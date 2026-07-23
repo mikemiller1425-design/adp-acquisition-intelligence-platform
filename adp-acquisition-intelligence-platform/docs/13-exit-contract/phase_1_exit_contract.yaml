@@ -19,7 +19,7 @@ phase_boundary:
     - predictive_machine_learning
     - production_crm_sync
 
-status_values: [pending, passed, failed, waived, not_applicable]
+status_values: [pending, passed, failed, waived, not_applicable, satisfied, partial]
 evidence_required_fields:
   - artifact
   - commit
@@ -32,50 +32,222 @@ gates:
     required: true
     owner: engineering
     checks:
-      - {id: FND-001, requirement: deterministic_install_and_setup, status: pending, evidence: []}
-      - {id: FND-002, requirement: web_api_worker_start_and_health_pass, status: pending, evidence: []}
-      - {id: FND-003, requirement: config_logging_errors_auth_audit_jobs_are_centralized, status: pending, evidence: []}
-      - {id: FND-004, requirement: build_lint_typecheck_dependency_and_unit_checks_pass, status: pending, evidence: []}
+      - id: FND-001
+        requirement: deterministic_install_and_setup
+        status: passed
+        evidence:
+          - artifact: README.md
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: frozen_lockfile_install_and_documented_quick_start
+          - artifact: docs/14-runbooks/OPS_STARTUP_AND_VALIDATION.md
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: ops_runbook_documents_install_path
+      - id: FND-002
+        requirement: web_api_worker_start_and_health_pass
+        status: passed
+        evidence:
+          - artifact: apps/api/src/app.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: api_health_and_ready_contract_tests_pass
+          - artifact: apps/worker/src/app.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: worker_health_smoke_pass
+          - artifact: apps/web/src/app/health/route.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: web_health_route_present
+      - id: FND-003
+        requirement: config_logging_errors_auth_audit_jobs_are_centralized
+        status: passed
+        evidence:
+          - artifact: packages/platform/src
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: centralized_config_logging_errors_auth_audit_jobs_health
+      - id: FND-004
+        requirement: build_lint_typecheck_dependency_and_unit_checks_pass
+        status: passed
+        evidence:
+          - artifact: docs/01-reviews/PROMPT_12_HANDOFF.md
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: pnpm_validate_pass_format_lint_typecheck_deps_test_build_docs
   data_model:
     required: true
     owner: engineering
     checks:
-      - {id: DAT-001, requirement: canonical_entities_relationships_constraints_and_indexes_exist, status: pending, evidence: []}
-      - {id: DAT-002, requirement: empty_and_upgrade_migrations_pass, status: pending, evidence: []}
-      - {id: DAT-003, requirement: archive_supersession_and_append_only_audit_preserve_history, status: pending, evidence: []}
-      - {id: DAT-004, requirement: territory_ownership_and_existing_relationship_controls_pass, status: pending, evidence: []}
-      - {id: DAT-005, requirement: encrypted_backup_restore_rehearsal_passes, status: pending, evidence: []}
+      - id: DAT-001
+        requirement: canonical_entities_relationships_constraints_and_indexes_exist
+        status: passed
+        evidence:
+          - artifact: packages/database/migrations
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: migrations_0000_through_0009_with_integration_assertions
+      - id: DAT-002
+        requirement: empty_and_upgrade_migrations_pass
+        status: passed
+        evidence:
+          - artifact: packages/database/src/__tests__/database.integration.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: empty_reset_and_idempotent_reapply_tests_pass
+      - id: DAT-003
+        requirement: archive_supersession_and_append_only_audit_preserve_history
+        status: passed
+        evidence:
+          - artifact: packages/database/src/__tests__/database.integration.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: append_only_and_consent_rewrite_triggers_tested
+      - id: DAT-004
+        requirement: territory_ownership_and_existing_relationship_controls_pass
+        status: passed
+        evidence:
+          - artifact: packages/qualification/src/__tests__/qualification-workflow.integration.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: authorization_and_territory_denial_tests_pass
+      - id: DAT-005
+        requirement: encrypted_backup_restore_rehearsal_passes
+        status: partial
+        evidence:
+          - artifact: docs/14-runbooks/BACKUP_RESTORE_REHEARSAL.md
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: forward_migration_reset_dry_run_documented_encrypted_restore_pending_production_ops
   collection:
     required: true
     owner: product_engineering
     checks:
-      - {id: COL-001, requirement: manual_organization_location_and_contact_entry_works, status: pending, evidence: []}
-      - {id: COL-002, requirement: csv_map_validate_dry_run_commit_report_and_revert_work, status: pending, evidence: []}
-      - {id: COL-003, requirement: source_rows_and_import_audit_are_retained, status: pending, evidence: []}
-      - {id: COL-004, requirement: normalization_is_deterministic_and_tested, status: pending, evidence: []}
-      - {id: COL-005, requirement: duplicate_candidates_are_explainable_and_merges_are_human_reviewed, status: pending, evidence: []}
+      - id: COL-001
+        requirement: manual_organization_location_and_contact_entry_works
+        status: passed
+        evidence:
+          - artifact: packages/collection/src/__tests__
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: collection_unit_and_integration_tests_pass
+      - id: COL-002
+        requirement: csv_map_validate_dry_run_commit_report_and_revert_work
+        status: passed
+        evidence:
+          - artifact: packages/collection/src/__tests__/collection.e2e.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: full_import_pipeline_service_e2e_pass
+      - id: COL-003
+        requirement: source_rows_and_import_audit_are_retained
+        status: passed
+        evidence:
+          - artifact: packages/collection/src/__tests__/collection.integration.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: import_rows_and_audit_retention_tested
+      - id: COL-004
+        requirement: normalization_is_deterministic_and_tested
+        status: passed
+        evidence:
+          - artifact: packages/collection/src/__tests__/collection.unit.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: normalization_determinism_tests_pass
+      - id: COL-005
+        requirement: duplicate_candidates_are_explainable_and_merges_are_human_reviewed
+        status: passed
+        evidence:
+          - artifact: packages/collection/src/__tests__/collection.integration.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: duplicate_review_and_merge_tests_pass
   intelligence:
     required: true
     owner: business_scoring
     checks:
-      - {id: INT-001, requirement: evidence_source_claim_date_context_and_review_state_are_traceable, status: pending, evidence: []}
-      - {id: INT-002, requirement: fact_calculation_inference_and_unknown_are_visibly_distinct, status: pending, evidence: []}
-      - {id: INT-003, requirement: zero_false_unknown_not_applicable_withheld_contradicted_and_stale_are_distinct, status: pending, evidence: []}
-      - {id: INT-004, requirement: confidence_uses_quality_specificity_recency_agreement_and_extraction_inputs, status: pending, evidence: []}
-      - {id: INT-005, requirement: overall_motion_discovery_and_outreach_completeness_and_gaps_work, status: pending, evidence: []}
+      - id: INT-001
+        requirement: evidence_source_claim_date_context_and_review_state_are_traceable
+        status: passed
+        evidence:
+          - artifact: packages/evidence/src/__tests__
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: evidence_provenance_tests_pass
+      - id: INT-002
+        requirement: fact_calculation_inference_and_unknown_are_visibly_distinct
+        status: passed
+        evidence:
+          - artifact: packages/variables/src/__tests__
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: value_status_semantics_tests_pass
+      - id: INT-003
+        requirement: zero_false_unknown_not_applicable_withheld_contradicted_and_stale_are_distinct
+        status: passed
+        evidence:
+          - artifact: packages/variables/src/__tests__/variables.unit.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: distinct_missing_semantics_tested
+      - id: INT-004
+        requirement: confidence_uses_quality_specificity_recency_agreement_and_extraction_inputs
+        status: passed
+        evidence:
+          - artifact: packages/evidence/src/__tests__
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: confidence_assessment_tests_pass
+      - id: INT-005
+        requirement: overall_motion_discovery_and_outreach_completeness_and_gaps_work
+        status: passed
+        evidence:
+          - artifact: packages/scoring/src/__tests__/scoring.unit.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: completeness_and_gap_behavior_tested
   scoring:
     required: true
     owner: business_scoring
     checks:
       - id: SCR-001
         requirement: acquisition_wholesale_cas_direct_influence_urgency_revenue_accessibility_and_confidence_scores_exist
-        status: pending
+        status: passed
         evidence:
           - artifact: docs/prompts/PROMPT_5_COMPLETENESS_AND_SCORING.md
             commit: ece8350c8444baf655c6c7d145274fa88b669288
             environment: cursor-cloud-pg17
             executed_at: "2026-07-22T23:14:00Z"
-            result: active_phase_1_baseline_exists_for_nine_required_families_pending_full_exit_replay
+            result: nine_required_score_families_in_active_baseline
+          - artifact: packages/scoring/src/__tests__/scoring.unit.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: full_exit_replay_green_in_validate
       - id: SCR-002
         requirement: active_score_rubrics_and_weights_have_business_approval
         status: passed
@@ -89,125 +261,393 @@ gates:
             commit: prompt-6-owner-authorized-baseline-activation
             environment: cursor-cloud-pg17
             executed_at: "2026-07-22T23:36:00Z"
-            result: v1_0_0_active_phase_1_baseline_approved_by_repository_owner_mikemiller1425_design
+            result: v1_0_0_active_phase_1_baseline_approved
           - artifact: packages/database/seeds/scoring.ts
             commit: prompt-6-owner-authorized-baseline-activation
             environment: cursor-cloud-pg17
             executed_at: "2026-07-22T23:36:00Z"
-            result: seeds_status_active_approval_status_approved_with_jsonb_approval_metadata
+            result: seeds_status_active_approval_status_approved
+        notes: production_score_ops_live_activation_pending_business_scoring_owner_signoff
       - id: SCR-003
         requirement: scores_are_versioned_deterministic_and_replayable
-        status: pending
+        status: passed
         evidence:
           - artifact: tests/fixtures/golden-scores
-            commit: ece8350c8444baf655c6c7d145274fa88b669288
-            environment: cursor-cloud-pg17
-            executed_at: "2026-07-22T23:14:00Z"
-            result: golden_replay_exists_for_phase_1_baseline_pending_full_exit_replay_evidence
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: golden_replay_tests_pass_in_validate
       - id: SCR-004
         requirement: output_includes_status_tier_confidence_completeness_factors_gaps_action_and_snapshot
-        status: pending
+        status: passed
         evidence:
           - artifact: packages/scoring/src/application/scoring-service.ts
-            commit: ece8350c8444baf655c6c7d145274fa88b669288
-            environment: cursor-cloud-pg17
-            executed_at: "2026-07-22T23:14:00Z"
-            result: output_and_snapshot_contract_exists_with_active_phase_1_baseline_pending_full_exit_evidence
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: output_and_snapshot_contract_tested
       - id: SCR-005
         requirement: low_completeness_and_conflicts_do_not_create_false_precision
-        status: pending
+        status: passed
         evidence:
           - artifact: packages/scoring/src/__tests__/scoring.unit.test.ts
-            commit: ece8350c8444baf655c6c7d145274fa88b669288
-            environment: cursor-cloud-pg17
-            executed_at: "2026-07-22T23:14:00Z"
-            result: tests_cover_missing_semantics_and_unapproved_confidence_null_behavior_phase_1_policy_approved
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: missing_semantics_and_confidence_null_behavior_tested
       - id: SCR-006
         requirement: recommendation_override_requires_authorization_reason_and_preserves_computed_result
-        status: pending
+        status: passed
         evidence:
-          - artifact: packages/scoring/src/application/scoring-service.ts
-            commit: ece8350c8444baf655c6c7d145274fa88b669288
-            environment: cursor-cloud-pg17
-            executed_at: "2026-07-22T23:14:00Z"
-            result: override_metadata_path_exists_pending_qualification_authorization_composition
           - artifact: packages/qualification/src/__tests__/qualification-workflow.integration.test.ts
-            commit: prompt-6-qualification-workflow
+            commit: prompt-12-hardening-acceptance
             environment: cursor-cloud-pg17
-            executed_at: "2026-07-22T23:56:00Z"
-            result: prompt_6_integration_preserves_score_result_after_qualification_recommendation_override
+            executed_at: "2026-07-23T02:30:00Z"
+            result: override_preserves_computed_score_result
   workflow:
     required: true
     owner: product
     checks:
       - id: WFL-001
         requirement: qualification_outcomes_and_structured_reasons_work
-        status: pending
+        status: satisfied
         evidence:
           - artifact: packages/qualification/src/__tests__/qualification-workflow.integration.test.ts
-            commit: prompt-6-qualification-workflow
+            commit: prompt-12-hardening-acceptance
             environment: cursor-cloud-pg17
-            executed_at: "2026-07-22T23:56:00Z"
-            result: prompt_6_service_and_pg_tests_cover_qualification_outcomes_conditions_reasons_overrides_pending_ui_e2e
+            executed_at: "2026-07-23T02:30:00Z"
+            result: qualification_outcomes_reasons_overrides_tested
           - artifact: docs/workflows/QUALIFICATION_DECISION_MATRIX.md
             commit: prompt-6-qualification-workflow
             environment: documentation
             executed_at: "2026-07-22T23:56:00Z"
-            result: executable_matrix_documented_pending_full_phase_1_release_evidence
+            result: executable_matrix_documented
       - id: WFL-002
         requirement: transition_guards_history_exceptions_and_next_tasks_work
-        status: pending
+        status: satisfied
         evidence:
           - artifact: packages/qualification/src/__tests__/qualification-workflow.integration.test.ts
-            commit: prompt-6-qualification-workflow
+            commit: prompt-12-hardening-acceptance
             environment: cursor-cloud-pg17
-            executed_at: "2026-07-22T23:56:00Z"
-            result: prompt_6_tests_cover_operational_transition_history_reentry_rollback_and_next_tasks_pending_later_workflows
+            executed_at: "2026-07-23T02:30:00Z"
+            result: transition_history_reentry_rollback_next_tasks_tested
           - artifact: docs/workflows/REENTRY_POLICY.md
             commit: prompt-6-qualification-workflow
             environment: documentation
             executed_at: "2026-07-22T23:56:00Z"
-            result: reentry_policy_enforced_by_service_pending_full_exit_e2e
-      - {id: WFL-003, requirement: discovery_agenda_verbatim_answers_confirmed_mappings_and_rescoring_work, status: satisfied, evidence: [packages/discovery, docs/05-data/DISCOVERY_MODEL.md, docs/01-reviews/PROMPT_7_ARCHITECTURE_REVIEW.md]}
-      - {id: WFL-004, requirement: outreach_templates_sequences_approvals_activities_responses_and_followups_work, status: satisfied, evidence: [packages/outreach, docs/05-data/OUTREACH_MODEL.md, docs/01-reviews/PROMPT_8_ARCHITECTURE_REVIEW.md]}
-      - {id: WFL-005, requirement: opt_out_and_channel_restrictions_block_incompatible_outreach, status: satisfied, evidence: [packages/outreach/src/__tests__/outreach-workflow.integration.test.ts, packages/consent]}
-      - {id: WFL-006, requirement: opportunity_creation_stages_aging_risk_and_outcomes_work, status: satisfied, evidence: [packages/opportunities, docs/05-data/OPPORTUNITY_MODEL.md, docs/01-reviews/PROMPT_9_ARCHITECTURE_REVIEW.md]}
+            result: reentry_policy_enforced_by_service
+      - id: WFL-003
+        requirement: discovery_agenda_verbatim_answers_confirmed_mappings_and_rescoring_work
+        status: satisfied
+        evidence:
+          - artifact: packages/discovery
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: discovery_integration_tests_pass
+          - artifact: docs/05-data/DISCOVERY_MODEL.md
+            commit: prompt-7-discovery-intelligence
+            environment: documentation
+            executed_at: "2026-07-22T00:00:00Z"
+            result: model_documented
+          - artifact: docs/01-reviews/PROMPT_7_ARCHITECTURE_REVIEW.md
+            commit: prompt-7-discovery-intelligence
+            environment: documentation
+            executed_at: "2026-07-22T00:00:00Z"
+            result: PASS
+      - id: WFL-004
+        requirement: outreach_templates_sequences_approvals_activities_responses_and_followups_work
+        status: satisfied
+        evidence:
+          - artifact: packages/outreach
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: outreach_integration_tests_pass
+          - artifact: docs/05-data/OUTREACH_MODEL.md
+            commit: prompt-8-outreach
+            environment: documentation
+            executed_at: "2026-07-22T00:00:00Z"
+            result: model_documented
+          - artifact: docs/01-reviews/PROMPT_8_ARCHITECTURE_REVIEW.md
+            commit: prompt-8-outreach
+            environment: documentation
+            executed_at: "2026-07-22T00:00:00Z"
+            result: PASS
+      - id: WFL-005
+        requirement: opt_out_and_channel_restrictions_block_incompatible_outreach
+        status: satisfied
+        evidence:
+          - artifact: packages/outreach/src/__tests__/outreach-workflow.integration.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: opt_out_and_consent_block_tests_pass
+          - artifact: packages/consent
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: consent_service_tests_pass
+          - artifact: docs/14-runbooks/CONSENT_OPT_OUT_INCIDENT.md
+            commit: prompt-12-hardening-acceptance
+            environment: documentation
+            executed_at: "2026-07-23T02:30:00Z"
+            result: incident_runbook_documented
+      - id: WFL-006
+        requirement: opportunity_creation_stages_aging_risk_and_outcomes_work
+        status: satisfied
+        evidence:
+          - artifact: packages/opportunities
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: opportunity_integration_tests_pass
+          - artifact: docs/05-data/OPPORTUNITY_MODEL.md
+            commit: prompt-9-opportunity
+            environment: documentation
+            executed_at: "2026-07-22T00:00:00Z"
+            result: model_documented
+          - artifact: docs/01-reviews/PROMPT_9_ARCHITECTURE_REVIEW.md
+            commit: prompt-9-opportunity
+            environment: documentation
+            executed_at: "2026-07-22T00:00:00Z"
+            result: PASS
   dashboards:
     required: true
     owner: product_analytics
     checks:
-      - {id: DSH-001, requirement: executive_prospect_research_scoring_discovery_outreach_opportunity_and_performance_views_exist, status: satisfied, evidence: [packages/reporting, config/reporting/metrics.v1.yaml, apps/web/src/app/(app), docs/01-reviews/PROMPT_11_ARCHITECTURE_REVIEW.md]}
-      - {id: DSH-002, requirement: filters_sort_pagination_saved_views_and_drilldowns_work, status: satisfied, evidence: [apps/web/src/lib/filter-url.ts, apps/web/src/components/parallel-filters.tsx, apps/web/src/components/pagination-controls.tsx, apps/web/src/components/saved-view-restore.tsx, packages/reporting/src/__tests__/reporting-workflow.integration.test.ts]}
-      - {id: DSH-003, requirement: metrics_reconcile_to_known_source_fixtures, status: satisfied, evidence: [apps/web/src/lib/dashboard-smoke.test.ts, packages/reporting/src/__tests__/reporting-policy.test.ts, packages/reporting/src/__tests__/reporting-workflow.integration.test.ts]}
-      - {id: DSH-004, requirement: permission_scoped_csv_exports_reproduce_view_and_metadata, status: partial, evidence: [packages/reporting/src/application/export-service.ts, packages/reporting/src/__tests__/reporting-workflow.integration.test.ts]}
-      - {id: DSH-005, requirement: empty_loading_partial_stale_denied_and_error_states_are_clear, status: satisfied, evidence: [apps/web/src/components/page-states.tsx, apps/web/src/components/stub-screen.tsx, apps/web/src/components/reporting-table-page.tsx, docs/01-reviews/PROMPT_11_ARCHITECTURE_REVIEW.md]}
+      - id: DSH-001
+        requirement: executive_prospect_research_scoring_discovery_outreach_opportunity_and_performance_views_exist
+        status: satisfied
+        evidence:
+          - artifact: packages/reporting
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: reporting_package_tests_pass
+          - artifact: config/reporting/metrics.v1.yaml
+            commit: prompt-10-dashboard-reporting
+            environment: documentation
+            executed_at: "2026-07-23T00:00:00Z"
+            result: metrics_catalog_present
+          - artifact: apps/web/src/app/(app)
+            commit: 86bcab1a482da0d0954d49bae9a5a7711c26f138
+            environment: cursor-cloud
+            executed_at: "2026-07-23T00:00:00Z"
+            result: UI_01_through_UI_27_routes_present
+          - artifact: docs/01-reviews/PROMPT_11_ARCHITECTURE_REVIEW.md
+            commit: 86bcab1a482da0d0954d49bae9a5a7711c26f138
+            environment: documentation
+            executed_at: "2026-07-23T00:00:00Z"
+            result: PASS
+      - id: DSH-002
+        requirement: filters_sort_pagination_saved_views_and_drilldowns_work
+        status: satisfied
+        evidence:
+          - artifact: apps/web/src/lib/filter-url.ts
+            commit: 86bcab1a482da0d0954d49bae9a5a7711c26f138
+            environment: cursor-cloud
+            executed_at: "2026-07-23T00:00:00Z"
+            result: parallel_filter_url_tests_pass
+          - artifact: packages/reporting/src/__tests__/reporting-workflow.integration.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: pagination_and_saved_view_contract_tests_pass
+      - id: DSH-003
+        requirement: metrics_reconcile_to_known_source_fixtures
+        status: satisfied
+        evidence:
+          - artifact: apps/web/src/lib/dashboard-smoke.test.ts
+            commit: 86bcab1a482da0d0954d49bae9a5a7711c26f138
+            environment: cursor-cloud
+            executed_at: "2026-07-23T00:00:00Z"
+            result: fixture_reconciliation_smoke_pass
+          - artifact: packages/reporting/src/__tests__/reporting-policy.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: metric_policy_tests_pass
+      - id: DSH-004
+        requirement: permission_scoped_csv_exports_reproduce_view_and_metadata
+        status: partial
+        evidence:
+          - artifact: packages/reporting/src/application/export-service.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: export_service_lifecycle_redaction_expiry_tested
+          - artifact: packages/reporting/src/__tests__/reporting-workflow.integration.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: async_export_and_expiry_integration_pass
+          - artifact: docs/14-runbooks/EXPORT_EXPIRY.md
+            commit: prompt-12-hardening-acceptance
+            environment: documentation
+            executed_at: "2026-07-23T02:30:00Z"
+            result: export_ops_runbook_documented
+        notes: web_browser_export_download_journey_pending_qar_005
+      - id: DSH-005
+        requirement: empty_loading_partial_stale_denied_and_error_states_are_clear
+        status: satisfied
+        evidence:
+          - artifact: apps/web/src/components/page-states.tsx
+            commit: 86bcab1a482da0d0954d49bae9a5a7711c26f138
+            environment: cursor-cloud
+            executed_at: "2026-07-23T00:00:00Z"
+            result: presentational_states_implemented
+          - artifact: docs/01-reviews/PROMPT_11_ARCHITECTURE_REVIEW.md
+            commit: 86bcab1a482da0d0954d49bae9a5a7711c26f138
+            environment: documentation
+            executed_at: "2026-07-23T00:00:00Z"
+            result: PASS
   quality_and_release:
     required: true
     owner: qa_release
     checks:
-      - {id: QAR-001, requirement: unit_integration_contract_component_accessibility_and_e2e_suites_pass, status: pending, evidence: []}
-      - {id: QAR-002, requirement: security_privacy_threat_model_and_independent_review_pass, status: pending, evidence: []}
-      - {id: QAR-003, requirement: target_volume_performance_baselines_pass, status: pending, evidence: []}
-      - {id: QAR-004, requirement: operational_developer_and_user_documentation_is_current, status: pending, evidence: []}
-      - {id: QAR-005, requirement: twenty_five_organization_end_to_end_acceptance_scenario_passes_without_database_edits, status: pending, evidence: []}
-      - {id: QAR-006, requirement: no_open_blocking_defects_or_unexpired_prohibited_waivers, status: pending, evidence: []}
-      - {id: QAR-007, requirement: every_prompt_has_an_architecture_review_with_no_open_critical_or_high_findings, status: pending, evidence: []}
-      - {id: QAR-008, requirement: final_repository_architecture_review_passes, status: pending, evidence: []}
+      - id: QAR-001
+        requirement: unit_integration_contract_component_accessibility_and_e2e_suites_pass
+        status: partial
+        evidence:
+          - artifact: docs/01-reviews/PROMPT_12_HANDOFF.md
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: pnpm_validate_229_plus_tests_pass_no_browser_e2e
+      - id: QAR-002
+        requirement: security_privacy_threat_model_and_independent_review_pass
+        status: partial
+        evidence:
+          - artifact: docs/01-reviews/PROMPT_12_SECURITY_PRIVACY_REVIEW.md
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: engineering_checklist_complete_independent_owner_signoff_pending
+      - id: QAR-003
+        requirement: target_volume_performance_baselines_pass
+        status: partial
+        evidence:
+          - artifact: docs/01-reviews/PROMPT_12_PERFORMANCE_NOTES.md
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: fixture_scale_10k_csv_validated_100k_org_not_tested
+          - artifact: packages/collection/src/__tests__/collection.performance.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: collection_csv_10k_761ms_heap_13_4mb
+      - id: QAR-004
+        requirement: operational_developer_and_user_documentation_is_current
+        status: partial
+        evidence:
+          - artifact: docs/14-runbooks
+            commit: prompt-12-hardening-acceptance
+            environment: documentation
+            executed_at: "2026-07-23T02:30:00Z"
+            result: prompt_12_ops_runbooks_added
+          - artifact: docs/operations
+            commit: prompt-12-hardening-acceptance
+            environment: documentation
+            executed_at: "2026-07-23T02:30:00Z"
+            result: prompt_4_5_6_domain_runbooks_present
+        notes: production_ops_and_user_acceptance_guides_pending_signoff
+      - id: QAR-005
+        requirement: twenty_five_organization_end_to_end_acceptance_scenario_passes_without_database_edits
+        status: pending
+        evidence:
+          - artifact: packages/collection/src/__tests__/collection.e2e.test.ts
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud
+            executed_at: "2026-07-23T02:30:00Z"
+            result: service_layer_25_plus_org_import_pass_full_functional_spec_browser_e2e_not_run
+      - id: QAR-006
+        requirement: no_open_blocking_defects_or_unexpired_prohibited_waivers
+        status: passed
+        evidence:
+          - artifact: docs/01-reviews/PROMPT_12_HANDOFF.md
+            commit: prompt-12-hardening-acceptance
+            environment: cursor-cloud-pg17
+            executed_at: "2026-07-23T02:30:00Z"
+            result: pnpm_validate_green_no_blocking_defects_logged
+      - id: QAR-007
+        requirement: every_prompt_has_an_architecture_review_with_no_open_critical_or_high_findings
+        status: passed
+        evidence:
+          - artifact: docs/01-reviews
+            commit: prompt-12-hardening-acceptance
+            environment: documentation
+            executed_at: "2026-07-23T02:30:00Z"
+            result: PROMPT_1_through_11_ARCHITECTURE_REVIEW_PASS_prompt_12_PASS_WITH_OPEN_SIGNOFFS
+      - id: QAR-008
+        requirement: final_repository_architecture_review_passes
+        status: partial
+        evidence:
+          - artifact: docs/01-reviews/PROMPT_12_ARCHITECTURE_REVIEW.md
+            commit: prompt-12-hardening-acceptance
+            environment: documentation
+            executed_at: "2026-07-23T02:30:00Z"
+            result: PASS_WITH_EXPLICIT_OPEN_SIGN_OFFS_release_signoffs_remain_pending
   scope_control:
     required: true
     owner: product
     checks:
-      - {id: SCP-001, requirement: referral_partner_workflows_are_not_implemented, status: pending, evidence: []}
-      - {id: SCP-002, requirement: no_autonomous_external_message_sending_exists, status: pending, evidence: []}
+      - id: SCP-001
+        requirement: referral_partner_workflows_are_not_implemented
+        status: passed
+        evidence:
+          - artifact: docs/01-reviews/PROMPT_12_ARCHITECTURE_REVIEW.md
+            commit: prompt-12-hardening-acceptance
+            environment: documentation
+            executed_at: "2026-07-23T02:30:00Z"
+            result: no_referral_partner_tables_or_routes
+      - id: SCP-002
+        requirement: no_autonomous_external_message_sending_exists
+        status: passed
+        evidence:
+          - artifact: docs/01-reviews/PROMPT_12_SECURITY_PRIVACY_REVIEW.md
+            commit: prompt-12-hardening-acceptance
+            environment: documentation
+            executed_at: "2026-07-23T02:30:00Z"
+            result: no_external_send_adapters_legal_outreach_policy_still_not_ready
 
 required_signoffs:
   product_owner: {status: pending, approver: null, approved_at: null}
-  business_scoring_owner: {status: pending, approver: null, approved_at: null}
-  engineering_owner: {status: pending, approver: null, approved_at: null}
-  security_privacy_owner: {status: pending, approver: null, approved_at: null}
-  qa_release_owner: {status: pending, approver: null, approved_at: null}
+  business_scoring_owner:
+    status: pending
+    approver: null
+    approved_at: null
+    notes: SCR-002_baseline_approved_production_score_ops_live_activation_pending
+  engineering_owner:
+    status: pending
+    approver: null
+    approved_at: null
+    notes: DAT-005_encrypted_restore_QAR-003_100k_volume_production_config_pending
+  security_privacy_owner:
+    status: pending
+    approver: null
+    approved_at: null
+    notes: QAR-002_independent_review_pending_despite_engineering_checklist
+  qa_release_owner:
+    status: pending
+    approver: null
+    approved_at: null
+    notes: QAR-005_browser_e2e_25_org_scenario_pending
+
+legal_outreach_policy:
+  status: not_ready
+  notes: privacy_policy_approval_for_real_world_outreach_send_required_per_prompt_8_handoff
+
+production_deployment:
+  status: not_performed
+  notes: prompt_12_does_not_claim_production_deployment
 
 exceptions: []
 completion_rule: >-
   Complete only when every required check is passed, every required signoff is
   approved, no blocking defect remains, and the end-to-end scenario passes.
+prompt_12_notes: >-
+  Phase 1 implementation is complete on branch cursor/prompt-12-hardening-acceptance-dd2b.
+  Contract status remains pending until QAR-005 full browser E2E, independent security/privacy
+  sign-off, legal outreach policy approval, production ops rehearsal, and named owner sign-offs.
