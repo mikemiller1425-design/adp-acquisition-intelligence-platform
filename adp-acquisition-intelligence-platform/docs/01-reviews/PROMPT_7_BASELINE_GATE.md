@@ -39,4 +39,17 @@ Incomplete Prompt 7 schema WIP had broken validation:
 
 **Validation after repair:** `pnpm validate` passed on PostgreSQL 17 with migrations `0000`–`0006`.
 
-Discovery package services are not yet implemented; schema/migration foundation is now green for continued Prompt 7 work.
+## Re-validation before continuing (2026-07-23)
+
+| Check | Result |
+|---|---|
+| Working tree clean at `fea9283` | PASS |
+| `pnpm validate` (full monorepo) | PASS |
+| `@adp/database` integration (13) | PASS — journal `0000`–`0006`, 12 discovery tables |
+| `@adp/qualification` tests (42) | PASS |
+| `@adp/scoring` tests (16) | PASS |
+| `drizzle-kit generate` schema drift | PASS — “No schema changes” vs `0006_snapshot` |
+
+**Known non-blockers:** PostgreSQL truncates some auto-generated FK names >63 chars (same pattern as migrations `0002`/`0004`/`0005`; no collisions). Intermediate drizzle snapshots `0001`/`0004`/`0005` are absent; latest `0006_snapshot` matches schema, so incremental generate is safe. Hand-review new SQL before committing.
+
+Discovery package services are not yet implemented; schema/migration foundation is green for continued Prompt 7 work.
