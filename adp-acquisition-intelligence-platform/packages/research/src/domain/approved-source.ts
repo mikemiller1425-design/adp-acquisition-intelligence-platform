@@ -1,10 +1,5 @@
 export type ApprovedSourceLifecycle =
-  | 'draft'
-  | 'under_review'
-  | 'approved'
-  | 'enabled'
-  | 'suspended'
-  | 'retired';
+  'draft' | 'under_review' | 'approved' | 'enabled' | 'suspended' | 'retired';
 
 export type ApprovedSourceGate = {
   lifecycle: ApprovedSourceLifecycle;
@@ -54,8 +49,7 @@ export function canExecuteApprovedSource(source: ApprovedSourceGate): SourceExec
 }
 
 export type SourceExecutionDecision =
-  | { allowed: true }
-  | { allowed: false; code: string; message: string };
+  { allowed: true } | { allowed: false; code: string; message: string };
 
 /** Cursor/agent must never self-approve legal/security/privacy/licensing. */
 export function assertHumanOwnerApprovalRequired(): { selfApprovalForbidden: true } {

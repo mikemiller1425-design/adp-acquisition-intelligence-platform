@@ -7,7 +7,11 @@ import {
   registrableDomain,
   StaticDnsResolver,
 } from '../domain/network-security.js';
-import { normalizePopulationRow, normalizeDomain, candidateIdentityKey } from '../domain/normalize.js';
+import {
+  normalizePopulationRow,
+  normalizeDomain,
+  candidateIdentityKey,
+} from '../domain/normalize.js';
 import { resolveEntity } from '../domain/entity-resolution.js';
 import { assessResearchPriority } from '../domain/research-priority.js';
 import { evaluateRobotsPolicy } from '../domain/robots.js';
@@ -30,9 +34,6 @@ import { ExtractionReviewService } from '../application/claim-review-service.js'
 import { ResearchPriorityService } from '../application/priority-service.js';
 import { FixtureRetrievalPort } from '../infrastructure/fixture-retrieval.js';
 import {
-  InMemoryApprovedSourceRepository,
-  InMemoryClaimRepository,
-  InMemoryCollectionRunRepository,
   InMemoryEvidenceIntegration,
   InMemoryOrganizationLookup,
   InMemoryOutbox,
@@ -42,6 +43,10 @@ import {
   InMemoryVariableIntegration,
   InMemoryTransactionRunner,
   createInMemoryResearchUnitOfWork,
+} from '../infrastructure/in-memory.js';
+import type {
+  InMemoryApprovedSourceRepository,
+  InMemoryCollectionRunRepository,
 } from '../infrastructure/in-memory.js';
 import { InProcessConcurrencyGate } from '../infrastructure/concurrency-gate.js';
 
@@ -92,26 +97,22 @@ describe('normalization and identity', () => {
 
 describe('entity resolution', () => {
   it('does not auto-merge on name-only similarity', () => {
-    const result = resolveEntity(
-      { displayName: 'Acme Partners', legalName: 'Acme Partners' },
-      [
-        {
-          organizationId: 'org-1',
-          displayName: 'Acme Partners',
-          legalName: 'Acme Partners',
-          domain: 'other.com',
-        },
-      ],
-    );
+    const result = resolveEntity({ displayName: 'Acme Partners', legalName: 'Acme Partners' }, [
+      {
+        organizationId: 'org-1',
+        displayName: 'Acme Partners',
+        legalName: 'Acme Partners',
+        domain: 'other.com',
+      },
+    ]);
     expect(['ambiguous_review', 'possible_duplicate', 'create_new']).toContain(result.decision);
     expect(result.decision).not.toBe('link_existing');
   });
 
   it('links on exact domain match', () => {
-    const result = resolveEntity(
-      { displayName: 'Acme', domain: 'acme.com' },
-      [{ organizationId: 'org-1', displayName: 'Acme Inc', domain: 'acme.com' }],
-    );
+    const result = resolveEntity({ displayName: 'Acme', domain: 'acme.com' }, [
+      { organizationId: 'org-1', displayName: 'Acme Inc', domain: 'acme.com' },
+    ]);
     expect(result.decision).toBe('link_existing');
     expect(result.candidateOrganizationId).toBe('org-1');
   });

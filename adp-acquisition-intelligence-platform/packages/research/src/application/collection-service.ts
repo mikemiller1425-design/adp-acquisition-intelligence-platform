@@ -242,11 +242,7 @@ export class TargetedCollectionService {
           }
 
           const priorRate = await this.rateLimits.load(input.source.id, domain);
-          const rl = evaluateRateLimit(
-            priorRate,
-            Date.now(),
-            input.source.rateLimitPerMinute,
-          );
+          const rl = evaluateRateLimit(priorRate, Date.now(), input.source.rateLimitPerMinute);
           await this.rateLimits.save(input.source.id, domain, rl.nextState);
           if (!rl.allowed) {
             await this.attempts.update(attempt.id, {
@@ -442,7 +438,12 @@ export class TargetedCollectionService {
           completedCount: pagesRetrieved,
           blockedCount: blocked.length,
           killSwitchObserved: killFinal,
-          summary: { pagesRetrieved, claimsProposed, pagesSkippedUnchanged, blocked: blocked.length },
+          summary: {
+            pagesRetrieved,
+            claimsProposed,
+            pagesSkippedUnchanged,
+            blocked: blocked.length,
+          },
           completedAt: new Date(),
           ...(status === 'cancelled' ? { cancelledAt: new Date() } : {}),
         })

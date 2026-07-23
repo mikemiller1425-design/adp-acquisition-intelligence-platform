@@ -1,7 +1,4 @@
-import {
-  InMemoryJobDispatcher,
-  type JobHandlerRegistryPort,
-} from '@adp/platform';
+import { InMemoryJobDispatcher, type JobHandlerRegistryPort } from '@adp/platform';
 import {
   createResearchRuntime,
   registerResearchJobHandlers,

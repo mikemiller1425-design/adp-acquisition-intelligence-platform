@@ -82,12 +82,7 @@ export type ExtractionRunRepository = {
 };
 
 export type CollectionAttemptStatus =
-  | 'queued'
-  | 'running'
-  | 'succeeded'
-  | 'failed'
-  | 'blocked'
-  | 'cancelled';
+  'queued' | 'running' | 'succeeded' | 'failed' | 'blocked' | 'cancelled';
 
 export type CollectionAttemptRecord = {
   id: string;
@@ -132,21 +127,12 @@ export type CollectionAttemptRepository = {
   insert(input: CollectionAttemptInsertInput): Promise<CollectionAttemptRecord>;
   update(
     id: string,
-    patch: Partial<
-      Omit<CollectionAttemptRecord, 'id' | 'collectionRunId' | 'createdAt'>
-    >,
+    patch: Partial<Omit<CollectionAttemptRecord, 'id' | 'collectionRunId' | 'createdAt'>>,
   ): Promise<CollectionAttemptRecord>;
 };
 
 export type CollectionRunStatus =
-  | 'draft'
-  | 'queued'
-  | 'running'
-  | 'cancelling'
-  | 'cancelled'
-  | 'completed'
-  | 'failed'
-  | 'blocked';
+  'draft' | 'queued' | 'running' | 'cancelling' | 'cancelled' | 'completed' | 'failed' | 'blocked';
 
 export type CollectionRunRecord = {
   id: string;

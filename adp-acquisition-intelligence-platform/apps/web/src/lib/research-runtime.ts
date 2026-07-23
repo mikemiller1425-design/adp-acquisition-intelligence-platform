@@ -3,13 +3,7 @@ import {
   createInMemoryResearchUnitOfWork,
   ExtractionReviewService,
   FixtureRetrievalPort,
-  InMemoryApprovedSourceRepository,
-  InMemoryClaimRepository,
   InMemoryEvidenceIntegration,
-  InMemoryOrganizationLookup,
-  InMemoryOutbox,
-  InMemoryPopulationRepository,
-  InMemoryPriorityRepository,
   InMemoryScoreRecalc,
   InMemoryTransactionRunner,
   InMemoryVariableIntegration,
@@ -21,6 +15,12 @@ import {
   type ApprovedSourceRecord,
   type ClaimRecord,
   type CollectionRunRecord,
+  type InMemoryApprovedSourceRepository,
+  type InMemoryClaimRepository,
+  type InMemoryOrganizationLookup,
+  type InMemoryOutbox,
+  type InMemoryPopulationRepository,
+  type InMemoryPriorityRepository,
   type PopulationImportRecord,
   type RawCandidateRecord,
   type ResearchPriorityAssessment,
@@ -39,7 +39,6 @@ export type WebResearchRuntime = ResearchRuntime & {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
   var __adpResearchRuntime: WebResearchRuntime | undefined;
 }
 
@@ -169,10 +168,12 @@ export async function getResearchWorkflowSnapshot(
   const candidates = [...population.candidates.values()].flat();
   const claims = [...claimsRepo.claims.values()];
   const collectionRuns = await runtime.uow.collectionRuns.list();
-  const priorities = [...priorityRepo.assessments.entries()].map(([organizationId, assessment]) => ({
-    organizationId,
-    assessment,
-  }));
+  const priorities = [...priorityRepo.assessments.entries()].map(
+    ([organizationId, assessment]) => ({
+      organizationId,
+      assessment,
+    }),
+  );
 
   const claimsAwaiting = claims.filter((c) => c.reviewStatus === 'proposed').length;
   const claimsAccepted = claims.filter(

@@ -44,7 +44,10 @@ export default async function CollectionJobDetailPage({ params, searchParams }: 
             <div>
               <dt>Claims proposed</dt>
               <dd data-testid="collection-claims-proposed">
-                {String((run.summary as { claimsProposed?: number }).claimsProposed ?? snapshot.claims.length)}
+                {String(
+                  (run.summary as { claimsProposed?: number }).claimsProposed ??
+                    snapshot.claims.length,
+                )}
               </dd>
             </div>
           </dl>

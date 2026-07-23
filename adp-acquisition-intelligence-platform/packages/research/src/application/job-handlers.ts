@@ -1,10 +1,10 @@
-import { InMemoryJobDispatcher, type JobEnvelope, type JobHandlerRegistryPort } from '@adp/platform';
-import { contentHash } from '../domain/snapshot.js';
 import {
-  EXTRACTOR_VERSION,
-  extractClaimsFromHtml,
-  MAPPING_VERSION,
-} from '../domain/extraction.js';
+  InMemoryJobDispatcher,
+  type JobEnvelope,
+  type JobHandlerRegistryPort,
+} from '@adp/platform';
+import { contentHash } from '../domain/snapshot.js';
+import { EXTRACTOR_VERSION, extractClaimsFromHtml, MAPPING_VERSION } from '../domain/extraction.js';
 import { normalizePopulationRow, type PopulationRow } from '../domain/normalize.js';
 import { RESEARCH_JOB_TYPES } from '../domain/jobs.js';
 import type { ResearchPriorityInput } from '../domain/research-priority.js';
@@ -387,7 +387,12 @@ async function handleCollectionTargetQueued(
   const collectionRunId = requireString(payload, 'collectionRunId');
   const organizationId = requireString(payload, 'organizationId');
   const canonicalDomain = requireString(payload, 'canonicalDomain').toLowerCase();
-  const pageLimit = clampInt(payload.pageLimit, runtime.defaultPageLimit, 1, runtime.defaultPageLimit);
+  const pageLimit = clampInt(
+    payload.pageLimit,
+    runtime.defaultPageLimit,
+    1,
+    runtime.defaultPageLimit,
+  );
   const paths = DEFAULT_PATHS.slice(0, pageLimit);
   for (const path of paths) {
     await runtime.uow.collectionAttempts.insert({
@@ -408,7 +413,12 @@ async function handleCollectionPageRetrieve(
   const attemptId = optionalString(payload, 'attemptId');
   const url = requireString(payload, 'url');
   const collectionRunId = requireString(payload, 'collectionRunId');
-  const pageLimit = clampInt(payload.pageLimit, runtime.defaultPageLimit, 1, runtime.defaultPageLimit);
+  const pageLimit = clampInt(
+    payload.pageLimit,
+    runtime.defaultPageLimit,
+    1,
+    runtime.defaultPageLimit,
+  );
   const pageIndex = clampInt(payload.pageIndex, 0, 0, pageLimit - 1);
   if (pageIndex >= pageLimit) {
     throw new Error('page_limit_exceeded');
@@ -483,8 +493,7 @@ async function handleCollectionSnapshotPersist(
   const finalUrl = requireString(payload, 'finalUrl');
   const domain = requireString(payload, 'domain').toLowerCase();
   const body = optionalString(payload, 'body') ?? '';
-  const hash =
-    optionalString(payload, 'contentHash') ?? contentHash(body);
+  const hash = optionalString(payload, 'contentHash') ?? contentHash(body);
 
   const snapshotId = optionalString(payload, 'snapshotId');
   const snapshot = await runtime.uow.snapshots.insert({
@@ -615,10 +624,7 @@ async function handleCoverageRecalculate(
   }
 }
 
-async function handleIntelligenceRecalc(
-  runtime: ResearchRuntime,
-  job: JobEnvelope,
-): Promise<void> {
+async function handleIntelligenceRecalc(runtime: ResearchRuntime, job: JobEnvelope): Promise<void> {
   const payload = job.payload;
   const organizationId = requireString(payload, 'organizationId');
   const reason = optionalString(payload, 'reason') ?? 'research_claim_accepted';

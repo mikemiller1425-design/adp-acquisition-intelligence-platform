@@ -2,8 +2,7 @@ import { isIP } from 'node:net';
 import { parse as parseDomain } from 'tldts';
 
 export type UrlValidationResult =
-  | { ok: true; url: URL; hostname: string }
-  | { ok: false; code: string; message: string };
+  { ok: true; url: URL; hostname: string } | { ok: false; code: string; message: string };
 
 const BLOCKED_HOSTNAMES = new Set(['localhost', 'metadata.google.internal', 'metadata']);
 
@@ -105,9 +104,7 @@ export function validateRedirectTarget(
   fromUrl: string,
   toUrl: string,
   policy:
-    | 'same_host'
-    | 'same_registrable_domain'
-    | 'https_only_upgrade' = 'same_registrable_domain',
+    'same_host' | 'same_registrable_domain' | 'https_only_upgrade' = 'same_registrable_domain',
 ): UrlValidationResult {
   const from = validateRetrievalUrl(fromUrl);
   const to = validateRetrievalUrl(toUrl);

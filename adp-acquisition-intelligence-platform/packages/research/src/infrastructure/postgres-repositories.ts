@@ -788,10 +788,7 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
     return mapCollectionRun(required(rows[0], 'collection_run_not_found'));
   }
 
-  async updateSummary(
-    id: string,
-    summary: Record<string, unknown>,
-  ): Promise<CollectionRunRecord> {
+  async updateSummary(id: string, summary: Record<string, unknown>): Promise<CollectionRunRecord> {
     const rows = await this.db
       .update(collectionRuns)
       .set({ summary, updatedAt: new Date() })
