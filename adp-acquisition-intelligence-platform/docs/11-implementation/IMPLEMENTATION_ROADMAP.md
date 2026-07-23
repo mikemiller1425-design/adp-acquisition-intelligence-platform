@@ -1,7 +1,7 @@
 # Implementation Roadmap
 
-**Version:** 1.0.0  
-**Model:** 12 bounded implementation prompts after architecture Prompt 0
+**Version:** 1.1.0  
+**Model:** 12 bounded implementation prompts after architecture Prompt 0, plus Prompt 1.5 specification resolution before the data model
 
 Every prompt follows the [Implementation Constitution](IMPLEMENTATION_CONSTITUTION.md), references the canonical specifications, runs required tests, completes the [Architecture Review Checklist](16_ARCHITECTURE_REVIEW_CHECKLIST.md), updates evidence in the [Exit Contract](../13-exit-contract/PHASE_1_EXIT_CONTRACT.md), and emits a handoff report.
 
@@ -9,7 +9,8 @@ Every prompt follows the [Implementation Constitution](IMPLEMENTATION_CONSTITUTI
 |---:|---|---|---|---|
 | 0 | Specification freeze | source material | this documentation repository, conflict/gap log, decisions | canonical docs internally consistent |
 | 1 | Engineering foundation | 0 | monorepo, web/API/worker shells, config, errors, logs, auth/audit/job/test scaffolds, ADRs | install/build/lint/typecheck/test/start/health |
-| 2 | Canonical data model | 1 | schemas, migrations, repositories, organizations/contacts/users/territories/tasks/audit, seeds | migration and CRUD/invariant tests |
+| 1.5 | Pre-database specification resolution | 0 (1 ADRs when present) | Resolve CONF-005/009; Operational State and Consent Model; coordinated canonical updates | conflicts resolved; Prompt 2 entry unblocked for those topics |
+| 2 | Canonical data model | 1, 1.5 | schemas, migrations, repositories, organizations/contacts/users/territories/tasks/audit, parallel-state columns, consent tables, seeds | migration and CRUD/invariant tests |
 | 3 | Variables, evidence, provenance | 2 | definitions/values/sources/observations, review lifecycle, confidence, admin seams | unknown/provenance/conflict/version tests |
 | 4 | Collection and identity resolution | 2–3 | manual entry, CSV mapping/dry-run/commit/report/revert, normalization, duplicate review/merge | mixed import fixture end to end |
 | 5 | Completeness and scoring | 3–4 | purpose completeness, all score families, configuration/versioning, explanations, recalculation | golden/property/version replay tests |
@@ -40,7 +41,7 @@ Handoff: changes, results, deviations, limitations, rollback, next readiness.
 
 ## Critical path
 
-`Foundation → database → evidence/variables → collection → scoring → qualification → discovery → outreach/opportunity → reporting → UI → acceptance`
+`Foundation → (spec resolution 1.5) → database → evidence/variables → collection → scoring → qualification → discovery → outreach/opportunity → reporting → UI → acceptance`
 
 Reporting contracts may be designed earlier, but metric implementation waits until source semantics exist. UI vertical slices may accompany each prompt for operability, while Prompt 11 completes coherence and dashboards; business logic remains in services.
 

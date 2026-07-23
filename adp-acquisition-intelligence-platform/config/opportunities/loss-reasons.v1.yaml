@@ -1,0 +1,43 @@
+version: 1.0.0
+status: active
+loss_reasons:
+  - key: chose_competitor
+    display_name: Chose Competitor
+    description: Prospect selected another provider.
+    sort_order: 10
+  - key: no_budget
+    display_name: No Budget
+    description: Budget unavailable for the proposed scope.
+    sort_order: 20
+  - key: timing_not_right
+    display_name: Timing Not Right
+    description: Prospect deferred due to timing or priorities.
+    sort_order: 30
+  - key: no_decision_maker
+    display_name: No Decision Maker Access
+    description: Unable to reach or engage an economic buyer.
+    sort_order: 40
+  - key: incumbent_renewed
+    display_name: Incumbent Renewed
+    description: Existing provider renewed or expanded.
+    sort_order: 50
+  - key: scope_mismatch
+    display_name: Scope Mismatch
+    description: Prospect needs fall outside Phase 1 motion scope.
+    sort_order: 60
+  - key: internal_solution
+    display_name: Internal Solution
+    description: Prospect chose to handle internally.
+    sort_order: 70
+  - key: lost_contact
+    display_name: Lost Contact
+    description: Contact became unresponsive after good-faith pursuit.
+    sort_order: 80
+  - key: policy_restriction
+    display_name: Policy Restriction
+    description: Territory, relationship, or policy restriction blocked pursuit.
+    sort_order: 90
+  - key: other
+    display_name: Other
+    description: Other structured loss reason with notes.
+    sort_order: 100

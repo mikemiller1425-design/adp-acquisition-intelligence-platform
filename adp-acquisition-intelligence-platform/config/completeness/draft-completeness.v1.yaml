@@ -1,0 +1,27 @@
+completeness_definitions:
+  - key: organization_scoring_readiness
+    display_name: Organization Scoring Readiness
+    description: Approved Phase 1 baseline completeness definition for Prompt 5 score calculations.
+    purpose: scoring
+    subject_type: organization
+    version: 1.0.0
+    status: active
+    approval_status: approved
+    activation_allowed: true
+    activation_evidence:
+      approval_status: approved
+      approved_at: '2026-07-22T00:00:00Z'
+      approved_by: repository owner (mikemiller1425-design) via Prompt 6 unblock instruction 2026-07-22
+      scope: Phase 1 baseline approval of the draft mappings/weights already published
+    minimum_completeness: 0.55
+    variables:
+      - { key: payroll_client_count, weight: 0.16, required: true }
+      - { key: recurring_service_model, weight: 0.12, required: true }
+      - { key: ownership_succession, weight: 0.10, required: false }
+      - { key: operational_burden, weight: 0.10, required: false }
+      - { key: technology_maturity, weight: 0.08, required: false }
+      - { key: client_decision_influence, weight: 0.10, required: false }
+      - { key: verified_contact, weight: 0.10, required: true }
+      - { key: channel_permission, weight: 0.10, required: true }
+      - { key: evidence_quality, weight: 0.07, required: false }
+      - { key: evidence_recency, weight: 0.07, required: false }
