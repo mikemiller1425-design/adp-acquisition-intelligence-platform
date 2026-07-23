@@ -30,6 +30,10 @@
 
 \* **Blocking Phase 2** column: Per acceptance-gate policy, Phase 2 **product development** may begin **YES WITH CONDITIONS** while these remain OPEN, provided owners **explicitly accept** residual risk and **do not** enable live outreach / production cutover until Release-blocking items for that capability are closed. Items marked Blocking Release = YES still block **production release** and capability claims.
 
+### Phase 1.2 note (orchestration does not close blockers)
+
+Phase 1.2 adds bounded **Start Research Run** orchestration (fixture pilot UI, launch gates, draft archive/live adapters). It does **NOT** close **RB-014**, **RB-015**, **RB-016**, or **RB-017**. `ADP_LIVE_RESEARCH_ENABLED` remains **false** by default. See `docs/release/PHASE_1_2_RESEARCH_RUN_COMPLETION.md`.
+
 ---
 
 ## Explicit must-remain-OPEN list (no evidence in-repo)

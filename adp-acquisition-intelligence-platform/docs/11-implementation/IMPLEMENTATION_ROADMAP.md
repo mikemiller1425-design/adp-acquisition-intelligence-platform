@@ -48,3 +48,8 @@ Reporting contracts may be designed earlier, but metric implementation waits unt
 ## Release discipline
 
 Prompt completion is not a production deployment. Phase 1 release occurs only after Prompt 12, exit-contract sign-off, security/privacy review, approved score versions, production configuration validation, restore rehearsal, and named business owner acceptance.
+
+## Phase 1.2 pointer
+
+After Phase 1.1 population/collection pilot work, **Phase 1.2** adds fixture-safe research-run orchestration (Start Research Run UI + gated draft adapters). It does not replace Prompt 12 exit gates and does not close RB-014–017. See `docs/release/PHASE_1_2_RESEARCH_RUN_COMPLETION.md`.
+
