@@ -7,7 +7,7 @@ import { getWebResearchRuntime } from '@/lib/research-runtime';
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function NewCollectionJobPage({ searchParams }: PageProps) {
-  getWebResearchRuntime();
+  await getWebResearchRuntime();
 
   return (
     <ResearchScreen

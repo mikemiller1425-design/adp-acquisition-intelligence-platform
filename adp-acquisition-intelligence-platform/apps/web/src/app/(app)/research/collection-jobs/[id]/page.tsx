@@ -9,7 +9,7 @@ type PageProps = {
 };
 
 export default async function CollectionJobDetailPage({ params, searchParams }: PageProps) {
-  getWebResearchRuntime();
+  await getWebResearchRuntime();
   const { id } = await params;
   const snapshot = await getResearchWorkflowSnapshot();
   const run = snapshot.collectionRuns.find((r) => r.id === id);

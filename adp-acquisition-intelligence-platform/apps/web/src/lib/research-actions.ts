@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 
 import { getWebSession, roleCanAccess } from '@/lib/auth';
 import {
+  drainRecalculationOutbox,
+  getFixturePopulationSourceId,
   getResearchWorkflowSnapshot,
   getWebResearchRuntime,
   resetWebResearchRuntimeForTests,
@@ -50,7 +52,7 @@ const DEMO_ROWS = [
 export async function resetResearchFixtureAction() {
   assertRoles(['admin', 'sales', 'reviewer']);
   resetWebResearchRuntimeForTests();
-  getWebResearchRuntime();
+  await getWebResearchRuntime();
   revalidatePath('/research');
   redirect('/research/population-imports?reset=1');
 }
@@ -58,7 +60,7 @@ export async function resetResearchFixtureAction() {
 export async function importPopulationAction(formData: FormData) {
   assertRoles(['admin', 'sales']);
   const dryRun = formData.get('dryRun') === 'on' || formData.get('dryRun') === 'true';
-  const runtime = getWebResearchRuntime();
+  const runtime = await getWebResearchRuntime();
   const session = getWebSession();
 
   await runtime.jobs.enqueue({
@@ -66,7 +68,7 @@ export async function importPopulationAction(formData: FormData) {
     idempotencyKey: `web-import:${Date.now()}`,
     correlationId: crypto.randomUUID(),
     payload: {
-      populationSourceId: 'ps-fixture-1',
+      populationSourceId: getFixturePopulationSourceId(runtime.provider),
       dryRun,
       rows: DEMO_ROWS,
       mapping: DEFAULT_MAPPING,
@@ -82,7 +84,7 @@ export async function importPopulationAction(formData: FormData) {
 
 export async function resolveEntitiesAction() {
   assertRoles(['admin', 'sales', 'reviewer']);
-  const runtime = getWebResearchRuntime();
+  const runtime = await getWebResearchRuntime();
   const snapshot = await getResearchWorkflowSnapshot(runtime);
   const importId = snapshot.imports.at(-1)?.id;
   if (!importId) {
@@ -104,7 +106,7 @@ export async function resolveEntitiesAction() {
 
 export async function calculatePrioritiesAction() {
   assertRoles(['admin', 'sales', 'reviewer']);
-  const runtime = getWebResearchRuntime();
+  const runtime = await getWebResearchRuntime();
   const snapshot = await getResearchWorkflowSnapshot(runtime);
   const org = snapshot.organizations[0];
   if (!org) throw new Error('No organization to prioritize');
@@ -131,7 +133,7 @@ export async function calculatePrioritiesAction() {
 
 export async function startCollectionRunAction() {
   assertRoles(['admin', 'sales']);
-  const runtime = getWebResearchRuntime();
+  const runtime = await getWebResearchRuntime();
   const snapshot = await getResearchWorkflowSnapshot(runtime);
   const org = snapshot.organizations[0];
   if (!org) throw new Error('No organization for collection');
@@ -159,7 +161,7 @@ export async function acceptClaimAction(formData: FormData) {
   assertRoles(['admin', 'reviewer']);
   const claimId = String(formData.get('claimId') ?? '');
   if (!claimId) throw new Error('claimId required');
-  const runtime = getWebResearchRuntime();
+  const runtime = await getWebResearchRuntime();
   const session = getWebSession();
 
   await runtime.claimReview.review({
@@ -169,6 +171,8 @@ export async function acceptClaimAction(formData: FormData) {
     role: primaryResearchRole(),
     rationale: 'Accepted via research extraction review UI (fixture pilot)',
   });
+  // Outbox wrote intelligence.recalculation_requested; drain via worker job boundary.
+  await drainRecalculationOutbox(runtime);
 
   revalidatePath('/research');
   redirect('/research/coverage?accepted=1');
@@ -178,7 +182,7 @@ export async function rejectClaimAction(formData: FormData) {
   assertRoles(['admin', 'reviewer']);
   const claimId = String(formData.get('claimId') ?? '');
   if (!claimId) throw new Error('claimId required');
-  const runtime = getWebResearchRuntime();
+  const runtime = await getWebResearchRuntime();
   const session = getWebSession();
 
   await runtime.claimReview.review({

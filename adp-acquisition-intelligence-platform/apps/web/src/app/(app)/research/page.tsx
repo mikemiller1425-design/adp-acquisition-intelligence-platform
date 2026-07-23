@@ -18,7 +18,7 @@ const LINKS = [
 ] as const;
 
 export default async function ResearchHubPage({ searchParams }: PageProps) {
-  getWebResearchRuntime();
+  await getWebResearchRuntime();
   const snapshot = await getResearchWorkflowSnapshot();
   const query = await searchParams;
 

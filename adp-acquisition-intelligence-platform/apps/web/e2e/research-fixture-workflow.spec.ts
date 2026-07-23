@@ -1,11 +1,13 @@
+/**
+ * NON-PERSISTENT / MEMORY-MODE E2E
+ *
+ * This suite uses ADP_RESEARCH_PROVIDER=memory and an in-process InMemoryJobDispatcher.
+ * It does NOT prove PostgreSQL persistence across process restarts.
+ * See e2e/research-postgres-persistent-workflow.spec.ts for the controlled-pilot gate.
+ */
 import { expect, test } from '@playwright/test';
 
-/**
- * Deterministic Phase 1.1 fixture workflow through the real Next.js frontend.
- * Worker handlers run in-process via InMemoryJobDispatcher (same handlers as apps/worker).
- * Live network retrieval is disabled.
- */
-test.describe('Phase 1.1 research fixture workflow', () => {
+test.describe('Phase 1.1 research fixture workflow (memory / non-persistent)', () => {
   test('import → resolution → collection → review → evidence/variable → dashboard', async ({
     page,
   }) => {
@@ -15,7 +17,6 @@ test.describe('Phase 1.1 research fixture workflow', () => {
     await page.getByTestId('reset-fixture-runtime').click();
     await expect(page.getByTestId('population-imports')).toBeVisible();
 
-    // Import (mutating — dry run unchecked)
     await page.getByTestId('import-universe').click();
     await expect(page.getByTestId('entity-resolution')).toBeVisible();
     await expect(page.getByTestId('candidate-count')).toContainText(/Candidates:\s*[1-9]/);
@@ -26,9 +27,6 @@ test.describe('Phase 1.1 research fixture workflow', () => {
 
     await page.getByTestId('calculate-priorities').click();
     await expect(page.getByTestId('collection-jobs')).toBeVisible();
-    await expect(
-      page.getByTestId('priorities-table').or(page.getByTestId('collection-jobs')),
-    ).toBeVisible();
 
     await page.getByTestId('start-collection-run').click();
     await expect(page.getByTestId('collection-job-detail')).toBeVisible();
@@ -36,9 +34,7 @@ test.describe('Phase 1.1 research fixture workflow', () => {
 
     await page.goto('/research/extraction-review');
     await expect(page.getByTestId('extraction-review')).toBeVisible();
-    await expect(page.getByTestId('proposed-claim-count')).toContainText(
-      /Proposed claims:\s*[1-9]/,
-    );
+    await expect(page.getByTestId('proposed-claim-count')).toContainText(/Proposed claims:\s*[1-9]/);
 
     const acceptButton = page.locator('[data-testid^="accept-claim-"]').first();
     await expect(acceptButton).toBeVisible();

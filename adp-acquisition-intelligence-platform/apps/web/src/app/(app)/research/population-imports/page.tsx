@@ -7,7 +7,7 @@ import { getResearchWorkflowSnapshot, getWebResearchRuntime } from '@/lib/resear
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function PopulationImportsPage({ searchParams }: PageProps) {
-  getWebResearchRuntime();
+  await getWebResearchRuntime();
   const snapshot = await getResearchWorkflowSnapshot();
   const query = await searchParams;
   const dryRunNote = query.dryRun === '1';

@@ -28,6 +28,14 @@ function optionalString(payload: Record<string, unknown>, key: string): string |
   return value;
 }
 
+/** UUID actor ids only — demo / memory ids must not hit users FK columns. */
+function optionalUuid(value: string | undefined): string | null {
+  if (!value) return null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ? value
+    : null;
+}
+
 function asRole(value: unknown): ResearchRole {
   if (
     value === 'admin' ||
@@ -267,38 +275,10 @@ async function handleCollectionRun(runtime: ResearchRuntime, job: JobEnvelope): 
   const runId = requireString(payload, 'runId');
   const sourceKey = requireString(payload, 'sourceKey');
   const targets = asTargets(payload.targets).slice(0, runtime.maxTargetsPerRun);
-  const source =
-    (await runtime.uow.approvedSources.getByKey(sourceKey)) ??
-    ({
-      id: crypto.randomUUID(),
-      sourceKey,
-      displayName: sourceKey,
-      domains: ['*'],
-      adapterType: 'fixture',
-      classification: 'public',
-      businessPurpose: 'pilot',
-      permittedOrganizationTypes: [],
-      permittedFields: [],
-      prohibitedFields: [],
-      termsReviewStatus: 'not_required_for_fixture',
-      robotsBehavior: 'respect',
-      privacyReviewStatus: 'not_required_for_fixture',
-      legalReviewStatus: 'not_required_for_fixture',
-      securityReviewStatus: 'not_required_for_fixture',
-      rateLimitPerMinute: 10,
-      concurrencyLimit: 2,
-      pageLimit: runtime.defaultPageLimit,
-      responseSizeLimitBytes: 1_048_576,
-      timeoutMs: 10_000,
-      redirectPolicy: 'same_registrable_domain',
-      refreshIntervalHours: 168,
-      snapshotRetentionDays: 90,
-      parserVersion: 'v1',
-      owner: 'research',
-      lifecycle: 'enabled',
-      killSwitchActive: false,
-      approvalEvidence: {},
-    } as const);
+  const source = await runtime.uow.approvedSources.getByKey(sourceKey);
+  if (!source) {
+    throw new Error(`approved_source_not_found:${sourceKey}`);
+  }
 
   const pageLimit = clampInt(
     payload.pageLimit,
@@ -319,7 +299,7 @@ async function handleCollectionRun(runtime: ResearchRuntime, job: JobEnvelope): 
         job.idempotencyKey ??
         `collection.run:${runId}`,
       targetCount: targets.length,
-      requestedByUserId: optionalString(payload, 'actorUserId') ?? null,
+      requestedByUserId: optionalUuid(optionalString(payload, 'actorUserId')),
     });
   }
 

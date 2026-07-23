@@ -6,7 +6,7 @@ import { getResearchWorkflowSnapshot, getWebResearchRuntime } from '@/lib/resear
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function CoveragePage({ searchParams }: PageProps) {
-  getWebResearchRuntime();
+  await getWebResearchRuntime();
   const snapshot = await getResearchWorkflowSnapshot();
   const query = await searchParams;
 
@@ -40,6 +40,18 @@ export default async function CoveragePage({ searchParams }: PageProps) {
           <div>
             <dt>Claims accepted</dt>
             <dd data-testid="dash-claims-accepted">{snapshot.metrics.claimsAccepted}</dd>
+          </div>
+          <div>
+            <dt>Evidence records</dt>
+            <dd data-testid="dash-evidence-records">{snapshot.metrics.evidenceRecords}</dd>
+          </div>
+          <div>
+            <dt>Variable proposals</dt>
+            <dd data-testid="dash-variable-proposals">{snapshot.metrics.variableProposals}</dd>
+          </div>
+          <div>
+            <dt>Snapshots</dt>
+            <dd data-testid="dash-snapshots">{snapshot.metrics.snapshots}</dd>
           </div>
           <div>
             <dt>Evidence/variable path</dt>

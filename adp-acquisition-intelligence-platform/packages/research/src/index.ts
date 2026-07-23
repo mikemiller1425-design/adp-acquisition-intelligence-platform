@@ -23,3 +23,5 @@ export * from './infrastructure/fixture-retrieval.js';
 export * from './infrastructure/in-memory.js';
 export * from './infrastructure/concurrency-gate.js';
 export * from './infrastructure/postgres-repositories.js';
+export * from './infrastructure/canonical-integrations.js';
+export * from './infrastructure/research-queries.js';

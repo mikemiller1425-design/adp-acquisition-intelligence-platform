@@ -6,10 +6,8 @@ import { ResearchPriorityService } from './priority-service.js';
 import { FixtureRetrievalPort } from '../infrastructure/fixture-retrieval.js';
 import {
   createInMemoryResearchUnitOfWork,
-  InMemoryEvidenceIntegration,
   InMemoryScoreRecalc,
   InMemoryTransactionRunner,
-  InMemoryVariableIntegration,
 } from '../infrastructure/in-memory.js';
 import {
   createPostgresResearchUnitOfWork,
@@ -30,6 +28,7 @@ export type ResearchRuntime = {
   collection: TargetedCollectionService;
   priority: ResearchPriorityService;
   claimReview: ExtractionReviewService;
+  /** Post-outbox consumer only — never invoked inside claim-accept transaction. */
   scores: ScoreRecalcPort;
   database: DatabaseClient | null;
   defaultPageLimit: number;
@@ -61,16 +60,15 @@ function buildCollection(
 }
 
 /**
- * Builds research worker runtime.
+ * Builds research worker/web runtime.
  * Default provider is `memory` (fixture-safe). Postgres requires DATABASE_URL.
  * Live network retrieval is never enabled here.
+ * Claim accept uses UoW evidence/variables + outbox only; score recalc is outbox-driven.
  */
 export function createResearchRuntime(env: NodeJS.ProcessEnv = process.env): ResearchRuntime {
   const provider = resolveProvider(env);
   const concurrency = new InProcessConcurrencyGate();
   const retrieval = new FixtureRetrievalPort({});
-  const evidence = new InMemoryEvidenceIntegration();
-  const variables = new InMemoryVariableIntegration();
   const scores = new InMemoryScoreRecalc();
 
   if (provider === 'postgres') {
@@ -92,7 +90,7 @@ export function createResearchRuntime(env: NodeJS.ProcessEnv = process.env): Res
       population: new PopulationImportService(uow.population, uow.organizations, uow.outbox),
       collection: buildCollection(retrieval, uow),
       priority: new ResearchPriorityService(uow.priority, uow.outbox),
-      claimReview: new ExtractionReviewService(transactions, evidence, variables, scores),
+      claimReview: new ExtractionReviewService(transactions),
       scores,
       database,
       defaultPageLimit: 8,
@@ -111,7 +109,7 @@ export function createResearchRuntime(env: NodeJS.ProcessEnv = process.env): Res
     population: new PopulationImportService(uow.population, uow.organizations, uow.outbox),
     collection: buildCollection(retrieval, uow),
     priority: new ResearchPriorityService(uow.priority, uow.outbox),
-    claimReview: new ExtractionReviewService(transactions, evidence, variables, scores),
+    claimReview: new ExtractionReviewService(transactions),
     scores,
     database: null,
     defaultPageLimit: 8,

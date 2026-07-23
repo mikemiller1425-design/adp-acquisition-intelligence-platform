@@ -379,12 +379,7 @@ describe('targeted collection + review loop', () => {
     const claim = await uow.claims.get(claimId);
     expect(await uow.snapshots.getById(claim!.sourceSnapshotId)).not.toBeNull();
 
-    const review = new ExtractionReviewService(
-      new InMemoryTransactionRunner(uow),
-      new InMemoryEvidenceIntegration(),
-      new InMemoryVariableIntegration(),
-      new InMemoryScoreRecalc(),
-    );
+    const review = new ExtractionReviewService(new InMemoryTransactionRunner(uow));
     const accepted = await review.review({
       claimId,
       action: 'accept',
@@ -393,6 +388,82 @@ describe('targeted collection + review loop', () => {
     });
     expect(accepted.reviewStatus).toBe('accepted');
     expect(uow.outbox.events.some((e) => e.eventType === 'research.claim_accepted')).toBe(true);
+    expect(
+      uow.outbox.events.some((e) => e.eventType === 'intelligence.recalculation_requested'),
+    ).toBe(true);
+  });
+
+  it('rolls back claim accept when variable proposal fails (no partial records)', async () => {
+    const {
+      FailingVariableIntegration,
+      InMemoryEvidenceIntegration,
+      createInMemoryResearchUnitOfWork,
+      InMemoryTransactionRunner,
+      ExtractionReviewService,
+    } = await import('../index.js');
+    const evidence = new InMemoryEvidenceIntegration();
+    const variables = new FailingVariableIntegration();
+    const uow = createInMemoryResearchUnitOfWork(undefined, evidence, variables);
+    const claimId = crypto.randomUUID();
+    uow.claims.claims.set(claimId, {
+      id: claimId,
+      organizationId: 'org-1',
+      variableKey: 'services.payroll_offered',
+      reviewStatus: 'proposed',
+      proposedValue: true,
+      originalExcerpt: 'payroll',
+      sourceUrl: 'https://acme.test/',
+      sourceSnapshotId: crypto.randomUUID(),
+    });
+    const review = new ExtractionReviewService(new InMemoryTransactionRunner(uow));
+    await expect(
+      review.review({
+        claimId,
+        action: 'accept',
+        actorUserId: 'reviewer-1',
+        role: 'reviewer',
+      }),
+    ).rejects.toThrow(/forced_variable_failure/);
+    const claim = await uow.claims.get(claimId);
+    expect(claim?.reviewStatus).toBe('proposed');
+    expect(evidence.records).toHaveLength(0);
+    expect(uow.outbox.events).toHaveLength(0);
+  });
+
+  it('rolls back claim accept when evidence creation fails', async () => {
+    const {
+      FailingEvidenceIntegration,
+      InMemoryVariableIntegration,
+      createInMemoryResearchUnitOfWork,
+      InMemoryTransactionRunner,
+      ExtractionReviewService,
+    } = await import('../index.js');
+    const evidence = new FailingEvidenceIntegration();
+    const variables = new InMemoryVariableIntegration();
+    const uow = createInMemoryResearchUnitOfWork(undefined, evidence, variables);
+    const claimId = crypto.randomUUID();
+    uow.claims.claims.set(claimId, {
+      id: claimId,
+      organizationId: 'org-1',
+      variableKey: 'services.payroll_offered',
+      reviewStatus: 'proposed',
+      proposedValue: true,
+      originalExcerpt: 'payroll',
+      sourceUrl: 'https://acme.test/',
+      sourceSnapshotId: crypto.randomUUID(),
+    });
+    const review = new ExtractionReviewService(new InMemoryTransactionRunner(uow));
+    await expect(
+      review.review({
+        claimId,
+        action: 'accept',
+        actorUserId: 'reviewer-1',
+        role: 'reviewer',
+      }),
+    ).rejects.toThrow(/forced_evidence_failure/);
+    expect((await uow.claims.get(claimId))?.reviewStatus).toBe('proposed');
+    expect(variables.records).toHaveLength(0);
+    expect(uow.outbox.events).toHaveLength(0);
   });
 });
 

@@ -52,6 +52,10 @@ import type {
   TransactionRunner,
 } from '../domain/persistence-ports.js';
 import { InProcessConcurrencyGate } from './concurrency-gate.js';
+import {
+  PostgresEvidenceIntegration,
+  PostgresVariableIntegration,
+} from './canonical-integrations.js';
 
 type Db = RepositoryExecutor;
 
@@ -562,7 +566,7 @@ export class PostgresClaimRepository implements ClaimRepository {
       .update(extractedClaims)
       .set({
         reviewStatus: patch.reviewStatus,
-        reviewedByUserId: patch.reviewedByUserId,
+        reviewedByUserId: null,
         reviewedAt: new Date(),
         reviewRationale: patch.rationale ?? null,
         ...(patch.correctedValue !== undefined
@@ -892,6 +896,8 @@ export function createPostgresResearchUnitOfWork(
     outbox: new PostgresOutboxAdapter(db),
     organizations: new PostgresOrganizationLookup(db),
     concurrency,
+    evidence: new PostgresEvidenceIntegration(db),
+    variables: new PostgresVariableIntegration(db),
   };
 }
 

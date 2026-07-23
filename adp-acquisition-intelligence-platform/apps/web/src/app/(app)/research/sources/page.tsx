@@ -1,13 +1,14 @@
 import { ResearchScreen } from '@/components/research-screen';
 import { getWebResearchRuntime } from '@/lib/research-runtime';
-import type { InMemoryApprovedSourceRepository } from '@adp/research';
+import { getFixtureApprovedSource } from '@adp/research';
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function ApprovedSourcesPage({ searchParams }: PageProps) {
-  const runtime = getWebResearchRuntime();
-  const repo = runtime.uow.approvedSources as InMemoryApprovedSourceRepository;
-  const sources = [...repo.sources.values()];
+  const runtime = await getWebResearchRuntime();
+  const seeded = getFixtureApprovedSource();
+  const fromDb = await runtime.uow.approvedSources.getByKey(seeded.sourceKey);
+  const sources = [fromDb ?? seeded];
 
   return (
     <ResearchScreen

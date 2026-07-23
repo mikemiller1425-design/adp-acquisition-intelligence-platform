@@ -1,19 +1,15 @@
 import { applyClaimReview, type ClaimReviewAction } from '../domain/claim-review.js';
 import { AllowListResearchCapabilityChecker, type ResearchRole } from '../domain/authz.js';
-import type {
-  EvidenceIntegrationPort,
-  ScoreRecalcPort,
-  VariableIntegrationPort,
-} from '../domain/ports.js';
 import type { UnitOfWorkPort } from '../domain/persistence-ports.js';
 
+/**
+ * Human claim review. Accept is atomic across claim transition, evidence,
+ * variable proposal, and outbox (including intelligence.recalculation_requested).
+ * Score recalculation is requested only via the outbox — never as an external
+ * side effect inside the database transaction.
+ */
 export class ExtractionReviewService {
-  constructor(
-    private readonly transactions: UnitOfWorkPort,
-    private readonly evidence: EvidenceIntegrationPort,
-    private readonly variables: VariableIntegrationPort,
-    private readonly scores: ScoreRecalcPort,
-  ) {}
+  constructor(private readonly transactions: UnitOfWorkPort) {}
 
   async review(input: {
     claimId: string;
@@ -47,7 +43,7 @@ export class ExtractionReviewService {
       let variableValueId: string | undefined;
 
       if (transition.next === 'accepted' || transition.next === 'accepted_corrected') {
-        const evidence = await this.evidence.createEvidenceFromAcceptedClaim({
+        const evidence = await uow.evidence.createEvidenceFromAcceptedClaim({
           organizationId: claim.organizationId,
           claim: claim.variableKey,
           excerpt: claim.originalExcerpt,
@@ -58,7 +54,7 @@ export class ExtractionReviewService {
         evidenceId = evidence.evidenceId;
         const value =
           transition.next === 'accepted_corrected' ? input.correctedValue : claim.proposedValue;
-        const proposed = await this.variables.proposeFromAcceptedClaim({
+        const proposed = await uow.variables.proposeFromAcceptedClaim({
           organizationId: claim.organizationId,
           variableKey: claim.variableKey,
           value,
@@ -66,10 +62,6 @@ export class ExtractionReviewService {
           actorUserId: input.actorUserId,
         });
         variableValueId = proposed.variableValueId;
-        await this.scores.requestRecalculation(
-          claim.organizationId,
-          `claim_${transition.next}:${claim.id}`,
-        );
         await uow.outbox.insert({
           aggregateType: 'extracted_claim',
           aggregateId: claim.id,
@@ -84,12 +76,16 @@ export class ExtractionReviewService {
             variableValueId,
           },
         });
+        // Queue recalculation transactionally through the outbox only.
         await uow.outbox.insert({
           aggregateType: 'organization',
           aggregateId: claim.organizationId,
           eventType: 'intelligence.recalculation_requested',
           idempotencyKey: `intelligence.recalculation_requested:${claim.id}`,
-          payload: { reason: 'accepted_claim' },
+          payload: {
+            reason: `claim_${transition.next}:${claim.id}`,
+            organizationId: claim.organizationId,
+          },
         });
       } else if (transition.next === 'rejected') {
         await uow.outbox.insert({

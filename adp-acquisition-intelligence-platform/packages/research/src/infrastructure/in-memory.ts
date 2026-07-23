@@ -188,14 +188,55 @@ export class InMemoryClaimRepository implements ClaimRepository {
 }
 
 export class InMemoryEvidenceIntegration implements EvidenceIntegrationPort {
-  async createEvidenceFromAcceptedClaim() {
-    return { evidenceId: crypto.randomUUID() };
+  readonly records: Array<{ evidenceId: string; organizationId: string; claim: string }> = [];
+
+  async createEvidenceFromAcceptedClaim(input: {
+    organizationId: string;
+    claim: string;
+    excerpt: string;
+    sourceUrl: string;
+    snapshotId: string;
+    actorUserId: string;
+  }) {
+    void input.excerpt;
+    void input.sourceUrl;
+    void input.snapshotId;
+    void input.actorUserId;
+    const evidenceId = crypto.randomUUID();
+    this.records.push({
+      evidenceId,
+      organizationId: input.organizationId,
+      claim: input.claim,
+    });
+    return { evidenceId };
   }
 }
 
 export class InMemoryVariableIntegration implements VariableIntegrationPort {
-  async proposeFromAcceptedClaim() {
-    return { variableValueId: crypto.randomUUID() };
+  readonly records: Array<{
+    variableValueId: string;
+    organizationId: string;
+    variableKey: string;
+    evidenceId: string;
+  }> = [];
+
+  async proposeFromAcceptedClaim(input: {
+    organizationId: string;
+    variableKey: string;
+    value: unknown;
+    evidenceId: string;
+    actorUserId: string;
+  }) {
+    void input.value;
+    void input.actorUserId;
+    const variableValueId = crypto.randomUUID();
+    this.records.push({
+      variableValueId,
+      organizationId: input.organizationId,
+      variableKey: input.variableKey,
+      evidenceId: input.evidenceId,
+    });
+    return { variableValueId };
   }
 }
 
@@ -407,6 +448,8 @@ export class InMemoryRateLimitStateRepository implements RateLimitStateRepositor
 
 export function createInMemoryResearchUnitOfWork(
   concurrency: ConcurrencyGatePort = new InProcessConcurrencyGate(),
+  evidence: EvidenceIntegrationPort = new InMemoryEvidenceIntegration(),
+  variables: VariableIntegrationPort = new InMemoryVariableIntegration(),
 ): ResearchUnitOfWork {
   return {
     population: new InMemoryPopulationRepository(),
@@ -421,6 +464,8 @@ export function createInMemoryResearchUnitOfWork(
     outbox: new InMemoryOutbox(),
     organizations: new InMemoryOrganizationLookup(),
     concurrency,
+    evidence,
+    variables,
   };
 }
 
@@ -428,6 +473,36 @@ export class InMemoryTransactionRunner implements TransactionRunner {
   constructor(private readonly uow: ResearchUnitOfWork) {}
 
   async runInTransaction<T>(fn: (uow: ResearchUnitOfWork) => Promise<T>): Promise<T> {
-    return fn(this.uow);
+    const evidence = this.uow.evidence as Partial<InMemoryEvidenceIntegration>;
+    const variables = this.uow.variables as Partial<InMemoryVariableIntegration>;
+    const claims = this.uow.claims as InMemoryClaimRepository;
+    const outbox = this.uow.outbox as InMemoryOutbox;
+
+    const snapshot = {
+      evidence: Array.isArray(evidence.records) ? evidence.records.map((r) => ({ ...r })) : null,
+      variables: Array.isArray(variables.records)
+        ? variables.records.map((r) => ({ ...r }))
+        : null,
+      claims: new Map([...claims.claims.entries()].map(([k, v]) => [k, { ...v }])),
+      outbox: outbox.events.map((e) => ({ ...e })),
+    };
+
+    try {
+      return await fn(this.uow);
+    } catch (error) {
+      if (snapshot.evidence && Array.isArray(evidence.records)) {
+        evidence.records.length = 0;
+        evidence.records.push(...snapshot.evidence);
+      }
+      if (snapshot.variables && Array.isArray(variables.records)) {
+        variables.records.length = 0;
+        variables.records.push(...snapshot.variables);
+      }
+      claims.claims.clear();
+      for (const [k, v] of snapshot.claims) claims.claims.set(k, v);
+      outbox.events.length = 0;
+      outbox.events.push(...snapshot.outbox);
+      throw error;
+    }
   }
 }

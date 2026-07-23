@@ -2,10 +2,12 @@ import type { RateLimitState } from './rate-limit.js';
 import type { ApprovedSourceLifecycle } from './approved-source.js';
 import type {
   ClaimRepository,
+  EvidenceIntegrationPort,
   OrganizationLookupPort,
   OutboxPort,
   PopulationRepository,
   PriorityRepository,
+  VariableIntegrationPort,
 } from './ports.js';
 
 export type SnapshotRecord = {
@@ -249,6 +251,10 @@ export type ResearchUnitOfWork = {
   outbox: OutboxPort;
   organizations: OrganizationLookupPort;
   concurrency: ConcurrencyGatePort;
+  /** Must share the same transaction as claims/outbox for atomic accept. */
+  evidence: EvidenceIntegrationPort;
+  /** Must share the same transaction as claims/outbox for atomic accept. */
+  variables: VariableIntegrationPort;
 };
 
 export type UnitOfWorkPort = {

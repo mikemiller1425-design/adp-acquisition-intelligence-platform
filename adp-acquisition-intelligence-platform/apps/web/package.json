@@ -11,6 +11,7 @@
     "test": "vitest run",
     "smoke:health": "tsx src/smoke-health.ts",
     "test:e2e": "playwright test",
+    "test:e2e:postgres": "playwright test --config=playwright.postgres.config.ts",
     "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
