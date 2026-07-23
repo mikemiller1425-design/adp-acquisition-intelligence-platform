@@ -103,7 +103,7 @@ describe.sequential('database integration tooling', () => {
         await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
       ) as { entries: Array<{ tag: string }> };
 
-      expect(journalCount).toBe(9);
+      expect(journalCount).toBe(10);
       expect(journal.entries.map((row) => row.tag)).toEqual([
         '0000_parched_electro',
         '0001_integrity_guards',
@@ -114,6 +114,7 @@ describe.sequential('database integration tooling', () => {
         '0006_lowly_molly_hayes',
         '0007_square_galactus',
         '0008_bizarre_tarantula',
+        '0009_prompt_10_reporting',
       ]);
 
       const discoveryTables = await client.sql<{ table_name: string }[]>`
@@ -219,6 +220,15 @@ describe.sequential('database integration tooling', () => {
         'opportunity_stage_transitions',
         'opportunity_values',
       ]);
+
+      const reportingTables = await client.sql<{ table_name: string }[]>`
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name in ('saved_views', 'export_jobs')
+        order by table_name
+      `;
+      expect(reportingTables.map((row) => row.table_name)).toEqual(['export_jobs', 'saved_views']);
     } finally {
       await client.close();
     }

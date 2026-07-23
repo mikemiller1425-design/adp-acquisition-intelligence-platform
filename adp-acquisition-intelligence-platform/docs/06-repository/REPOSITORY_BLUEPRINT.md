@@ -162,3 +162,16 @@ Prompt 6 verified these planned responsibilities:
 
 Prompt 6 intentionally defers Fastify route wiring and Next review pages because the current apps are foundation shells and do not yet contain vertical qualification UI slices.
 
+## Prompt 10 implementation status
+
+Prompt 10 verified these planned responsibilities:
+
+- `packages/database/schema/reporting.ts` and migration `0009_prompt_10_reporting.sql` — **verified** for `saved_views`, `export_jobs`, indexes, idempotency keys, expiry timestamps, and dashboard key constraints.
+- `packages/reporting/src/application/dashboard-query-service.ts` — **verified** for permission-scoped D1–D8 aggregate queries, paginated table queries, and saved-view restore composition.
+- `packages/reporting/src/application/export-service.ts` — **verified** for sync/async export lifecycle, channel redaction, metadata reproduction, and expiry.
+- `packages/reporting/src/application/metric-catalog-service.ts` — **verified** for YAML metric catalog loading (D1–D8).
+- `packages/reporting/src/application/saved-view-service.ts` — **verified** for saved view CRUD/restore with audit/outbox events.
+- `config/reporting/metrics.v1.yaml` — **verified** for frozen Phase 1 metric definitions.
+
+Prompt 10 intentionally defers dashboard UI screens, chart widgets, and global empty/loading/error UX to Prompt 11.
+

@@ -176,11 +176,11 @@ gates:
     required: true
     owner: product_analytics
     checks:
-      - {id: DSH-001, requirement: executive_prospect_research_scoring_discovery_outreach_opportunity_and_performance_views_exist, status: pending, evidence: []}
-      - {id: DSH-002, requirement: filters_sort_pagination_saved_views_and_drilldowns_work, status: pending, evidence: []}
-      - {id: DSH-003, requirement: metrics_reconcile_to_known_source_fixtures, status: pending, evidence: []}
-      - {id: DSH-004, requirement: permission_scoped_csv_exports_reproduce_view_and_metadata, status: pending, evidence: []}
-      - {id: DSH-005, requirement: empty_loading_partial_stale_denied_and_error_states_are_clear, status: pending, evidence: []}
+      - {id: DSH-001, requirement: executive_prospect_research_scoring_discovery_outreach_opportunity_and_performance_views_exist, status: partial, evidence: [packages/reporting, config/reporting/metrics.v1.yaml, docs/10-dashboards/REPORTING_MODEL.md, docs/01-reviews/PROMPT_10_ARCHITECTURE_REVIEW.md]}
+      - {id: DSH-002, requirement: filters_sort_pagination_saved_views_and_drilldowns_work, status: partial, evidence: [packages/reporting/src/application/dashboard-query-service.ts, packages/reporting/src/application/saved-view-service.ts, packages/reporting/src/__tests__/reporting-workflow.integration.test.ts]}
+      - {id: DSH-003, requirement: metrics_reconcile_to_known_source_fixtures, status: partial, evidence: [packages/reporting/src/__tests__/reporting-policy.test.ts, packages/reporting/src/__tests__/reporting-workflow.integration.test.ts, config/reporting/metrics.v1.yaml]}
+      - {id: DSH-004, requirement: permission_scoped_csv_exports_reproduce_view_and_metadata, status: partial, evidence: [packages/reporting/src/application/export-service.ts, packages/reporting/src/__tests__/reporting-workflow.integration.test.ts]}
+      - {id: DSH-005, requirement: empty_loading_partial_stale_denied_and_error_states_are_clear, status: pending, evidence: [docs/10-dashboards/REPORTING_MODEL.md]}
   quality_and_release:
     required: true
     owner: qa_release

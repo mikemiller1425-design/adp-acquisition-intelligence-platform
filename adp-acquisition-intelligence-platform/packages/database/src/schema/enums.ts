@@ -628,3 +628,11 @@ export const opportunityStageDefinitionStatusEnum = pgEnum('opportunity_stage_de
   'active',
   'retired',
 ]);
+
+export const exportJobStatusEnum = pgEnum('export_job_status', [
+  'pending',
+  'running',
+  'completed',
+  'failed',
+  'expired',
+]);

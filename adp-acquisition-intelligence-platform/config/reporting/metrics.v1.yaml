@@ -1,0 +1,196 @@
+version: 1.0.0
+status: active
+timezone: America/New_York
+tiny_cohort_threshold: 5
+refresh_schedule_minutes: 15
+dashboards:
+  D1:
+    display_name: Executive Overview
+    metrics:
+      - key: total_organizations
+        display_name: Total Organizations
+        subject: organization
+        numerator: active organizations matching scope and filters
+        denominator: null
+        time_basis: as_of
+        excluded_states: [archived, duplicate]
+        drilldown_key: table_prospect_master
+      - key: new_organizations
+        display_name: New Organizations
+        subject: organization
+        numerator: organizations created within filter date range
+        denominator: null
+        time_basis: created_at
+        excluded_states: [archived, duplicate]
+        drilldown_key: table_prospect_master
+      - key: research_gaps_open
+        display_name: Research Gaps Open
+        subject: organization
+        numerator: organizations where research_status = gaps_open
+        denominator: null
+        time_basis: as_of
+        excluded_states: [archived, duplicate]
+        drilldown_key: table_collection_research
+      - key: outreach_active
+        display_name: Active Outreach
+        subject: organization
+        numerator: organizations where outreach_status = active
+        denominator: null
+        time_basis: as_of
+        excluded_states: [archived, duplicate]
+        drilldown_key: table_outreach
+      - key: outreach_blocked_restriction
+        display_name: Outreach Blocked by Restriction
+        subject: organization
+        numerator: organizations where outreach_status = blocked_restriction
+        denominator: null
+        time_basis: as_of
+        excluded_states: [archived, duplicate]
+        drilldown_key: table_outreach
+      - key: stale_freshness
+        display_name: Stale or Mixed Freshness
+        subject: organization
+        numerator: organizations where data_freshness_status in (stale, mixed)
+        denominator: null
+        time_basis: as_of
+        excluded_states: [archived, duplicate]
+        drilldown_key: table_collection_research
+  D2:
+    display_name: Prospect Master
+    table_key: table_prospect_master
+    metrics:
+      - key: prospect_count
+        display_name: Prospect Rows
+        subject: organization
+        numerator: paginated organization rows matching filters
+        denominator: null
+        time_basis: as_of
+        excluded_states: [archived]
+        drilldown_key: table_prospect_master
+  D3:
+    display_name: Collection and Research
+    table_key: table_collection_research
+    metrics:
+      - key: research_queue_count
+        display_name: Research Queue
+        subject: organization
+        numerator: organizations with open research gaps or contradictions
+        denominator: null
+        time_basis: as_of
+        excluded_states: [archived]
+        drilldown_key: table_collection_research
+  D4:
+    display_name: Scoring
+    table_key: table_scoring
+    metrics:
+      - key: scored_organizations
+        display_name: Scored Organizations
+        subject: organization
+        numerator: organizations with current score_results
+        denominator: null
+        time_basis: as_of
+        excluded_states: [archived]
+        drilldown_key: table_scoring
+      - key: provisional_score_rate
+        display_name: Provisional Score Rate
+        subject: organization
+        numerator: score_results with status = provisional
+        denominator: total current score_results
+        time_basis: as_of
+        excluded_states: [archived]
+        drilldown_key: table_scoring
+  D5:
+    display_name: Discovery
+    table_key: table_discovery
+    metrics:
+      - key: scheduled_this_week
+        display_name: Scheduled This Week
+        subject: discovery_session
+        numerator: discovery_sessions scheduled within current ISO week
+        denominator: null
+        time_basis: scheduled_start_at
+        excluded_states: [cancelled, draft]
+        drilldown_key: table_discovery
+      - key: discovery_completion_rate
+        display_name: Discovery Completion Rate
+        subject: discovery_session
+        numerator: discovery_sessions with status = completed
+        denominator: discovery_sessions scheduled or completed
+        time_basis: completed_at
+        excluded_states: [cancelled, draft]
+        drilldown_key: table_discovery
+  D6:
+    display_name: Outreach
+    table_key: table_outreach
+    metrics:
+      - key: eligible_recipients
+        display_name: Eligible Recipients
+        subject: outreach_recipient
+        numerator: recipients with effective channel permission = allowed
+        denominator: null
+        time_basis: as_of
+        excluded_states: [opted_out, restricted]
+        drilldown_key: table_outreach
+      - key: contacted
+        display_name: Contacted
+        subject: outreach_activity
+        numerator: marked_sent activities excluding permission_blocked attempts
+        denominator: null
+        time_basis: occurred_at
+        excluded_states: [permission_blocked]
+        drilldown_key: table_outreach
+      - key: response_rate
+        display_name: Response Rate
+        subject: outreach_activity
+        numerator: contacted recipients with classified responses
+        denominator: contacted recipients
+        time_basis: occurred_at
+        excluded_states: [permission_blocked]
+        drilldown_key: table_outreach
+  D7:
+    display_name: Opportunities and Stage
+    table_key: table_opportunities
+    metrics:
+      - key: open_pipeline_count
+        display_name: Open Pipeline Count
+        subject: opportunity
+        numerator: opportunities not in terminal stages
+        denominator: null
+        time_basis: as_of
+        excluded_states: [won, lost]
+        drilldown_key: table_opportunities
+      - key: won_count
+        display_name: Won Opportunities
+        subject: opportunity
+        numerator: opportunities where opportunity_stage = won
+        denominator: null
+        time_basis: as_of
+        excluded_states: []
+        drilldown_key: table_opportunities
+  D8:
+    display_name: Model Performance
+    metrics:
+      - key: contact_rate
+        display_name: Contact Rate
+        subject: organization
+        numerator: organizations with successful outreach contact
+        denominator: organizations eligible for outreach
+        time_basis: occurred_at
+        excluded_states: [permission_blocked]
+        drilldown_key: table_outreach
+      - key: opportunity_creation_rate
+        display_name: Opportunity Creation Rate
+        subject: organization
+        numerator: organizations with at least one opportunity
+        denominator: qualified or outreach-active organizations
+        time_basis: created_at
+        excluded_states: [archived, disqualified]
+        drilldown_key: table_opportunities
+      - key: outreach_blocked_by_permission_rate
+        display_name: Outreach Blocked by Permission Rate
+        subject: outreach_activity
+        numerator: permission_blocked activities
+        denominator: attempted outreach activities
+        time_basis: occurred_at
+        excluded_states: []
+        drilldown_key: table_outreach
