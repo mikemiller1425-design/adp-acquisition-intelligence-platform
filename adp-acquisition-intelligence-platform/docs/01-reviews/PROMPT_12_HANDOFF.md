@@ -3,7 +3,7 @@
 **Recommendation:** Phase 1 implementation complete — **pending named business/legal acceptances before production release**  
 **Branch:** `cursor/prompt-12-hardening-acceptance-dd2b`  
 **Baseline:** `86bcab1a482da0d0954d49bae9a5a7711c26f138` (Prompt 11)  
-**Reviewed commit:** _(see git SHA below after push)_
+**Reviewed commit:** `725be4fa` (Prompt 12 hardening and acceptance)
 
 ## Delivered
 
