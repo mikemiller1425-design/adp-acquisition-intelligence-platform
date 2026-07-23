@@ -4,6 +4,7 @@
 **Date:** 2026-07-23  
 **Branch:** `cursor/phase-1-1-population-engine-dd2b`  
 **Baseline:** `1e98880f742a739bbfc44167c549fd4ebc8cd5c0` (PR #19 OPEN stacked — agent cannot merge)  
+**Tip commit:** `0a726845180d97a106505b843418431a1a73b3da`  
 **Draft PR:** #20  
 **Recommendation:** **READY FOR CONTROLLED PILOT** (fixture-only). **NOT READY** for live public-source egress or production release.
 
