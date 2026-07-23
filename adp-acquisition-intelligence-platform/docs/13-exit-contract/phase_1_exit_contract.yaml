@@ -169,8 +169,8 @@ gates:
             executed_at: "2026-07-22T23:56:00Z"
             result: reentry_policy_enforced_by_service_pending_full_exit_e2e
       - {id: WFL-003, requirement: discovery_agenda_verbatim_answers_confirmed_mappings_and_rescoring_work, status: satisfied, evidence: [packages/discovery, docs/05-data/DISCOVERY_MODEL.md, docs/01-reviews/PROMPT_7_ARCHITECTURE_REVIEW.md]}
-      - {id: WFL-004, requirement: outreach_templates_sequences_approvals_activities_responses_and_followups_work, status: pending, evidence: []}
-      - {id: WFL-005, requirement: opt_out_and_channel_restrictions_block_incompatible_outreach, status: pending, evidence: []}
+      - {id: WFL-004, requirement: outreach_templates_sequences_approvals_activities_responses_and_followups_work, status: satisfied, evidence: [packages/outreach, docs/05-data/OUTREACH_MODEL.md, docs/01-reviews/PROMPT_8_ARCHITECTURE_REVIEW.md]}
+      - {id: WFL-005, requirement: opt_out_and_channel_restrictions_block_incompatible_outreach, status: satisfied, evidence: [packages/outreach/src/__tests__/outreach-workflow.integration.test.ts, packages/consent]}
       - {id: WFL-006, requirement: opportunity_creation_stages_aging_risk_and_outcomes_work, status: pending, evidence: []}
   dashboards:
     required: true

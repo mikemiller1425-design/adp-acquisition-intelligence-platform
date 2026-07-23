@@ -1,0 +1,64 @@
+campaigns:
+  - key: phase1_payroll_intro
+    version: '1.0.0'
+    name: Phase 1 Payroll Introduction
+    description: Human-approved introductory outreach after discovery for payroll-motion prospects.
+    default_channel: email
+    status: published
+    sequence_key: phase1_payroll_two_step
+
+sequences:
+  - key: phase1_payroll_two_step
+    version: '1.0.0'
+    name: Phase 1 Payroll Two-Step Sequence
+    description: Two-step email sequence with manual follow-up spacing. No automated sending.
+    status: published
+    steps:
+      - step_order: 1
+        template_key: phase1_intro_email
+        channel: email
+        delay_days: 0
+        wait_for_response: false
+      - step_order: 2
+        template_key: phase1_follow_up_email
+        channel: email
+        delay_days: 5
+        wait_for_response: true
+
+templates:
+  - key: phase1_intro_email
+    version: '1.0.0'
+    name: Phase 1 Intro Email
+    channel: email
+    status: published
+    subject_template: 'Following up on {{organization_name}}'
+    body_template: |
+      Hi {{contact_first_name}},
+
+      Thank you for the recent discovery conversation about {{organization_name}}.
+      We would like to continue the discussion and learn more about your current workflow.
+
+      Best,
+      {{sender_name}}
+    context_keys:
+      - organization_name
+      - contact_first_name
+      - sender_name
+  - key: phase1_follow_up_email
+    version: '1.0.0'
+    name: Phase 1 Follow-up Email
+    channel: email
+    status: published
+    subject_template: 'Quick follow-up for {{organization_name}}'
+    body_template: |
+      Hi {{contact_first_name}},
+
+      Checking whether a short follow-up conversation would be helpful for {{organization_name}}.
+      No pricing or legal commitments are included in this note.
+
+      Best,
+      {{sender_name}}
+    context_keys:
+      - organization_name
+      - contact_first_name
+      - sender_name

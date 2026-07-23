@@ -501,3 +501,85 @@ export const mergeEventStatusEnum = pgEnum('merge_event_status', [
   'reversed',
   'manual_remediation_required',
 ]);
+
+export const outreachDefinitionStatusEnum = pgEnum('outreach_definition_status', [
+  'draft',
+  'published',
+  'retired',
+]);
+
+export const campaignEnrollmentStatusEnum = pgEnum('campaign_enrollment_status', [
+  'pending',
+  'active',
+  'paused',
+  'completed',
+  'exited',
+  'blocked',
+]);
+
+export const outreachRecipientStatusEnum = pgEnum('outreach_recipient_status', [
+  'active',
+  'paused',
+  'opted_out',
+  'completed',
+]);
+
+export const messageDraftStatusEnum = pgEnum('message_draft_status', [
+  'draft',
+  'pending_approval',
+  'approved',
+  'rejected',
+  'exported',
+  'sent',
+  'cancelled',
+]);
+
+export const messageApprovalStatusEnum = pgEnum('message_approval_status', [
+  'pending',
+  'approved',
+  'rejected',
+]);
+
+export const outreachActivityTypeEnum = pgEnum('outreach_activity_type', [
+  'drafted',
+  'submitted_for_approval',
+  'approved',
+  'rejected',
+  'exported',
+  'marked_sent',
+  'response_received',
+  'permission_blocked',
+  'sequence_advanced',
+  'enrollment_paused',
+  'enrollment_resumed',
+  'enrollment_exited',
+]);
+
+export const outreachResponseClassificationEnum = pgEnum('outreach_response_classification', [
+  'positive',
+  'negative',
+  'referral_to_another_contact',
+  'existing_provider',
+  'timing_issue',
+  'needs_information',
+  'meeting_booked',
+  'unsubscribe',
+  'no_longer_relevant',
+  'out_of_office',
+  'wrong_contact',
+  'unknown',
+]);
+
+export const outreachNextActionStatusEnum = pgEnum('outreach_next_action_status', [
+  'open',
+  'completed',
+  'cancelled',
+]);
+
+export const outreachSequenceStepStatusEnum = pgEnum('outreach_sequence_step_status', [
+  'pending',
+  'active',
+  'completed',
+  'skipped',
+  'blocked',
+]);

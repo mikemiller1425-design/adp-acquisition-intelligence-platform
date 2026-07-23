@@ -103,7 +103,7 @@ describe.sequential('database integration tooling', () => {
         await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
       ) as { entries: Array<{ tag: string }> };
 
-      expect(journalCount).toBe(7);
+      expect(journalCount).toBe(8);
       expect(journal.entries.map((row) => row.tag)).toEqual([
         '0000_parched_electro',
         '0001_integrity_guards',
@@ -112,6 +112,7 @@ describe.sequential('database integration tooling', () => {
         '0004_prompt_5_scoring_engine',
         '0005_prompt_6_qualification_workflow',
         '0006_lowly_molly_hayes',
+        '0007_square_galactus',
       ]);
 
       const discoveryTables = await client.sql<{ table_name: string }[]>`
@@ -134,6 +135,51 @@ describe.sequential('database integration tooling', () => {
         'discovery_sessions',
         'discovery_template_questions',
         'discovery_templates',
+      ]);
+
+      const outreachTables = await client.sql<{ table_name: string }[]>`
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name in (
+            'outreach_campaigns',
+            'outreach_campaign_versions',
+            'message_templates',
+            'message_template_versions',
+            'outreach_sequences',
+            'outreach_sequence_versions',
+            'outreach_sequence_steps',
+            'campaign_enrollments',
+            'outreach_recipients',
+            'message_drafts',
+            'message_approvals',
+            'outreach_activities',
+            'outreach_responses',
+            'response_classifications',
+            'outreach_next_actions',
+            'outreach_sequence_history',
+            'outreach_readiness_assessments'
+          )
+        order by table_name
+      `;
+      expect(outreachTables.map((row) => row.table_name)).toEqual([
+        'campaign_enrollments',
+        'message_approvals',
+        'message_drafts',
+        'message_template_versions',
+        'message_templates',
+        'outreach_activities',
+        'outreach_campaign_versions',
+        'outreach_campaigns',
+        'outreach_next_actions',
+        'outreach_readiness_assessments',
+        'outreach_recipients',
+        'outreach_responses',
+        'outreach_sequence_history',
+        'outreach_sequence_steps',
+        'outreach_sequence_versions',
+        'outreach_sequences',
+        'response_classifications',
       ]);
     } finally {
       await client.close();
