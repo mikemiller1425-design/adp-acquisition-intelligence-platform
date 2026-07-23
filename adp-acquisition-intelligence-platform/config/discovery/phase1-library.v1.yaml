@@ -1,0 +1,47 @@
+templates:
+  - key: phase1_payroll_discovery
+    version: '1.0.0'
+    name: Phase 1 Payroll Discovery
+    description: Representative Phase 1 discovery template for payroll-motion qualification follow-up.
+    motion: payroll
+    organization_type: ria
+    contact_type: economic_buyer
+    qualification_outcomes:
+      - qualified
+      - conditionally_qualified
+    status: published
+    questions:
+      - key: payroll_client_count
+        version: '1.0.0'
+        prompt: How many payroll clients do you currently support?
+        help_text: Capture a verified or best-estimate client count. Do not invent values.
+        answer_type: number
+        variable_key: payroll_client_count
+        required_default: true
+        high_impact: true
+        tags: [payroll_client_count, high_impact]
+        score_impact:
+          - score_key: acquisition_fit
+        rationale: Missing high-impact input for acquisition fit.
+      - key: current_payroll_provider
+        version: '1.0.0'
+        prompt: Who is your current payroll provider for most clients?
+        answer_type: text
+        variable_key: current_payroll_provider
+        required_default: true
+        high_impact: true
+        tags: [current_payroll_provider, high_impact]
+        score_impact:
+          - score_key: accessibility
+        rationale: Provider context informs accessibility and displacement opportunity.
+      - key: known_provider_issue
+        version: '1.0.0'
+        prompt: What provider issues, if any, are you actively trying to solve?
+        answer_type: text
+        variable_key: known_provider_issue
+        required_default: false
+        high_impact: false
+        tags: [known_provider_issue]
+        score_impact:
+          - score_key: acquisition_fit
+        rationale: Optional pain-point capture for follow-up messaging.

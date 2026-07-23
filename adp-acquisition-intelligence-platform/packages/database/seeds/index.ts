@@ -27,6 +27,7 @@ import {
   users,
   type RepositoryExecutor,
 } from '../src/index.js';
+import { seedDiscoveryLibrary, type DiscoverySeedSummary } from './discovery.js';
 import { seedScoringDrafts, type ScoringSeedSummary } from './scoring.js';
 import { seedVariables, type VariableSeedSummary } from './variables.js';
 
@@ -52,6 +53,7 @@ interface SeedSummary {
   tags: number;
   variables: VariableSeedSummary;
   scoring: ScoringSeedSummary;
+  discovery: DiscoverySeedSummary;
 }
 
 interface SeedIds {
@@ -97,6 +99,7 @@ export async function runSeed(databaseUrl: string): Promise<SeedSummary> {
       await seedOperationalTransitions(tx, ids);
       const variableSummary = await seedVariables(tx, ids);
       const scoringSummary = await seedScoringDrafts(tx);
+      const discoverySummary = await seedDiscoveryLibrary(tx, required(ids.users, 'admin'));
       await seedAuditAndOutbox(tx, ids);
 
       return {
@@ -110,6 +113,7 @@ export async function runSeed(databaseUrl: string): Promise<SeedSummary> {
         tags: Object.keys(ids.tags).length,
         variables: variableSummary,
         scoring: scoringSummary,
+        discovery: discoverySummary,
       };
     });
   } finally {
