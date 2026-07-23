@@ -37,10 +37,7 @@ const TRANSITIONS: Record<ResearchRunStatus, readonly ResearchRunStatus[]> = {
   failed: [],
 };
 
-export function canTransitionResearchRun(
-  from: ResearchRunStatus,
-  to: ResearchRunStatus,
-): boolean {
+export function canTransitionResearchRun(from: ResearchRunStatus, to: ResearchRunStatus): boolean {
   if (from === to) return true;
   return TRANSITIONS[from]?.includes(to) ?? false;
 }
@@ -52,7 +49,9 @@ export function assertTransitionResearchRun(from: ResearchRunStatus, to: Researc
 }
 
 export function isTerminalResearchRunStatus(status: ResearchRunStatus): boolean {
-  return status === 'completed' || status === 'blocked' || status === 'cancelled' || status === 'failed';
+  return (
+    status === 'completed' || status === 'blocked' || status === 'cancelled' || status === 'failed'
+  );
 }
 
 export function defaultModeForAdapters(input: {

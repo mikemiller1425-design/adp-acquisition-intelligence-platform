@@ -26,12 +26,9 @@ export default async function ResearchRunDetailPage({ params, searchParams }: Pa
   const canPause = run?.status === 'running';
   const canResume = run?.status === 'paused';
   const canCancel =
-    run != null &&
-    !['completed', 'cancelled', 'blocked', 'failed'].includes(run.status);
+    run != null && !['completed', 'cancelled', 'blocked', 'failed'].includes(run.status);
   const canAdvance =
-    run != null &&
-    (run.status === 'queued' || run.status === 'running') &&
-    pendingJobs > 0;
+    run != null && (run.status === 'queued' || run.status === 'running') && pendingJobs > 0;
 
   return (
     <ResearchScreen

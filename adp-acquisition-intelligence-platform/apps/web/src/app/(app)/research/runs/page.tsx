@@ -50,7 +50,10 @@ export default async function ResearchRunsListPage({ searchParams }: PageProps) 
                 return (
                   <tr key={run.id} data-testid={`research-run-row-${run.id}`}>
                     <td>
-                      <Link href={`/research/runs/${run.id}`} data-testid={`research-run-link-${run.id}`}>
+                      <Link
+                        href={`/research/runs/${run.id}`}
+                        data-testid={`research-run-link-${run.id}`}
+                      >
                         {name}
                       </Link>
                     </td>

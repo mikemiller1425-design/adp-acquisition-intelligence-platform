@@ -14,10 +14,8 @@ import {
 import { ResearchRunService } from '../application/research-run-service.js';
 import { registerResearchJobHandlers } from '../application/job-handlers.js';
 import { createResearchRuntime } from '../application/research-runtime.js';
-import {
-  CommonCrawlArchiveAdapter,
-  OfficialWebsiteAdapter,
-} from '../infrastructure/adapters/archive-and-live.js';
+import { OfficialWebsiteAdapter } from '../infrastructure/adapters/archive-and-live.js';
+import type { CommonCrawlArchiveAdapter } from '../infrastructure/adapters/archive-and-live.js';
 import { InMemoryDurableJobStore } from '../infrastructure/durable-job-store.js';
 import { InMemoryResearchRunRepository } from '../infrastructure/research-run-store.js';
 import { createInMemoryResearchUnitOfWork } from '../infrastructure/in-memory.js';
@@ -65,14 +63,16 @@ function fixtureConfig(overrides: Partial<ResearchRunConfigInput> = {}): Researc
   };
 }
 
-function buildService(opts: {
-  liveResearchEnabled?: boolean;
-  globalKillSwitchActive?: boolean;
-  jobs?: InMemoryJobDispatcher;
-  fixturePages?: Record<string, { body: string }>;
-  officialWebsite?: OfficialWebsiteAdapter;
-  commonCrawl?: CommonCrawlArchiveAdapter;
-} = {}) {
+function buildService(
+  opts: {
+    liveResearchEnabled?: boolean;
+    globalKillSwitchActive?: boolean;
+    jobs?: InMemoryJobDispatcher;
+    fixturePages?: Record<string, { body: string }>;
+    officialWebsite?: OfficialWebsiteAdapter;
+    commonCrawl?: CommonCrawlArchiveAdapter;
+  } = {},
+) {
   const concurrency = new InProcessConcurrencyGate();
   const uow = createInMemoryResearchUnitOfWork(concurrency);
   const runs = new InMemoryResearchRunRepository();
@@ -188,7 +188,9 @@ describe('fixture mode launch + execute', () => {
     expect(completed?.claimsProposed).toBeGreaterThan(0);
     expect(completed?.pagesRetrieved).toBeGreaterThan(0);
 
-    const snapshots = [...(uow.snapshots as { snapshots: Map<string, unknown> }).snapshots.values()];
+    const snapshots = [
+      ...(uow.snapshots as { snapshots: Map<string, unknown> }).snapshots.values(),
+    ];
     expect(snapshots.length).toBeGreaterThan(0);
     const claims = [...(uow.claims as { claims: Map<string, unknown> }).claims.values()];
     expect(claims.length).toBeGreaterThan(0);

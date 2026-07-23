@@ -75,11 +75,13 @@ export type ResearchRunRepository = {
     dryRun: boolean;
     freshnessThresholdHours: number;
   }): Promise<{ id: string }>;
-  createRun(input: Omit<ResearchRunRecord, 'pauseReason' | 'cancelReason'> & {
-    pauseReason?: string | null;
-    cancelReason?: string | null;
-    approvalEvidence?: Record<string, unknown>;
-  }): Promise<ResearchRunRecord>;
+  createRun(
+    input: Omit<ResearchRunRecord, 'pauseReason' | 'cancelReason'> & {
+      pauseReason?: string | null;
+      cancelReason?: string | null;
+      approvalEvidence?: Record<string, unknown>;
+    },
+  ): Promise<ResearchRunRecord>;
   getRun(id: string): Promise<ResearchRunRecord | null>;
   listRuns(): Promise<ResearchRunRecord[]>;
   updateRun(
@@ -101,7 +103,9 @@ export type ResearchRunRepository = {
     patch: Partial<ResearchRunTargetRecord> & { lastError?: string | null },
   ): Promise<void>;
   addEvent(runId: string, eventType: string, payload?: Record<string, unknown>): Promise<void>;
-  listEvents(runId: string): Promise<Array<{ eventType: string; payload: Record<string, unknown> }>>;
+  listEvents(
+    runId: string,
+  ): Promise<Array<{ eventType: string; payload: Record<string, unknown> }>>;
   upsertCheckpoint(
     runId: string,
     checkpointKey: string,
@@ -309,7 +313,10 @@ export class ResearchRunService {
     assertTransitionResearchRun(run.status, 'pausing');
     await this.deps.runs.updateRun(runId, { status: 'pausing', pauseReason: reason });
     assertTransitionResearchRun('pausing', 'paused');
-    const updated = await this.deps.runs.updateRun(runId, { status: 'paused', pauseReason: reason });
+    const updated = await this.deps.runs.updateRun(runId, {
+      status: 'paused',
+      pauseReason: reason,
+    });
     await this.deps.runs.addEvent(runId, 'research_run.paused', { reason });
     return updated;
   }
@@ -374,7 +381,8 @@ export class ResearchRunService {
   async executeRun(researchRunId: string): Promise<void> {
     let run = await this.requireRun(researchRunId);
     if (run.status === 'paused' || run.status === 'pausing') return;
-    if (run.status === 'cancelled' || run.status === 'completed' || run.status === 'blocked') return;
+    if (run.status === 'cancelled' || run.status === 'completed' || run.status === 'blocked')
+      return;
 
     if (run.status === 'queued') {
       assertTransitionResearchRun(run.status, 'running');
@@ -504,7 +512,9 @@ export class ResearchRunService {
     if (
       config.mode === 'archive_only' ||
       config.mode === 'archive_first_live_fallback' ||
-      (config.archiveFirst && config.mode !== 'fixture' && config.mode !== 'live_official_site_only')
+      (config.archiveFirst &&
+        config.mode !== 'fixture' &&
+        config.mode !== 'live_official_site_only')
     ) {
       // Archive path requires enabled source + liveResearchEnabled; fixture tests use recorded bodies
       // only when mode is not fixture — for fixture mode we skip to fixture retrieval.

@@ -107,7 +107,10 @@ export const researchRuns = pgTable(
       .notNull()
       .default({}),
     policyVersions: jsonb('policy_versions').$type<Record<string, unknown>>().notNull().default({}),
-    approvalEvidence: jsonb('approval_evidence').$type<Record<string, unknown>>().notNull().default({}),
+    approvalEvidence: jsonb('approval_evidence')
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     initiatingUserId: uuid('initiating_user_id'),
     killSwitchActive: boolean('kill_switch_active').notNull().default(false),
     pauseReason: text('pause_reason'),
