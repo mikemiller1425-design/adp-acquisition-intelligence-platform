@@ -13,7 +13,8 @@
 9. [Database setup](development/DATABASE_SETUP.md), [Migration Guide](development/MIGRATION_GUIDE.md), [Evidence and Provenance Guide](development/EVIDENCE_AND_PROVENANCE_GUIDE.md), [Variable Definition Guide](development/VARIABLE_DEFINITION_GUIDE.md), [Import Pipeline Guide](development/IMPORT_PIPELINE_GUIDE.md), [Normalization Policy](development/NORMALIZATION_POLICY.md), [Duplicate and Merge Guide](development/DUPLICATE_AND_MERGE_GUIDE.md), [Scoring Configuration Guide](development/SCORING_CONFIGURATION_GUIDE.md), [Import Recovery Runbook](operations/IMPORT_RECOVERY_RUNBOOK.md), and [Score Recalculation Runbook](operations/SCORE_RECALCULATION_RUNBOOK.md) — local database and Prompt 3/4/5 domain operations.
 10. [Phase 1 Exit Contract](13-exit-contract/PHASE_1_EXIT_CONTRACT.md) and [machine-readable checklist](13-exit-contract/phase_1_exit_contract.yaml) — definition of done.
 11. [Prompt 12 runbooks](14-runbooks/OPS_STARTUP_AND_VALIDATION.md) — startup, health, migrate, seed, validate, consent incidents, export expiry, backup/restore rehearsal.
-12. [Prompt 0 readiness](00-readiness/PROMPT_0_READINESS_REPORT.md), [Prompt 2 implementation](prompts/PROMPT_2_CANONICAL_DATA_MODEL.md), [Prompt 3 implementation](prompts/PROMPT_3_VARIABLES_EVIDENCE_PROVENANCE.md), [Prompt 4 implementation](prompts/PROMPT_4_COLLECTION_AND_IDENTITY_RESOLUTION.md), [Prompt 5 implementation](prompts/PROMPT_5_COMPLETENESS_AND_SCORING.md), [Prompt 6 implementation](prompts/PROMPT_6_QUALIFICATION_AND_WORKFLOW.md), [Prompt 6 entry gate](01-reviews/PROMPT_6_ENTRY_GATE.md), and [specification reviews](01-reviews/) — readiness and prompt reviews.
+12. [Prompt 0 readiness](00-readiness/PROMPT_0_READINESS_REPORT.md), [Prompt 2 implementation](prompts/PROMPT_2_CANONICAL_DATA_MODEL.md), [Prompt 3 implementation](prompts/PROMPT_3_VARIABLES_EVIDENCE_PROVENANCE.md), [Prompt 4 implementation](prompts/PROMPT_4_COLLECTION_AND_IDENTITY_RESOLUTION.md), [Prompt 5 implementation](prompts/PROMPT_5_COMPLETENESS_AND_SCORING.md), [Prompt 6 implementation](prompts/PROMPT_6_QUALIFICATION_AND_WORKFLOW.md), [Prompt 10 reporting](prompts/PROMPT_10_DASHBOARD_BACKEND_AND_REPORTING.md), [Prompt 11 web UX](prompts/PROMPT_11_WEB_UX_AND_DASHBOARDS.md), [Prompt 12 hardening](prompts/PROMPT_12_HARDENING_AND_ACCEPTANCE.md), [Prompt 6 entry gate](01-reviews/PROMPT_6_ENTRY_GATE.md), and [specification reviews](01-reviews/) — readiness and prompt reviews.
+13. [Phase 1 acceptance package](release/PHASE1_CLOSEOUT.md) — repository audit, implementation matrix, integration/database/security/performance/test/documentation reviews, release blockers, acceptance checklist, and [Phase 2 readiness](release/PHASE2_READINESS.md).
 
 ## Conflict policy
 
@@ -53,6 +54,12 @@ docs/
 │   ├── CONSENT_OPT_OUT_INCIDENT.md
 │   ├── EXPORT_EXPIRY.md
 │   └── BACKUP_RESTORE_REHEARSAL.md
+├── release/
+│   ├── PHASE1_CLOSEOUT.md
+│   ├── PHASE1_ACCEPTANCE_CHECKLIST.md
+│   ├── PHASE1_RELEASE_BLOCKERS.md
+│   ├── PHASE2_READINESS.md
+│   └── PHASE1_*_REVIEW.md / matrices
 ├── development/
 │   ├── DATABASE_SETUP.md
 │   ├── DUPLICATE_AND_MERGE_GUIDE.md
@@ -70,8 +77,14 @@ docs/
     ├── PROMPT_2_CANONICAL_DATA_MODEL.md
     ├── PROMPT_3_VARIABLES_EVIDENCE_PROVENANCE.md
     ├── PROMPT_4_COLLECTION_AND_IDENTITY_RESOLUTION.md
-    └── PROMPT_5_COMPLETENESS_AND_SCORING.md
+    ├── PROMPT_5_COMPLETENESS_AND_SCORING.md
+    ├── PROMPT_6_QUALIFICATION_AND_WORKFLOW.md
+    ├── PROMPT_10_DASHBOARD_BACKEND_AND_REPORTING.md
+    ├── PROMPT_11_WEB_UX_AND_DASHBOARDS.md
+    └── PROMPT_12_HARDENING_AND_ACCEPTANCE.md
 ```
+
+Prompt packets for 7–9 are not checked in; see [documentation review](release/PHASE1_DOCUMENTATION_REVIEW.md).
 
 ## Change control
 
