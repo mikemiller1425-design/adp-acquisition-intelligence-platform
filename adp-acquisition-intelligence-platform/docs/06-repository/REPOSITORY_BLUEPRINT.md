@@ -175,3 +175,8 @@ Prompt 10 verified these planned responsibilities:
 
 Prompt 10 intentionally defers dashboard UI screens, chart widgets, and global empty/loading/error UX to Prompt 11.
 
+## Phase 1.2 pointer
+
+Bounded **Start Research Run** orchestration lives under `packages/research` (run service, gates, adapters) and `apps/web/src/app/(app)/research/runs/*`. See `docs/research/LIVE_RESEARCH_RUN_ARCHITECTURE.md` and `docs/release/PHASE_1_2_RESEARCH_RUN_COMPLETION.md`. Live egress remains default-off.
+
+
