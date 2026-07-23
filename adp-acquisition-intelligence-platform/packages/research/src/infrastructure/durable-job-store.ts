@@ -1,0 +1,228 @@
+import { durableJobs, workerHeartbeats, type RepositoryExecutor } from '@adp/database';
+import { and, asc, count, eq, lte, or, sql } from 'drizzle-orm';
+import type { DurableJobRecord, DurableJobStore } from '@adp/platform';
+
+type Db = RepositoryExecutor;
+
+export class PostgresDurableJobStore implements DurableJobStore {
+  constructor(private readonly db: Db) {}
+
+  async enqueue(job: {
+    id: string;
+    name: string;
+    payload: Record<string, unknown>;
+    idempotencyKey?: string;
+    correlationId?: string;
+  }): Promise<{ jobId: string; replayed: boolean }> {
+    if (job.idempotencyKey) {
+      const existing = await this.db
+        .select({ id: durableJobs.id })
+        .from(durableJobs)
+        .where(eq(durableJobs.idempotencyKey, job.idempotencyKey))
+        .limit(1);
+      if (existing[0]) return { jobId: existing[0].id, replayed: true };
+    }
+    await this.db.insert(durableJobs).values({
+      id: job.id,
+      name: job.name,
+      payload: job.payload,
+      idempotencyKey: job.idempotencyKey ?? null,
+      correlationId: job.correlationId ?? null,
+      status: 'queued',
+    });
+    return { jobId: job.id, replayed: false };
+  }
+
+  async claim(workerId: string): Promise<DurableJobRecord | null> {
+    const now = new Date();
+    const rows = await this.db.execute(sql`
+      UPDATE durable_jobs
+      SET status = 'running',
+          attempts = attempts + 1,
+          locked_at = ${now},
+          locked_by = ${workerId},
+          updated_at = ${now}
+      WHERE id = (
+        SELECT id FROM durable_jobs
+        WHERE status = 'queued' AND available_at <= ${now}
+        ORDER BY created_at ASC
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1
+      )
+      RETURNING id, name, payload, idempotency_key, correlation_id, status, attempts, max_attempts, last_error
+    `);
+    const row = (rows as unknown as { rows?: Record<string, unknown>[] }).rows?.[0] ??
+      (Array.isArray(rows) ? (rows as Record<string, unknown>[])[0] : null);
+    if (!row) return null;
+    return {
+      id: String(row.id),
+      name: String(row.name),
+      payload: (row.payload ?? {}) as Record<string, unknown>,
+      idempotencyKey: (row.idempotency_key as string | null) ?? null,
+      correlationId: (row.correlation_id as string | null) ?? null,
+      status: 'running',
+      attempts: Number(row.attempts ?? 1),
+      maxAttempts: Number(row.max_attempts ?? 5),
+      lastError: (row.last_error as string | null) ?? null,
+    };
+  }
+
+  async complete(jobId: string): Promise<void> {
+    await this.db
+      .update(durableJobs)
+      .set({
+        status: 'completed',
+        completedAt: new Date(),
+        updatedAt: new Date(),
+        lockedAt: null,
+        lockedBy: null,
+      })
+      .where(eq(durableJobs.id, jobId));
+  }
+
+  async fail(jobId: string, error: string, retryDelayMs?: number): Promise<void> {
+    const current = await this.db
+      .select()
+      .from(durableJobs)
+      .where(eq(durableJobs.id, jobId))
+      .limit(1);
+    const job = current[0];
+    if (!job) return;
+    const attempts = job.attempts;
+    const dead = attempts >= job.maxAttempts || retryDelayMs === undefined;
+    await this.db
+      .update(durableJobs)
+      .set({
+        status: dead ? 'dead' : 'queued',
+        lastError: error,
+        availableAt: dead
+          ? new Date()
+          : new Date(Date.now() + (retryDelayMs ?? 0)),
+        lockedAt: null,
+        lockedBy: null,
+        updatedAt: new Date(),
+        completedAt: dead ? new Date() : null,
+      })
+      .where(eq(durableJobs.id, jobId));
+  }
+
+  async depth(): Promise<number> {
+    const [row] = await this.db
+      .select({ value: count() })
+      .from(durableJobs)
+      .where(or(eq(durableJobs.status, 'queued'), eq(durableJobs.status, 'running')));
+    return Number(row?.value ?? 0);
+  }
+
+  async heartbeat(workerId: string, metadata: Record<string, unknown> = {}): Promise<void> {
+    await this.db
+      .insert(workerHeartbeats)
+      .values({
+        workerId,
+        lastSeenAt: new Date(),
+        metadata,
+      })
+      .onConflictDoUpdate({
+        target: workerHeartbeats.workerId,
+        set: { lastSeenAt: new Date(), metadata },
+      });
+  }
+
+  async latestHeartbeat(): Promise<{ workerId: string; lastSeenAt: Date } | null> {
+    const rows = await this.db
+      .select()
+      .from(workerHeartbeats)
+      .orderBy(sql`${workerHeartbeats.lastSeenAt} desc`)
+      .limit(1);
+    const row = rows[0];
+    if (!row) return null;
+    return { workerId: row.workerId, lastSeenAt: row.lastSeenAt };
+  }
+}
+
+/** In-memory durable store for unit tests (survives dispatcher rebuild within process). */
+export class InMemoryDurableJobStore implements DurableJobStore {
+  readonly jobs = new Map<string, DurableJobRecord & { availableAt: number; maxAttempts: number }>();
+  private heartbeats = new Map<string, Date>();
+
+  async enqueue(job: {
+    id: string;
+    name: string;
+    payload: Record<string, unknown>;
+    idempotencyKey?: string;
+    correlationId?: string;
+  }): Promise<{ jobId: string; replayed: boolean }> {
+    if (job.idempotencyKey) {
+      for (const existing of this.jobs.values()) {
+        if (existing.idempotencyKey === job.idempotencyKey) {
+          return { jobId: existing.id, replayed: true };
+        }
+      }
+    }
+    this.jobs.set(job.id, {
+      id: job.id,
+      name: job.name,
+      payload: job.payload,
+      idempotencyKey: job.idempotencyKey ?? null,
+      correlationId: job.correlationId ?? null,
+      status: 'queued',
+      attempts: 0,
+      maxAttempts: 5,
+      lastError: null,
+      availableAt: Date.now(),
+    });
+    return { jobId: job.id, replayed: false };
+  }
+
+  async claim(workerId: string): Promise<DurableJobRecord | null> {
+    void workerId;
+    const now = Date.now();
+    for (const job of this.jobs.values()) {
+      if (job.status === 'queued' && job.availableAt <= now) {
+        job.status = 'running';
+        job.attempts += 1;
+        return { ...job };
+      }
+    }
+    return null;
+  }
+
+  async complete(jobId: string): Promise<void> {
+    const job = this.jobs.get(jobId);
+    if (job) job.status = 'completed';
+  }
+
+  async fail(jobId: string, error: string, retryDelayMs?: number): Promise<void> {
+    const job = this.jobs.get(jobId);
+    if (!job) return;
+    job.lastError = error;
+    if (retryDelayMs === undefined || job.attempts >= job.maxAttempts) {
+      job.status = 'dead';
+    } else {
+      job.status = 'queued';
+      job.availableAt = Date.now() + retryDelayMs;
+    }
+  }
+
+  async depth(): Promise<number> {
+    return [...this.jobs.values()].filter((j) => j.status === 'queued' || j.status === 'running')
+      .length;
+  }
+
+  async heartbeat(workerId: string): Promise<void> {
+    this.heartbeats.set(workerId, new Date());
+  }
+
+  async latestHeartbeat(): Promise<{ workerId: string; lastSeenAt: Date } | null> {
+    const entries = [...this.heartbeats.entries()];
+    if (!entries.length) return null;
+    entries.sort((a, b) => b[1].getTime() - a[1].getTime());
+    const [workerId, lastSeenAt] = entries[0]!;
+    return { workerId, lastSeenAt };
+  }
+}
+
+// silence unused import warnings for drizzle helpers kept for future filters
+void and;
+void asc;
+void lte;

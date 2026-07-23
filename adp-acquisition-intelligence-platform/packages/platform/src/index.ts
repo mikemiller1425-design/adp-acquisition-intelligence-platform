@@ -15,7 +15,10 @@ export {
   type JobHandlerRegistryPort,
   type JobEnvelope,
   type JobHandler,
+  type DurableJobStore,
+  type DurableJobRecord,
   InMemoryJobDispatcher,
+  DurableJobDispatcher,
 } from './jobs/index.js';
 export {
   type ObjectStoragePort,
