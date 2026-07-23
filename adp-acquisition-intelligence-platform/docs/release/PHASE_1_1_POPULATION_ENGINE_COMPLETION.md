@@ -1,10 +1,10 @@
 # Phase 1.1 Population Engine — Completion Report
 
-**Version:** 1.1.0  
+**Version:** 1.2.0  
 **Date:** 2026-07-23  
 **Branch:** `cursor/phase-1-1-population-engine-dd2b`  
-**Baseline:** `1e98880f742a739bbfc44167c549fd4ebc8cd5c0` (PR #19 OPEN stacked — agent cannot merge)  
-**Tip commit:** `0a726845180d97a106505b843418431a1a73b3da`  
+**Baseline:** `1e98880f742a739bbfc44167c549fd4ebc8cd5c0` (PR #19 OPEN stacked — merge #19 before marking #20 ready)  
+**Tip commit:** (see branch HEAD after persistent E2E gate)  
 **Draft PR:** #20  
 **Recommendation:** **READY FOR CONTROLLED PILOT** (fixture-only). **NOT READY** for live public-source egress or production release.
 
@@ -34,9 +34,9 @@
 | 18 | Non-objectives honored | No LinkedIn; no auth bypass; no CAPTCHA; no unrestricted crawl; no auto claim confirmation; no Phase 2 |
 | 19 | Security controls evidence | [PUBLIC_SOURCE_SECURITY_MODEL.md](../research/PUBLIC_SOURCE_SECURITY_MODEL.md) |
 | 20 | AuthZ capabilities | Role allowlist; Research UI routes authorization-controlled |
-| 21 | Claim → intelligence integration | Transactional accept: review + evidence + variable propose + outbox + recalc request |
-| 22 | Package automated tests | **16 passed** in `@adp/research` |
-| 23 | Browser E2E | **PASS** — Playwright `apps/web/e2e/research-fixture-workflow.spec.ts` (import → resolution → collection → review → dashboard) via real Next.js frontend + shared worker handlers |
+| 21 | Claim → intelligence integration | **Atomic** accept in one DB txn: claim transition + evidence + variable propose + outbox (incl. `intelligence.recalculation_requested`); recalc drained via worker job boundary — not an in-txn side effect |
+| 22 | Package automated tests | **21 passed** in `@adp/research` (incl. Postgres claim-accept rollback: evidence/variable failure leaves claim unaccepted, no partial rows) |
+| 23 | Browser E2E | **Memory (non-persistent):** `research-fixture-workflow.spec.ts` — fast path, does **not** prove PG persistence. **PostgreSQL persistent (gate):** `pnpm --filter @adp/web test:e2e:postgres` — migrate through 0011, `ADP_RESEARCH_PROVIDER=postgres`, real Next.js UI, job handlers, restart after collection, direct table probe, dry-run non-mutation — **PASSED**. “Persistent E2E passed” is claimed only for this suite. |
 | 24 | Documentation set | `docs/research/*` + architecture review + baseline gate + this report |
 | 25 | Architecture review | [PHASE_1_1_POPULATION_ENGINE_ARCHITECTURE_REVIEW.md](../01-reviews/PHASE_1_1_POPULATION_ENGINE_ARCHITECTURE_REVIEW.md) — **PASS WITH EXPLICIT OPEN OWNER APPROVALS** |
 | 26 | Prior blockers preserved | RB-001…RB-013 remain **OPEN** (not closed) |
@@ -64,7 +64,7 @@
 | 11 | Source concurrency limits | `InProcessConcurrencyGate` / UoW concurrency port |
 | 12 | Collection status enums | `collection_run_status` includes `blocked`; attempts statuses reconciled |
 | 13 | Functional Research UI | StubScreens replaced with auth-controlled workflows |
-| 14 | Playwright E2E | Deterministic fixture workflow **passed** |
+| 14 | Playwright E2E | Memory labeled non-persistent; **PostgreSQL persistent E2E passed** (restart + SQL probe) |
 | 15 | Fixture approvals | `not_required_for_fixture` only for `adapterType=fixture` |
 | 16 | Docs / readiness | This report + architecture review updated |
 | 17 | PR #19 | Remains OPEN; HEAD contains `1e98880` as ancestor (cannot merge #19 from agent) |

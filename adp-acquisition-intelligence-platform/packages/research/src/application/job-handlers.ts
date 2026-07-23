@@ -28,14 +28,6 @@ function optionalString(payload: Record<string, unknown>, key: string): string |
   return value;
 }
 
-/** UUID actor ids only — demo / memory ids must not hit users FK columns. */
-function optionalUuid(value: string | undefined): string | null {
-  if (!value) return null;
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
-    ? value
-    : null;
-}
-
 function asRole(value: unknown): ResearchRole {
   if (
     value === 'admin' ||
@@ -299,7 +291,7 @@ async function handleCollectionRun(runtime: ResearchRuntime, job: JobEnvelope): 
         job.idempotencyKey ??
         `collection.run:${runId}`,
       targetCount: targets.length,
-      requestedByUserId: optionalUuid(optionalString(payload, 'actorUserId')),
+      requestedByUserId: null,
     });
   }
 

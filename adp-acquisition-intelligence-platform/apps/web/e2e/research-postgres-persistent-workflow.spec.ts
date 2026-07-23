@@ -40,9 +40,7 @@ async function startServer() {
         process.env.TEST_DATABASE_URL ??
         'postgres://adp:adp@127.0.0.1:5433/adp_acquisition_test',
       ADP_RESEARCH_PROVIDER: 'postgres',
-      // Seeded admin from @adp/database db:seed (must be a real users.id UUID).
-      ADP_WEB_USER_ID:
-        process.env.ADP_WEB_USER_ID ?? 'bfe32900-0e3c-4d71-8100-aad8a2e5f030',
+      // Demo actor ids are not seeded users; collection runs store requested_by as null.
       ADP_WEB_USER_ROLES: 'admin,sales,reviewer',
       ADP_ENV: 'development',
     },

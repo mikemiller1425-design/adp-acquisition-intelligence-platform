@@ -6,7 +6,7 @@
 **Branch:** `cursor/phase-1-1-population-engine-dd2b`  
 **Review type:** Prompt-level review per [Architecture Review Checklist](../11-implementation/16_ARCHITECTURE_REVIEW_CHECKLIST.md)  
 **Date:** 2026-07-23  
-**Revision:** 1.1 (PR #20 REQUEST CHANGES remediation)
+**Revision:** 1.2 (PostgreSQL persistent E2E acceptance gate)
 
 ## Decision
 
@@ -20,11 +20,11 @@
 | B. Architecture and dependencies | PASS | Shared `registerResearchJobHandlers` + `createResearchRuntime`; Postgres + in-memory UoW |
 | C. Interfaces and compatibility | PASS | Ports for population, retrieval, claims, evidence/variables/scores; collectors cannot confirm |
 | D. Data architecture | PASS | `0010`+`0011`; attempts table; `blocked` run status; dry-run non-mutating |
-| E. Scoring integrity | PASS | Score path is recalc **request** after transactional human accept only |
+| E. Scoring integrity | PASS | Claim accept is one DB txn (claim + evidence + variable + outbox); score recalc queued **only** via `intelligence.recalculation_requested` outbox (no in-txn side effect) |
 | F. Security and privacy | PASS WITH SIGN-OFFS | SSRF, DNS gate, PSL redirects, robots, rate limits, kill switch, concurrency |
 | G. Reliability and operability | PASS | Idempotency, cancel/kill switch, runbook |
 | H. Performance and scale | PASS WITH NOTE | 10k dry-run covered; 100k org claim not made (RB-005) |
-| I. Testing quality | PASS | 16 `@adp/research` tests; Playwright fixture workflow green through frontend + worker handlers |
+| I. Testing quality | PASS | 21 `@adp/research` tests (incl. claim-accept atomic rollback on Postgres); memory Playwright labeled **non-persistent**; **PostgreSQL persistent E2E passed** (`test:e2e:postgres`, migrate through 0011, Next.js restart, direct table probe, dry-run non-mutation) |
 | J. UI and dashboards | PASS | Functional auth-controlled Research workflows (no Phase 1.1 StubScreens) |
 | K. Documentation | PASS | Completion report + this review + research docs updated |
 | L. Regression readiness | PASS WITH NOTE | Stacked on unmerged Phase 1 tip; monorepo validate required on tip |
@@ -60,7 +60,9 @@
 - `packages/research/src/**` (domain, application, job handlers, postgres repos, fixtures)
 - `packages/database/migrations/0010_*`, `0011_*`
 - `apps/worker` consumers thin-wrap shared handlers
-- `apps/web` Research routes + `e2e/research-fixture-workflow.spec.ts` (**passed**)
+- `apps/web` Research routes
+- `e2e/research-fixture-workflow.spec.ts` — memory / **non-persistent** (**passed**; not sufficient for “persistent E2E”)
+- `e2e/research-postgres-persistent-workflow.spec.ts` — `ADP_RESEARCH_PROVIDER=postgres` (**passed**; controlled-pilot persistence gate)
 - Fixture approvals use `not_required_for_fixture` (not impersonating human legal/privacy/security approval)
 
 ## Non-objectives verification
@@ -84,5 +86,7 @@ recommendation: READY_FOR_CONTROLLED_PILOT
 live_egress: NOT_READY
 blocking_engineering_findings: 0
 pr_19_merge_status: OPEN_STACKED
-playwright_research_e2e: PASS
+playwright_research_e2e_memory_non_persistent: PASS
+playwright_research_e2e_postgres_persistent: PASS
+persistent_e2e_claimed: true
 ```
