@@ -93,7 +93,7 @@ describe.sequential('database integration tooling', () => {
     expect(after).toBeGreaterThan(0);
   });
 
-  it('applies the Prompt 6 migration after the Prompt 5 schema migrations', async () => {
+  it('applies Prompt 6 and Prompt 7 migrations after the Prompt 5 schema migrations', async () => {
     await migrateTestDatabase({ databaseUrl: testDatabaseUrl, reset: true });
     const client = createTestDatabaseClient(testDatabaseUrl);
 
@@ -103,7 +103,7 @@ describe.sequential('database integration tooling', () => {
         await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
       ) as { entries: Array<{ tag: string }> };
 
-      expect(journalCount).toBe(6);
+      expect(journalCount).toBe(7);
       expect(journal.entries.map((row) => row.tag)).toEqual([
         '0000_parched_electro',
         '0001_integrity_guards',
@@ -111,6 +111,29 @@ describe.sequential('database integration tooling', () => {
         '0003_melted_inertia',
         '0004_prompt_5_scoring_engine',
         '0005_prompt_6_qualification_workflow',
+        '0006_lowly_molly_hayes',
+      ]);
+
+      const discoveryTables = await client.sql<{ table_name: string }[]>`
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name like 'discovery_%'
+        order by table_name
+      `;
+      expect(discoveryTables.map((row) => row.table_name)).toEqual([
+        'discovery_agenda_items',
+        'discovery_agendas',
+        'discovery_answers',
+        'discovery_follow_ups',
+        'discovery_interpretations',
+        'discovery_mappings',
+        'discovery_participants',
+        'discovery_questions',
+        'discovery_score_snapshots',
+        'discovery_sessions',
+        'discovery_template_questions',
+        'discovery_templates',
       ]);
     } finally {
       await client.close();

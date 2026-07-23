@@ -43,6 +43,13 @@
       "when": 1784763900000,
       "tag": "0005_prompt_6_qualification_workflow",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784765130079,
+      "tag": "0006_lowly_molly_hayes",
+      "breakpoints": true
     }
   ]
 }

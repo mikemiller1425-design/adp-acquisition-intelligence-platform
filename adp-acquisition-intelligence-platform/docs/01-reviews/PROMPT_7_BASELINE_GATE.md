@@ -25,3 +25,18 @@
 ## Gate decision
 
 Proceed with migration `0006` and discovery implementation.
+
+
+## Pre-continue repair (2026-07-23)
+
+Incomplete Prompt 7 schema WIP had broken validation:
+
+1. Migration `0006` SQL was missing while the journal referenced it.
+2. Regenerated drizzle SQL incorrectly recreated Prompt 5/6 enums/tables due to incomplete snapshots.
+3. Fixed by rewriting `0006_lowly_molly_hayes.sql` as discovery-only DDL.
+4. Removed duplicate `schema/index.ts` export.
+5. Updated database integration journal expectations to include Prompt 7 migration.
+
+**Validation after repair:** `pnpm validate` passed on PostgreSQL 17 with migrations `0000`–`0006`.
+
+Discovery package services are not yet implemented; schema/migration foundation is now green for continued Prompt 7 work.

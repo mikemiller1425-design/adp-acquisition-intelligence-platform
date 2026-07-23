@@ -329,6 +329,92 @@ export const outboxEventStatusEnum = pgEnum('outbox_event_status', [
   'dead_letter',
 ]);
 
+export const discoveryTemplateStatusEnum = pgEnum('discovery_template_status', [
+  'draft',
+  'published',
+  'retired',
+]);
+
+export const discoveryQuestionStatusEnum = pgEnum('discovery_question_status', [
+  'draft',
+  'published',
+  'retired',
+]);
+
+export const discoveryAgendaStatusEnum = pgEnum('discovery_agenda_status', [
+  'generated',
+  'customized',
+  'deferred',
+]);
+
+export const discoverySessionStatusEnum = pgEnum('discovery_session_status', [
+  'draft',
+  'prepared',
+  'scheduled',
+  'in_progress',
+  'completed',
+  'reviewed',
+  'cancelled',
+  'no_show',
+  'incomplete',
+]);
+
+export const discoveryParticipantRoleEnum = pgEnum('discovery_participant_role', [
+  'host',
+  'seller',
+  'buyer',
+  'advisor',
+  'observer',
+]);
+
+export const discoveryParticipantStatusEnum = pgEnum('discovery_participant_status', [
+  'invited',
+  'confirmed',
+  'attended',
+  'declined',
+  'no_show',
+]);
+
+export const discoveryAnswerStatusEnum = pgEnum('discovery_answer_status', [
+  'answered',
+  'unknown',
+  'declined',
+  'not_applicable',
+  'not_asked',
+]);
+
+export const discoveryAnswerTypeEnum = pgEnum('discovery_answer_type', [
+  'text',
+  'number',
+  'boolean',
+  'date',
+  'datetime',
+  'single_select',
+  'multi_select',
+  'money',
+  'percentage',
+  'json',
+]);
+
+export const discoveryInterpretationStatusEnum = pgEnum('discovery_interpretation_status', [
+  'proposed',
+  'superseded',
+  'accepted',
+  'rejected',
+]);
+
+export const discoveryMappingStatusEnum = pgEnum('discovery_mapping_status', [
+  'proposed',
+  'confirmed',
+  'rejected',
+]);
+
+export const discoveryFollowUpStatusEnum = pgEnum('discovery_follow_up_status', [
+  'open',
+  'completed',
+  'cancelled',
+]);
+
 export const importBatchSourceEnum = pgEnum('import_batch_source', ['manual', 'csv_upload']);
 
 export const importBatchLifecycleStatusEnum = pgEnum('import_batch_lifecycle_status', [
