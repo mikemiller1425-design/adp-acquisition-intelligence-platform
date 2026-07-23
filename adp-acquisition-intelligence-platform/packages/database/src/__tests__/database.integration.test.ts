@@ -103,7 +103,7 @@ describe.sequential('database integration tooling', () => {
         await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
       ) as { entries: Array<{ tag: string }> };
 
-      expect(journalCount).toBe(11);
+      expect(journalCount).toBe(12);
       expect(journal.entries.map((row) => row.tag)).toEqual([
         '0000_parched_electro',
         '0001_integrity_guards',
@@ -116,6 +116,7 @@ describe.sequential('database integration tooling', () => {
         '0008_bizarre_tarantula',
         '0009_prompt_10_reporting',
         '0010_phase_1_1_population_research',
+        '0011_phase_1_1_collection_attempts',
       ]);
 
       const researchCore = await client.sql<{ table_name: string }[]>`

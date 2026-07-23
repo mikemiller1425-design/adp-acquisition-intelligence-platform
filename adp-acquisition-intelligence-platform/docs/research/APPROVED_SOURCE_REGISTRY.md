@@ -57,7 +57,7 @@ Self-approval by automation is forbidden (`assertHumanOwnerApprovalRequired`).
 
 | Key | Adapter | Lifecycle | Kill switch | Notes |
 |---|---|---|---|---|
-| `organization_website_fixture` | `fixture` | **enabled** | off | CI/pilot; reviews marked approved for engineering |
+| `organization_website_fixture` | `fixture` | **enabled** | off | CI/pilot; reviews use `not_required_for_fixture` (not human legal/privacy/security approval) |
 | `archived_web_fixture` | `archived_web` | **draft** | off | Reviews pending — **RB-015** |
 | `organization_website_live` | `organization_website` | **draft** | **on** | Must not execute until approvals + switch off |
 

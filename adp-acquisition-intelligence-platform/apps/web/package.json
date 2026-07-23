@@ -9,7 +9,9 @@
     "lint": "eslint src --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "smoke:health": "tsx src/smoke-health.ts"
+    "smoke:health": "tsx src/smoke-health.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "@adp/contracts": "workspace:*",
@@ -18,9 +20,12 @@
     "@adp/reporting": "workspace:*",
     "next": "16.2.11",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "@adp/research": "workspace:*",
+    "@adp/collection": "workspace:*"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "tsx": "^4.21.0",

@@ -29,6 +29,7 @@
     "@adp/scoring": "workspace:*",
     "@adp/variables": "workspace:*",
     "drizzle-orm": "0.45.2",
+    "tldts": "^7.4.9",
     "zod": "^4.4.3"
   },
   "devDependencies": {

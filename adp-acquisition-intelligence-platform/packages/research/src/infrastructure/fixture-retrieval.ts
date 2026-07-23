@@ -1,4 +1,9 @@
-import { validateRetrievalUrl, isPrivateOrReservedIp } from '../domain/network-security.js';
+import {
+  validateRetrievalUrl,
+  validateResolvedDestination,
+  type DnsResolverPort,
+  StaticDnsResolver,
+} from '../domain/network-security.js';
 import type { RetrievalPort, RetrievalResponse } from '../domain/ports.js';
 
 export type FixturePage = {
@@ -12,10 +17,13 @@ export type FixturePage = {
 
 /**
  * Deterministic retrieval for CI. Never opens network sockets.
- * Keys are full URLs.
+ * DNS resolution is validated at the retrieval boundary before serving fixtures.
  */
 export class FixtureRetrievalPort implements RetrievalPort {
-  constructor(private readonly pages: Record<string, FixturePage>) {}
+  constructor(
+    private readonly pages: Record<string, FixturePage>,
+    private readonly dns: DnsResolverPort = new StaticDnsResolver(),
+  ) {}
 
   async retrieve(
     url: string,
@@ -26,10 +34,13 @@ export class FixtureRetrievalPort implements RetrievalPort {
     if (!check.ok) {
       throw Object.assign(new Error(check.message), { code: check.code });
     }
-    // Defense in depth: never allow IP-literal private targets even in fixtures map miss paths
-    if (isPrivateOrReservedIp(check.hostname)) {
-      throw Object.assign(new Error('private network blocked'), { code: 'private_network' });
+
+    const resolved = await this.dns.resolve(check.hostname);
+    const dest = validateResolvedDestination(check.hostname, resolved);
+    if (!dest.ok) {
+      throw Object.assign(new Error(dest.message), { code: dest.code });
     }
+
     const page = this.pages[url];
     if (!page) {
       throw Object.assign(new Error(`fixture miss for ${url}`), { code: 'fixture_miss' });
@@ -37,6 +48,21 @@ export class FixtureRetrievalPort implements RetrievalPort {
     if (Buffer.byteLength(page.body, 'utf8') > options.maxBytes) {
       throw Object.assign(new Error('response too large'), { code: 'oversized_response' });
     }
+
+    // Validate redirect chain destinations at the boundary as well.
+    for (let i = 0; i < (page.redirectChain?.length ?? 0); i++) {
+      const hop = page.redirectChain![i]!;
+      const hopCheck = validateRetrievalUrl(hop);
+      if (!hopCheck.ok) {
+        throw Object.assign(new Error(hopCheck.message), { code: hopCheck.code });
+      }
+      const hopResolved = await this.dns.resolve(hopCheck.hostname);
+      const hopDest = validateResolvedDestination(hopCheck.hostname, hopResolved);
+      if (!hopDest.ok) {
+        throw Object.assign(new Error(hopDest.message), { code: hopDest.code });
+      }
+    }
+
     return {
       finalUrl: page.redirectChain?.at(-1) ?? url,
       status: page.status ?? 200,

@@ -63,23 +63,41 @@ export class PopulationImportService {
     const accepted = normalized.filter((n) => n.validationErrors.length === 0);
     const rejected = normalized.filter((n) => n.validationErrors.length > 0);
 
-    const candidates = await this.population.insertCandidates(
-      accepted.map((n) => ({
-        identityKey: n.identityKey,
-        displayName: n.displayName,
-        legalName: n.legalName,
-        domain: n.domain,
-        website: n.website,
-        phone: n.phone,
-        addressLine1: n.addressLine1,
-        city: n.city,
-        region: n.region,
-        postalCode: n.postalCode,
-        aliases: n.aliases,
-        status: 'normalized',
-        organizationId: null,
-      })),
-    );
+    // Dry runs must not persist candidates or mutate organizations.
+    const candidates = request.dryRun
+      ? accepted.map((n) => ({
+          id: `dryrun-${crypto.randomUUID()}`,
+          identityKey: n.identityKey,
+          displayName: n.displayName,
+          legalName: n.legalName,
+          domain: n.domain,
+          website: n.website,
+          phone: n.phone,
+          addressLine1: n.addressLine1,
+          city: n.city,
+          region: n.region,
+          postalCode: n.postalCode,
+          aliases: n.aliases,
+          status: 'normalized',
+          organizationId: null,
+        }))
+      : await this.population.insertCandidates(
+          accepted.map((n) => ({
+            identityKey: n.identityKey,
+            displayName: n.displayName,
+            legalName: n.legalName,
+            domain: n.domain,
+            website: n.website,
+            phone: n.phone,
+            addressLine1: n.addressLine1,
+            city: n.city,
+            region: n.region,
+            postalCode: n.postalCode,
+            aliases: n.aliases,
+            status: 'normalized',
+            organizationId: null,
+          })),
+        );
 
     let matched = 0;
     let createdOrgs = 0;
@@ -114,11 +132,19 @@ export class PopulationImportService {
         explanation: result.explanation,
       });
 
-      if (
-        result.decision === 'link_existing' &&
-        result.candidateOrganizationId &&
-        !request.dryRun
-      ) {
+      if (request.dryRun) {
+        if (result.decision === 'link_existing') matched += 1;
+        else if (result.decision === 'create_new') createdOrgs += 1;
+        else if (
+          result.decision === 'ambiguous_review' ||
+          result.decision === 'possible_duplicate'
+        ) {
+          ambiguous += 1;
+        }
+        continue;
+      }
+
+      if (result.decision === 'link_existing' && result.candidateOrganizationId) {
         await this.orgs.linkCandidate(candidate.id, result.candidateOrganizationId);
         matched += 1;
         await this.outbox.insert({
@@ -128,7 +154,7 @@ export class PopulationImportService {
           idempotencyKey: `population.organization_matched:${candidate.id}`,
           payload: { organizationId: result.candidateOrganizationId },
         });
-      } else if (result.decision === 'create_new' && !request.dryRun) {
+      } else if (result.decision === 'create_new') {
         const org = await this.orgs.createOrganization({
           displayName: candidate.displayName ?? candidate.legalName ?? 'Unknown Organization',
           legalName: candidate.legalName,
@@ -165,7 +191,8 @@ export class PopulationImportService {
       createdCount: createdOrgs,
       ambiguousCount: ambiguous,
       rejectedSamples: rejected.slice(0, 20).map((r) => r.validationErrors),
-      decisions: request.dryRun ? decisions : decisions.slice(0, 100),
+      decisions: decisions.slice(0, request.dryRun ? decisions.length : 100),
+      mutated: !request.dryRun,
     };
 
     const updated = await this.population.updateImport(created.id, {

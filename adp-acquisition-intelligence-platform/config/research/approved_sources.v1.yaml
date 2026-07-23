@@ -10,11 +10,11 @@ sources:
     permitted_organization_types: [accounting, advisory]
     permitted_fields: [services, locations, public_leadership_roles, hiring_signals]
     prohibited_fields: [personal_email, personal_phone]
-    terms_review_status: approved
+    terms_review_status: not_required_for_fixture
     robots_behavior: respect
-    privacy_review_status: approved
-    legal_review_status: approved
-    security_review_status: approved
+    privacy_review_status: not_required_for_fixture
+    legal_review_status: not_required_for_fixture
+    security_review_status: not_required_for_fixture
     rate_limit_per_minute: 30
     concurrency_limit: 2
     page_limit: 8

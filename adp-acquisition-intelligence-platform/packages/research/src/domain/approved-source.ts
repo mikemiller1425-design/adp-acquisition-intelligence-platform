@@ -1,5 +1,10 @@
 export type ApprovedSourceLifecycle =
-  'draft' | 'under_review' | 'approved' | 'enabled' | 'suspended' | 'retired';
+  | 'draft'
+  | 'under_review'
+  | 'approved'
+  | 'enabled'
+  | 'suspended'
+  | 'retired';
 
 export type ApprovedSourceGate = {
   lifecycle: ApprovedSourceLifecycle;
@@ -8,10 +13,17 @@ export type ApprovedSourceGate = {
   privacyReviewStatus: string;
   legalReviewStatus: string;
   securityReviewStatus: string;
+  /** When adapterType is fixture, human legal/privacy/security approvals must NOT be faked as approved. */
+  adapterType?: string;
 };
 
-export type SourceExecutionDecision =
-  { allowed: true } | { allowed: false; code: string; message: string };
+const FIXTURE_EXEMPT = new Set(['not_required_for_fixture']);
+
+function reviewAcceptable(status: string, adapterType: string | undefined): boolean {
+  if (status === 'approved') return true;
+  if (adapterType === 'fixture' && FIXTURE_EXEMPT.has(status)) return true;
+  return false;
+}
 
 export function canExecuteApprovedSource(source: ApprovedSourceGate): SourceExecutionDecision {
   if (source.killSwitchActive) {
@@ -30,7 +42,7 @@ export function canExecuteApprovedSource(source: ApprovedSourceGate): SourceExec
     ['legal', source.legalReviewStatus],
     ['security', source.securityReviewStatus],
   ] as const) {
-    if (status !== 'approved') {
+    if (!reviewAcceptable(status, source.adapterType)) {
       return {
         allowed: false,
         code: `${field}_not_approved`,
@@ -40,6 +52,10 @@ export function canExecuteApprovedSource(source: ApprovedSourceGate): SourceExec
   }
   return { allowed: true };
 }
+
+export type SourceExecutionDecision =
+  | { allowed: true }
+  | { allowed: false; code: string; message: string };
 
 /** Cursor/agent must never self-approve legal/security/privacy/licensing. */
 export function assertHumanOwnerApprovalRequired(): { selfApprovalForbidden: true } {

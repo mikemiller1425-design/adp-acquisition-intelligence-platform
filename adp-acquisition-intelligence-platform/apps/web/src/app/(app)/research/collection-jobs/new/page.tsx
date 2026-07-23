@@ -1,23 +1,35 @@
-import { StubScreen } from '@/components/stub-screen';
+import Link from 'next/link';
+
+import { ResearchScreen } from '@/components/research-screen';
+import { startCollectionRunAction } from '@/lib/research-actions';
+import { getWebResearchRuntime } from '@/lib/research-runtime';
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-export default async function Page({ searchParams }: PageProps) {
+export default async function NewCollectionJobPage({ searchParams }: PageProps) {
+  getWebResearchRuntime();
+
   return (
-    <StubScreen
+    <ResearchScreen
       config={{
-        screenId: 'UI-R06',
+        screenId: 'UI-R05a',
         title: 'New Collection Run',
-        description: 'Create a targeted collection run with page/depth/rate limits.',
+        description: 'Queue a bounded fixture collection run against an approved source.',
         requiredRoles: ['admin', 'sales'],
-        primaryActions: ['Start Collection Run'],
       }}
       searchParams={await searchParams}
     >
-      <div className="detail-panel">
-        Controlled pilot surface. Live public retrieval remains gated by approved-source lifecycle
-        and kill switch.
+      <div className="detail-panel" data-testid="new-collection-job">
+        <form action={startCollectionRunAction} className="form-panel">
+          <p>Source: organization_website_fixture (fixture adapter — no live network)</p>
+          <button type="submit" data-testid="start-collection-run-new">
+            Queue collection run
+          </button>
+        </form>
+        <p>
+          <Link href="/research/collection-jobs">← Back to collection jobs</Link>
+        </p>
       </div>
-    </StubScreen>
+    </ResearchScreen>
   );
 }

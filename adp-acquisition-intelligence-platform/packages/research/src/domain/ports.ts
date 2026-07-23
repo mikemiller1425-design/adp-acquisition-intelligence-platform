@@ -159,3 +159,25 @@ export type ResolutionWritePort = {
     explanation: string;
   }): Promise<void>;
 };
+
+export type {
+  ApprovedSourceRecord,
+  ApprovedSourceRepository,
+  CollectionAttemptInsertInput,
+  CollectionAttemptRecord,
+  CollectionAttemptRepository,
+  CollectionAttemptStatus,
+  CollectionRunRecord,
+  CollectionRunRepository,
+  CollectionRunStatus,
+  ConcurrencyGatePort,
+  ExtractionRunRecord,
+  ExtractionRunRepository,
+  RateLimitStateRepository,
+  ResearchUnitOfWork,
+  SnapshotInsertInput,
+  SnapshotRecord,
+  SnapshotRepository,
+  TransactionRunner,
+  UnitOfWorkPort,
+} from './persistence-ports.js';

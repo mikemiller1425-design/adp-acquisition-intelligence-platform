@@ -12,9 +12,30 @@ import type {
   ScoreRecalcPort,
   VariableIntegrationPort,
 } from '../domain/ports.js';
+import type {
+  ApprovedSourceRecord,
+  ApprovedSourceRepository,
+  CollectionAttemptInsertInput,
+  CollectionAttemptRecord,
+  CollectionAttemptRepository,
+  CollectionRunRecord,
+  CollectionRunRepository,
+  CollectionRunStatus,
+  ConcurrencyGatePort,
+  ExtractionRunRecord,
+  ExtractionRunRepository,
+  RateLimitStateRepository,
+  ResearchUnitOfWork,
+  SnapshotInsertInput,
+  SnapshotRecord,
+  SnapshotRepository,
+  TransactionRunner,
+} from '../domain/persistence-ports.js';
 import type { ResearchPriorityAssessment } from '../domain/research-priority.js';
 import type { ExtractedClaimProposal } from '../domain/extraction.js';
 import type { ClaimReviewStatus } from '../domain/claim-review.js';
+import type { RateLimitState } from '../domain/rate-limit.js';
+import { InProcessConcurrencyGate } from './concurrency-gate.js';
 
 export class InMemoryOutbox implements OutboxPort {
   readonly events: Array<Record<string, unknown>> = [];
@@ -189,5 +210,224 @@ export class InMemoryPriorityRepository implements PriorityRepository {
   assessments = new Map<string, ResearchPriorityAssessment>();
   async save(organizationId: string, assessment: ResearchPriorityAssessment) {
     this.assessments.set(organizationId, assessment);
+  }
+}
+
+export class InMemorySnapshotRepository implements SnapshotRepository {
+  snapshots = new Map<string, SnapshotRecord>();
+
+  async insert(input: SnapshotInsertInput): Promise<SnapshotRecord> {
+    const record: SnapshotRecord = {
+      id: input.id ?? crypto.randomUUID(),
+      organizationId: input.organizationId ?? null,
+      approvedSourceId: input.approvedSourceId ?? null,
+      collectionJobId: input.collectionJobId ?? null,
+      requestedUrl: input.requestedUrl,
+      finalUrl: input.finalUrl,
+      domain: input.domain,
+      adapterVersion: input.adapterVersion,
+      policyVersion: input.policyVersion,
+      retrievedAt: input.retrievedAt,
+      httpStatus: input.httpStatus ?? null,
+      contentType: input.contentType ?? null,
+      contentLength: input.contentLength ?? null,
+      contentHash: input.contentHash,
+      etag: input.etag ?? null,
+      lastModified: input.lastModified ?? null,
+      redirectChain: input.redirectChain ?? [],
+      parserVersion: input.parserVersion,
+      storageKey: input.storageKey ?? null,
+      retentionExpiresAt: input.retentionExpiresAt ?? null,
+      unchangedFromSnapshotId: input.unchangedFromSnapshotId ?? null,
+    };
+    this.snapshots.set(record.id, record);
+    return record;
+  }
+
+  async getById(id: string): Promise<SnapshotRecord | null> {
+    return this.snapshots.get(id) ?? null;
+  }
+}
+
+export class InMemoryExtractionRunRepository implements ExtractionRunRepository {
+  runs = new Map<string, ExtractionRunRecord>();
+
+  async insert(
+    input: Parameters<ExtractionRunRepository['insert']>[0],
+  ): Promise<ExtractionRunRecord> {
+    const record: ExtractionRunRecord = {
+      id: input.id ?? crypto.randomUUID(),
+      sourceSnapshotId: input.sourceSnapshotId,
+      extractorVersion: input.extractorVersion,
+      mappingVersion: input.mappingVersion,
+      status: input.status ?? 'completed',
+      summary: input.summary ?? {},
+    };
+    this.runs.set(record.id, record);
+    return record;
+  }
+}
+
+export class InMemoryCollectionAttemptRepository implements CollectionAttemptRepository {
+  attempts = new Map<string, CollectionAttemptRecord>();
+
+  async insert(input: CollectionAttemptInsertInput): Promise<CollectionAttemptRecord> {
+    const record: CollectionAttemptRecord = {
+      id: input.id ?? crypto.randomUUID(),
+      collectionRunId: input.collectionRunId,
+      collectionJobId: input.collectionJobId ?? null,
+      organizationId: input.organizationId ?? null,
+      approvedSourceId: input.approvedSourceId ?? null,
+      requestedUrl: input.requestedUrl,
+      finalUrl: input.finalUrl ?? null,
+      domain: input.domain ?? null,
+      status: input.status,
+      errorCode: input.errorCode ?? null,
+      errorMessage: input.errorMessage ?? null,
+      httpStatus: input.httpStatus ?? null,
+      contentHash: input.contentHash ?? null,
+      redirectChain: input.redirectChain ?? [],
+      startedAt: input.startedAt ?? null,
+      completedAt: input.completedAt ?? null,
+      createdAt: new Date(),
+    };
+    this.attempts.set(record.id, record);
+    return record;
+  }
+
+  async update(
+    id: string,
+    patch: Parameters<CollectionAttemptRepository['update']>[1],
+  ): Promise<CollectionAttemptRecord> {
+    const current = this.attempts.get(id);
+    if (!current) throw new Error('collection_attempt_not_found');
+    const next = { ...current, ...patch };
+    this.attempts.set(id, next);
+    return next;
+  }
+}
+
+export class InMemoryCollectionRunRepository implements CollectionRunRepository {
+  runs = new Map<string, CollectionRunRecord>();
+
+  seed(run: CollectionRunRecord) {
+    this.runs.set(run.id, run);
+  }
+
+  async create(
+    input: Parameters<CollectionRunRepository['create']>[0],
+  ): Promise<CollectionRunRecord> {
+    const record: CollectionRunRecord = {
+      id: input.id ?? crypto.randomUUID(),
+      status: input.status ?? 'queued',
+      approvedSourceId: input.approvedSourceId ?? null,
+      policyVersion: input.policyVersion ?? 'collection-policy-v1',
+      idempotencyKey: input.idempotencyKey,
+      killSwitchObserved: input.killSwitchObserved ?? false,
+      targetCount: input.targetCount ?? 0,
+      completedCount: 0,
+      failedCount: 0,
+      blockedCount: 0,
+      summary: input.summary ?? {},
+      requestedByUserId: input.requestedByUserId ?? null,
+      startedAt: null,
+      completedAt: null,
+      cancelledAt: null,
+    };
+    this.runs.set(record.id, record);
+    return record;
+  }
+
+  async get(id: string): Promise<CollectionRunRecord | null> {
+    return this.runs.get(id) ?? null;
+  }
+
+  async list(): Promise<CollectionRunRecord[]> {
+    return [...this.runs.values()];
+  }
+
+  async updateStatus(
+    id: string,
+    status: CollectionRunStatus,
+    patch: Parameters<CollectionRunRepository['updateStatus']>[2] = {},
+  ): Promise<CollectionRunRecord> {
+    const current = this.runs.get(id);
+    if (!current) throw new Error('collection_run_not_found');
+    const next = { ...current, status, ...patch };
+    this.runs.set(id, next);
+    return next;
+  }
+
+  async updateSummary(id: string, summary: Record<string, unknown>): Promise<CollectionRunRecord> {
+    const current = this.runs.get(id);
+    if (!current) throw new Error('collection_run_not_found');
+    const next = { ...current, summary };
+    this.runs.set(id, next);
+    return next;
+  }
+}
+
+export class InMemoryApprovedSourceRepository implements ApprovedSourceRepository {
+  sources = new Map<string, ApprovedSourceRecord>();
+
+  seed(source: ApprovedSourceRecord) {
+    this.sources.set(source.sourceKey, source);
+  }
+
+  async getByKey(sourceKey: string): Promise<ApprovedSourceRecord | null> {
+    return this.sources.get(sourceKey) ?? null;
+  }
+
+  async setKillSwitch(sourceKey: string, active: boolean): Promise<void> {
+    const current = this.sources.get(sourceKey);
+    if (!current) return;
+    this.sources.set(sourceKey, { ...current, killSwitchActive: active });
+  }
+
+  async getKillSwitch(sourceKey: string): Promise<boolean> {
+    return this.sources.get(sourceKey)?.killSwitchActive ?? false;
+  }
+}
+
+export class InMemoryRateLimitStateRepository implements RateLimitStateRepository {
+  states = new Map<string, RateLimitState>();
+
+  private key(sourceId: string, domain: string) {
+    return `${sourceId}:${domain}`;
+  }
+
+  async load(sourceId: string, domain: string): Promise<RateLimitState | null> {
+    return this.states.get(this.key(sourceId, domain)) ?? null;
+  }
+
+  async save(sourceId: string, domain: string, state: RateLimitState): Promise<void> {
+    this.states.set(this.key(sourceId, domain), state);
+  }
+}
+
+export function createInMemoryResearchUnitOfWork(
+  concurrency: ConcurrencyGatePort = new InProcessConcurrencyGate(),
+): ResearchUnitOfWork {
+  return {
+    population: new InMemoryPopulationRepository(),
+    claims: new InMemoryClaimRepository(),
+    priority: new InMemoryPriorityRepository(),
+    snapshots: new InMemorySnapshotRepository(),
+    extractionRuns: new InMemoryExtractionRunRepository(),
+    collectionAttempts: new InMemoryCollectionAttemptRepository(),
+    collectionRuns: new InMemoryCollectionRunRepository(),
+    approvedSources: new InMemoryApprovedSourceRepository(),
+    rateLimits: new InMemoryRateLimitStateRepository(),
+    outbox: new InMemoryOutbox(),
+    organizations: new InMemoryOrganizationLookup(),
+    concurrency,
+  };
+}
+
+export class InMemoryTransactionRunner implements TransactionRunner {
+  constructor(private readonly uow: ResearchUnitOfWork) {}
+
+  async runInTransaction<T>(fn: (uow: ResearchUnitOfWork) => Promise<T>): Promise<T> {
+    return fn(this.uow);
   }
 }

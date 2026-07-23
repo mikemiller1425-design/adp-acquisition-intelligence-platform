@@ -88,6 +88,7 @@ export const collectionRunStatusEnum = pgEnum('collection_run_status', [
   'cancelled',
   'completed',
   'failed',
+  'blocked',
 ]);
 
 export const collectionJobStatusEnum = pgEnum('collection_job_status', [
@@ -492,6 +493,46 @@ export const collectionJobs = pgTable(
     uniqueIndex('collection_jobs_idempotency_unique').on(t.idempotencyKey),
     index('collection_jobs_run_idx').on(t.collectionRunId),
     index('collection_jobs_status_idx').on(t.status),
+  ],
+);
+
+export const collectionAttempts = pgTable(
+  'collection_attempts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    collectionRunId: uuid('collection_run_id')
+      .notNull()
+      .references(() => collectionRuns.id, { onDelete: 'cascade' }),
+    collectionJobId: uuid('collection_job_id').references(() => collectionJobs.id, {
+      onDelete: 'set null',
+    }),
+    organizationId: uuid('organization_id').references(() => organizations.id, {
+      onDelete: 'set null',
+    }),
+    approvedSourceId: uuid('approved_source_id').references(() => approvedSources.id, {
+      onDelete: 'set null',
+    }),
+    requestedUrl: text('requested_url').notNull(),
+    finalUrl: text('final_url'),
+    domain: text('domain'),
+    status: text('status').notNull(),
+    errorCode: text('error_code'),
+    errorMessage: text('error_message'),
+    httpStatus: integer('http_status'),
+    contentHash: text('content_hash'),
+    redirectChain: jsonb('redirect_chain').$type<string[]>().notNull().default([]),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('collection_attempts_run_idx').on(t.collectionRunId),
+    index('collection_attempts_organization_idx').on(t.organizationId),
+    index('collection_attempts_status_idx').on(t.status),
+    check(
+      'collection_attempts_status_check',
+      sql`${t.status} in ('queued', 'running', 'succeeded', 'failed', 'blocked', 'cancelled')`,
+    ),
   ],
 );
 
