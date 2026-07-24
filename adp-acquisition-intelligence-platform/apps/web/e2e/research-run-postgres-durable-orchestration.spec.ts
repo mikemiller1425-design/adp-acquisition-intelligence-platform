@@ -52,23 +52,19 @@ async function waitUrl(url: string, timeoutMs = 120_000) {
 
 async function startWeb() {
   if (web) return;
-  web = spawn(
-    'pnpm',
-    ['exec', 'next', 'dev', '--hostname', '127.0.0.1', '--port', String(PORT)],
-    {
-      cwd: process.cwd(),
-      env: {
-        ...process.env,
-        DATABASE_URL: databaseUrl,
-        ADP_RESEARCH_PROVIDER: 'postgres',
-        ADP_JOB_QUEUE: 'durable',
-        ADP_LIVE_RESEARCH_ENABLED: 'false',
-        ADP_WEB_USER_ROLES: 'admin,sales,reviewer',
-        ADP_ENV: 'development',
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
+  web = spawn('pnpm', ['exec', 'next', 'dev', '--hostname', '127.0.0.1', '--port', String(PORT)], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
+      ADP_RESEARCH_PROVIDER: 'postgres',
+      ADP_JOB_QUEUE: 'durable',
+      ADP_LIVE_RESEARCH_ENABLED: 'false',
+      ADP_WEB_USER_ROLES: 'admin,sales,reviewer',
+      ADP_ENV: 'development',
     },
-  );
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
   attachLogs(web, 'web');
   await waitUrl(`${BASE_URL}/research`);
 }
@@ -200,12 +196,7 @@ test.describe('Phase 1.2 PostgreSQL durable research-run orchestration', () => {
     let sawDurableActivity = false;
     for (let i = 0; i < 40; i += 1) {
       const probe = await probeQueue();
-      if (
-        probe.durableJobs.queued +
-          probe.durableJobs.running +
-          probe.durableJobs.completed >
-        0
-      ) {
+      if (probe.durableJobs.queued + probe.durableJobs.running + probe.durableJobs.completed > 0) {
         sawDurableActivity = true;
         break;
       }
@@ -233,9 +224,9 @@ test.describe('Phase 1.2 PostgreSQL durable research-run orchestration', () => {
       await delay(2000);
       await page.reload();
       expect(await page.getByTestId('research-run-status').textContent()).toBe('paused');
-      expect(
-        Number(await page.getByTestId('research-run-targets-completed').textContent()),
-      ).toBe(completedAtPause);
+      expect(Number(await page.getByTestId('research-run-targets-completed').textContent())).toBe(
+        completedAtPause,
+      );
 
       await page.getByTestId('resume-research-run').click();
       await expect(page.getByTestId('research-run-status')).toHaveText('queued');

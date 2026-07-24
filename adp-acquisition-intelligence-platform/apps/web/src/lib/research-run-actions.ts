@@ -110,7 +110,11 @@ async function resolveLaunchTargets(
   const runtime = await getWebResearchRuntime();
   const segment = config.savedTargetSegment;
   if (!segment) {
-    return { ok: false, code: 'target_segment_required', message: 'A saved target segment must be selected' };
+    return {
+      ok: false,
+      code: 'target_segment_required',
+      message: 'A saved target segment must be selected',
+    };
   }
 
   if (runtime.provider === 'postgres' && runtime.database) {
@@ -139,7 +143,7 @@ async function resolveLaunchTargets(
     canonicalDomain: (o.domain ?? 'acme-advisory.test').replace(/^www\./, ''),
   }));
   if (!fromSnapshot.length) {
-    const seeded: Array<{ organizationId: string; canonicalDomain: string | null }> = [];
+    const seeded: Array<{ organizationId: string; canonicalDomain: string }> = [];
     const fixtures = [
       { displayName: 'Acme Advisory', domain: 'acme-advisory.test' },
       { displayName: 'Beta Advisory', domain: 'beta-advisory.test' },

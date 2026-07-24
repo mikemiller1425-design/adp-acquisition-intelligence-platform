@@ -113,6 +113,24 @@ export class PostgresDurableJobStore implements DurableJobStore {
     return Number(row?.value ?? 0);
   }
 
+  async statusCounts(): Promise<{
+    queued: number;
+    running: number;
+    completed: number;
+    dead: number;
+  }> {
+    const statuses = ['queued', 'running', 'completed', 'dead'] as const;
+    const out = { queued: 0, running: 0, completed: 0, dead: 0 };
+    for (const status of statuses) {
+      const [row] = await this.db
+        .select({ value: count() })
+        .from(durableJobs)
+        .where(eq(durableJobs.status, status));
+      out[status] = Number(row?.value ?? 0);
+    }
+    return out;
+  }
+
   async heartbeat(workerId: string, metadata: Record<string, unknown> = {}): Promise<void> {
     await this.db
       .insert(workerHeartbeats)

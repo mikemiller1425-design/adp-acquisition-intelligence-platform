@@ -9,7 +9,9 @@ import { canExecuteApprovedSource } from './approved-source.js';
  */
 export type SourceRegistryPort = {
   getByKey(sourceKey: string): Promise<ApprovedSourceRecord | null>;
-  requireGate(sourceKey: string): Promise<
+  requireGate(
+    sourceKey: string,
+  ): Promise<
     | { ok: true; source: ApprovedSourceRecord; gate: SourceGateInput }
     | { ok: false; code: string; message: string }
   >;

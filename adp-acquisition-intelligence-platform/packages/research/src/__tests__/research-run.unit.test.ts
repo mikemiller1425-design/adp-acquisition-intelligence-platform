@@ -871,7 +871,6 @@ describe('durable lease reclaim', () => {
     // Simulate abandoned claim without complete.
     const claimed = await store.claim('dead-worker');
     expect(claimed?.status).toBe('running');
-    (claimed as { lockedAtMs?: number } | null);
     const job = [...store.jobs.values()][0]!;
     (job as { lockedAtMs?: number }).lockedAtMs = Date.now() - 60_000;
 

@@ -55,12 +55,8 @@ export async function resolveOrganizationsForSegment(
     };
   }
 
-  const firmTypes = input.organizationType
-    ? [input.organizationType]
-    : (segment.firmTypes ?? null);
-  const territoryCodes = input.territory
-    ? [input.territory]
-    : (segment.territoryCodes ?? null);
+  const firmTypes = input.organizationType ? [input.organizationType] : (segment.firmTypes ?? null);
+  const territoryCodes = input.territory ? [input.territory] : (segment.territoryCodes ?? null);
 
   const limit = Math.max(1, input.maxOrganizations);
   const conditions = [eq(organizations.recordStatus, 'active')];
@@ -78,10 +74,7 @@ export async function resolveOrganizationsForSegment(
         domain: organizations.domain,
       })
       .from(organizations)
-      .innerJoin(
-        organizationLocations,
-        eq(organizationLocations.organizationId, organizations.id),
-      )
+      .innerJoin(organizationLocations, eq(organizationLocations.organizationId, organizations.id))
       .innerJoin(territories, eq(territories.id, organizationLocations.territoryId))
       .where(and(...conditions, inArray(territories.code, territoryCodes)))
       .limit(limit);
