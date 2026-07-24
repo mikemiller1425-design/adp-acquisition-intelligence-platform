@@ -6,11 +6,13 @@
 ## Control layers
 
 1. **RBAC / capabilities** — `research_run:create|launch|pause|cancel|view`, `kill_switch:operate`
-2. **Launch gates** — segment required, limits required, source selected, source executable, global kill switch, live flag for live/archive modes
-3. **Dual gate before network** — `assertNetworkRetrievalPermitted` on archive/live adapters
-4. **Budget circuit breaker** — `maxTotalRequests` stops further retrieval
-5. **Checkpoints** — per-target idempotent resume
-6. **Human review** — proposed claims only; no auto-accept
+2. **Launch gates** — segment required, limits required, source selected, source executable, global kill switch, live flag for live/archive modes; blockers deep-link to RB records
+3. **Dual gate before network** — `assertNetworkRetrievalPermitted` on archive/live adapters (unknown approval = denied)
+4. **Official website DNS/IP validation** — resolve + `validateResolvedDestination` before transport; same-registrable-domain redirects
+5. **Request-budget + error-rate circuit breakers** — `maxTotalRequests` and consecutive/error-rate open stop new retrieval
+6. **Checkpoints** — per-target idempotent resume after worker/web restart
+7. **Human review** — proposed claims only; no auto-accept
+8. **No UI safety override** — confirmation checkbox is operator acknowledgment only; cannot bypass gates
 
 ## Fixture exemption (narrow)
 

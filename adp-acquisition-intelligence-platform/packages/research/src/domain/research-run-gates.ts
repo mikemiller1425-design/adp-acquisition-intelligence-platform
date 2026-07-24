@@ -8,8 +8,37 @@ export type LaunchBlocker = {
   code: string;
   message: string;
   blockerRecord?: string;
+  /** Relative docs path or blocker id for UI deep-link. */
+  href?: string;
   sourceKey?: string;
 };
+
+const BLOCKER_HREFS: Record<string, string> = {
+  'RB-015': '/docs/release/PHASE1_RELEASE_BLOCKERS.md#rb-015',
+  'RB-014': '/docs/release/PHASE1_RELEASE_BLOCKERS.md#rb-014',
+  'docs/research/RESEARCH_RUN_SAFETY_CONTROLS.md': '/docs/research/RESEARCH_RUN_SAFETY_CONTROLS.md',
+  'docs/research/APPROVED_SOURCE_REGISTRY.md': '/docs/research/APPROVED_SOURCE_REGISTRY.md',
+};
+
+export function blockerHref(blockerRecord?: string): string | undefined {
+  if (!blockerRecord) return undefined;
+  return BLOCKER_HREFS[blockerRecord] ?? `/docs/release/PHASE1_RELEASE_BLOCKERS.md`;
+}
+
+function pushBlocker(
+  blockers: LaunchBlocker[],
+  blocker: Omit<LaunchBlocker, 'href'> & { href?: string },
+): void {
+  const resolved = blocker.href ?? blockerHref(blocker.blockerRecord);
+  const next: LaunchBlocker = {
+    code: blocker.code,
+    message: blocker.message,
+  };
+  if (blocker.blockerRecord) next.blockerRecord = blocker.blockerRecord;
+  if (blocker.sourceKey) next.sourceKey = blocker.sourceKey;
+  if (resolved) next.href = resolved;
+  blockers.push(next);
+}
 
 export type SourceGateInput = ApprovedSourceGate & {
   sourceKey: string;
@@ -39,7 +68,7 @@ export function evaluateLaunchGates(ctx: LaunchGateContext): {
   const blockers: LaunchBlocker[] = [];
   const authz = new AllowListResearchCapabilityChecker(ctx.role);
   if (!authz.can('research_run:launch')) {
-    blockers.push({
+    pushBlocker(blockers, {
       code: 'capability_denied',
       message: 'User lacks research_run:launch capability',
       blockerRecord: 'docs/research/RESEARCH_RUN_SAFETY_CONTROLS.md',
@@ -47,7 +76,7 @@ export function evaluateLaunchGates(ctx: LaunchGateContext): {
   }
 
   if (!ctx.config.savedTargetSegment) {
-    blockers.push({
+    pushBlocker(blockers, {
       code: 'target_segment_required',
       message: 'A saved target segment must be selected',
     });
@@ -57,20 +86,20 @@ export function evaluateLaunchGates(ctx: LaunchGateContext): {
     !ctx.config.maxPagesPerOrganization ||
     !ctx.config.maxTotalRequests
   ) {
-    blockers.push({
+    pushBlocker(blockers, {
       code: 'limits_required',
       message: 'Maximum organizations, pages per organization, and total requests are required',
     });
   }
   if (!ctx.config.sourceKeys.length) {
-    blockers.push({
+    pushBlocker(blockers, {
       code: 'source_required',
       message: 'At least one source must be selected',
     });
   }
 
   if (ctx.globalKillSwitchActive) {
-    blockers.push({
+    pushBlocker(blockers, {
       code: 'global_kill_switch',
       message: 'Global live-collection kill switch is active',
       blockerRecord: 'RB-015',
@@ -80,10 +109,11 @@ export function evaluateLaunchGates(ctx: LaunchGateContext): {
   const needsLive = LIVE_MODES.includes(ctx.config.mode) || ctx.config.liveFallback;
   const needsArchive = ARCHIVE_MODES.includes(ctx.config.mode) || ctx.config.archiveFirst;
 
-  if (needsLive && !ctx.liveResearchEnabled) {
-    blockers.push({
+  if ((needsLive || needsArchive) && !ctx.liveResearchEnabled) {
+    pushBlocker(blockers, {
       code: 'live_research_disabled',
-      message: 'ADP_LIVE_RESEARCH_ENABLED is false — live retrieval is disabled by deployment gate',
+      message:
+        'ADP_LIVE_RESEARCH_ENABLED is false — live/archive network retrieval is disabled by deployment gate',
       blockerRecord: 'RB-015',
     });
   }
@@ -91,7 +121,7 @@ export function evaluateLaunchGates(ctx: LaunchGateContext): {
   for (const key of ctx.config.sourceKeys) {
     const source = ctx.sources.find((s) => s.sourceKey === key);
     if (!source) {
-      blockers.push({
+      pushBlocker(blockers, {
         code: 'source_not_found',
         message: `Source ${key} is not in the approved registry`,
         sourceKey: key,
@@ -106,22 +136,23 @@ export function evaluateLaunchGates(ctx: LaunchGateContext): {
         message: `${key}: ${decision.message}`,
         sourceKey: key,
       };
-      if (decision.code.includes('not_approved')) {
+      if (decision.code.includes('not_approved') || decision.code === 'lifecycle_not_enabled') {
         blocker.blockerRecord = 'RB-015';
       }
-      blockers.push(blocker);
+      pushBlocker(blockers, blocker);
     }
     if (source.killSwitchActive) {
-      blockers.push({
+      pushBlocker(blockers, {
         code: 'source_kill_switch',
         message: `Kill switch active for ${key}`,
         sourceKey: key,
+        blockerRecord: 'RB-015',
       });
     }
     const isLiveAdapter = source.adapterType === 'organization_website';
     const isArchiveAdapter = source.adapterType === 'archived_web';
     if (isLiveAdapter && needsLive && !ctx.liveResearchEnabled) {
-      blockers.push({
+      pushBlocker(blockers, {
         code: 'live_adapter_gated',
         message: `Live adapter ${key} blocked by ADP_LIVE_RESEARCH_ENABLED=false`,
         sourceKey: key,
@@ -129,7 +160,7 @@ export function evaluateLaunchGates(ctx: LaunchGateContext): {
       });
     }
     if (isArchiveAdapter && needsArchive && source.lifecycle !== 'enabled') {
-      blockers.push({
+      pushBlocker(blockers, {
         code: 'archive_not_enabled',
         message: `Archive adapter ${key} is not enabled (RB-015)`,
         sourceKey: key,

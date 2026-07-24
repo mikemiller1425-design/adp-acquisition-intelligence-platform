@@ -72,10 +72,11 @@ function parseConfig(formData: FormData): ResearchRunConfigInput {
   };
 }
 
-function fixtureSourcesFor(config: ResearchRunConfigInput): SourceGateInput[] {
+/** Registry-aligned source gates. Non-fixture entries stay fail-closed (draft / pending). */
+function registrySourcesFor(config: ResearchRunConfigInput): SourceGateInput[] {
   const fixture = getFixtureApprovedSource();
   return config.sourceKeys.map((sourceKey) => {
-    if (sourceKey === fixture.sourceKey) {
+    if (sourceKey === fixture.sourceKey || sourceKey === 'organization_website_fixture') {
       return {
         sourceKey: fixture.sourceKey,
         adapterType: fixture.adapterType,
@@ -87,7 +88,31 @@ function fixtureSourcesFor(config: ResearchRunConfigInput): SourceGateInput[] {
         securityReviewStatus: fixture.securityReviewStatus,
       };
     }
-    // Unknown / non-fixture sources stay fail-closed (draft + pending reviews).
+    if (sourceKey === 'archived_web_fixture' || sourceKey === 'archived_web_common_crawl') {
+      // Alias archived_web_common_crawl → archived_web_fixture (registry key).
+      return {
+        sourceKey: 'archived_web_fixture',
+        adapterType: 'archived_web',
+        lifecycle: 'draft',
+        killSwitchActive: false,
+        termsReviewStatus: 'pending',
+        privacyReviewStatus: 'pending',
+        legalReviewStatus: 'pending',
+        securityReviewStatus: 'pending',
+      };
+    }
+    if (sourceKey === 'organization_website_live') {
+      return {
+        sourceKey: 'organization_website_live',
+        adapterType: 'organization_website',
+        lifecycle: 'draft',
+        killSwitchActive: true,
+        termsReviewStatus: 'pending',
+        privacyReviewStatus: 'pending',
+        legalReviewStatus: 'pending',
+        securityReviewStatus: 'pending',
+      };
+    }
     return {
       sourceKey,
       adapterType: sourceKey.includes('archive') ? 'archived_web' : 'organization_website',
@@ -98,6 +123,29 @@ function fixtureSourcesFor(config: ResearchRunConfigInput): SourceGateInput[] {
       legalReviewStatus: 'pending',
       securityReviewStatus: 'pending',
     };
+  });
+}
+
+function configQueryParams(
+  config: ResearchRunConfigInput,
+  extra: Record<string, string>,
+): URLSearchParams {
+  return new URLSearchParams({
+    ...extra,
+    name: config.name,
+    objective: config.objective,
+    mode: config.mode,
+    savedTargetSegment: config.savedTargetSegment ?? '',
+    territory: config.territory ?? '',
+    organizationType: config.organizationType ?? '',
+    maxOrganizations: String(config.maxOrganizations),
+    maxPagesPerOrganization: String(config.maxPagesPerOrganization),
+    maxTotalRequests: String(config.maxTotalRequests),
+    sourceKeys: config.sourceKeys.join(','),
+    archiveFirst: config.archiveFirst ? '1' : '0',
+    liveFallback: config.liveFallback ? '1' : '0',
+    dryRun: config.dryRun ? '1' : '0',
+    freshnessThresholdHours: String(config.freshnessThresholdHours),
   });
 }
 
@@ -124,14 +172,20 @@ export async function previewOrLaunchResearchRunAction(formData: FormData) {
   assertRoles(['admin', 'sales']);
   const intent = String(formData.get('intent') ?? 'preview');
   const config = parseConfig(formData);
+  // Normalize alias to registry key before gating / persistence.
+  config.sourceKeys = config.sourceKeys.map((k) =>
+    k === 'archived_web_common_crawl' ? 'archived_web_fixture' : k,
+  );
   const runtime = await getWebResearchRuntime();
   const role = primaryResearchRole();
-  const sources = fixtureSourcesFor(config);
+  const sources = registrySourcesFor(config);
+  const operatorConfirmed =
+    formData.get('operatorConfirmed') === 'on' || formData.get('operatorConfirmed') === 'true';
 
   const preview = runtime.researchRuns.preview({ role, config, sources });
 
   if (intent === 'preview') {
-    const params = new URLSearchParams({
+    const params = configQueryParams(config, {
       preview: '1',
       allowed: preview.allowed ? '1' : '0',
       estimatedRequests: String(preview.estimates.estimatedRequests),
@@ -140,26 +194,13 @@ export async function previewOrLaunchResearchRunAction(formData: FormData) {
       killSwitchStatus: preview.killSwitchStatus,
       liveResearchEnabled: preview.liveResearchEnabled ? '1' : '0',
       blockers: JSON.stringify(preview.blockers),
-      name: config.name,
-      objective: config.objective,
-      mode: config.mode,
-      savedTargetSegment: config.savedTargetSegment ?? '',
-      territory: config.territory ?? '',
-      organizationType: config.organizationType ?? '',
-      maxOrganizations: String(config.maxOrganizations),
-      maxPagesPerOrganization: String(config.maxPagesPerOrganization),
-      maxTotalRequests: String(config.maxTotalRequests),
-      sourceKeys: config.sourceKeys.join(','),
-      archiveFirst: config.archiveFirst ? '1' : '0',
-      liveFallback: config.liveFallback ? '1' : '0',
-      dryRun: config.dryRun ? '1' : '0',
-      freshnessThresholdHours: String(config.freshnessThresholdHours),
+      operatorConfirmed: operatorConfirmed ? '1' : '0',
     });
     redirect(`/research/runs/new?${params.toString()}`);
   }
 
   if (!preview.allowed) {
-    const params = new URLSearchParams({
+    const params = configQueryParams(config, {
       preview: '1',
       allowed: '0',
       estimatedRequests: String(preview.estimates.estimatedRequests),
@@ -169,20 +210,28 @@ export async function previewOrLaunchResearchRunAction(formData: FormData) {
       liveResearchEnabled: preview.liveResearchEnabled ? '1' : '0',
       blockers: JSON.stringify(preview.blockers),
       launchBlocked: '1',
-      name: config.name,
-      objective: config.objective,
-      mode: config.mode,
-      savedTargetSegment: config.savedTargetSegment ?? '',
-      territory: config.territory ?? '',
-      organizationType: config.organizationType ?? '',
-      maxOrganizations: String(config.maxOrganizations),
-      maxPagesPerOrganization: String(config.maxPagesPerOrganization),
-      maxTotalRequests: String(config.maxTotalRequests),
-      sourceKeys: config.sourceKeys.join(','),
-      archiveFirst: config.archiveFirst ? '1' : '0',
-      liveFallback: config.liveFallback ? '1' : '0',
-      dryRun: config.dryRun ? '1' : '0',
-      freshnessThresholdHours: String(config.freshnessThresholdHours),
+      operatorConfirmed: operatorConfirmed ? '1' : '0',
+    });
+    redirect(`/research/runs/new?${params.toString()}`);
+  }
+
+  if (!operatorConfirmed) {
+    const params = configQueryParams(config, {
+      preview: '1',
+      allowed: '1',
+      estimatedRequests: String(preview.estimates.estimatedRequests),
+      estimatedRuntimeMinutes: String(preview.estimates.estimatedRuntimeMinutes),
+      policyVersion: preview.policyVersion,
+      killSwitchStatus: preview.killSwitchStatus,
+      liveResearchEnabled: preview.liveResearchEnabled ? '1' : '0',
+      blockers: JSON.stringify([
+        {
+          code: 'operator_confirmation_required',
+          message: 'Confirm the bounded run configuration before launch',
+        },
+      ]),
+      launchBlocked: '1',
+      operatorConfirmed: '0',
     });
     redirect(`/research/runs/new?${params.toString()}`);
   }
@@ -243,4 +292,21 @@ export async function cancelResearchRunAction(formData: FormData) {
   revalidatePath(`/research/runs/${runId}`);
   revalidatePath('/research/runs');
   redirect(`/research/runs/${runId}`);
+}
+
+export async function activateResearchRunKillSwitchAction(formData: FormData) {
+  assertRoles(['admin']);
+  const runId = String(formData.get('runId') ?? '');
+  if (!runId) throw new Error('runId required');
+  const runtime = await getWebResearchRuntime();
+  await runtime.researchRuns.activateKillSwitch(runId, primaryResearchRole());
+  revalidatePath(`/research/runs/${runId}`);
+  redirect(`/research/runs/${runId}`);
+}
+
+export async function exportResearchRunReportAction(formData: FormData) {
+  assertRoles(['admin', 'sales', 'reviewer']);
+  const runId = String(formData.get('runId') ?? '');
+  if (!runId) throw new Error('runId required');
+  redirect(`/research/runs/${runId}?export=1`);
 }

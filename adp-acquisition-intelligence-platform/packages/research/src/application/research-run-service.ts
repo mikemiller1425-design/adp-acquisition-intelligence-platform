@@ -4,6 +4,13 @@ import type { JobDispatcherPort } from '@adp/platform';
 
 import { AllowListResearchCapabilityChecker, type ResearchRole } from '../domain/authz.js';
 import {
+  assertCircuitClosed,
+  createCircuitBreakerState,
+  evaluateRequestBudget,
+  recordCircuitAttempt,
+  type CircuitBreakerState,
+} from '../domain/circuit-breaker.js';
+import {
   assertTransitionResearchRun,
   estimateResearchRun,
   type ResearchRunConfigInput,
@@ -124,7 +131,30 @@ export type ResearchRunRepository = {
     contentHash?: string;
     errorCode?: string;
   }): Promise<void>;
+  addApproval(input: {
+    researchRunId: string;
+    approvalType: string;
+    status: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<void>;
+  listApprovals(
+    runId: string,
+  ): Promise<Array<{ approvalType: string; status: string; evidence: Record<string, unknown> }>>;
+  recordMetric(
+    runId: string,
+    metricKey: string,
+    metricValue: Record<string, unknown>,
+  ): Promise<void>;
+  listMetrics(
+    runId: string,
+  ): Promise<Array<{ metricKey: string; metricValue: Record<string, unknown> }>>;
 };
+
+export type FreshSnapshotLookup = (input: {
+  organizationId: string;
+  domain: string;
+  freshnessThresholdHours: number;
+}) => Promise<{ id: string; contentHash: string; retrievedAt: Date } | null>;
 
 export type ResearchRunOrchestratorDeps = {
   runs: ResearchRunRepository;
@@ -138,6 +168,8 @@ export type ResearchRunOrchestratorDeps = {
   archiveRecords?: ArchiveIndexRecord[];
   commonCrawl?: CommonCrawlArchiveAdapter;
   officialWebsite?: OfficialWebsiteAdapter;
+  /** Optional internal-snapshot reuse (preferred order step 2). */
+  findFreshSnapshot?: FreshSnapshotLookup;
 };
 
 const FIXTURE_HTML = `<!doctype html><html><body>
@@ -150,6 +182,7 @@ export class ResearchRunService {
   private readonly officialWebsite: OfficialWebsiteAdapter;
   private readonly fixture: FixtureRetrievalPort;
   private readonly deps: ResearchRunOrchestratorDeps;
+  private readonly circuitByRun = new Map<string, CircuitBreakerState>();
 
   constructor(deps: ResearchRunOrchestratorDeps) {
     this.deps = deps;
@@ -213,18 +246,26 @@ export class ResearchRunService {
     targets: Array<{ organizationId: string; canonicalDomain: string | null }>;
     idempotencyKey: string;
     correlationId?: string;
+    /** When true, non-fixture runs stop at awaiting_approval until approveRun. */
+    requireOperatorApproval?: boolean;
   }): Promise<{ run: ResearchRunRecord; blockers: LaunchBlocker[] }> {
     const authz = new AllowListResearchCapabilityChecker(input.role);
     authz.assert('research_run:create');
 
     const preview = this.preview(input);
     const definitionId = randomUUID();
+    const configSnapshot = {
+      ...input.config,
+      estimates: preview.estimates,
+      sources: input.sources,
+      policyVersion: 'research-run-policy-v1',
+    };
     await this.deps.runs.createDefinition({
       id: definitionId,
       name: input.config.name,
       objective: input.config.objective,
       mode: input.config.mode,
-      configSnapshot: { ...input.config, estimates: preview.estimates },
+      configSnapshot,
       targetQuerySnapshot: {
         segment: input.config.savedTargetSegment,
         territory: input.config.territory,
@@ -252,7 +293,7 @@ export class ResearchRunService {
       mode: input.config.mode,
       correlationId,
       idempotencyKey: input.idempotencyKey,
-      configSnapshot: { ...input.config, estimates: preview.estimates },
+      configSnapshot,
       killSwitchActive: false,
       targetsTotal: bounded.length,
       targetsCompleted: 0,
@@ -279,12 +320,24 @@ export class ResearchRunService {
         errorSummary: { blockers: preview.blockers },
       });
       await this.deps.runs.addEvent(runId, 'research_run.blocked', { blockers: preview.blockers });
+      await this.deps.runs.addApproval({
+        researchRunId: runId,
+        approvalType: 'launch_gate',
+        status: 'denied',
+        evidence: { blockers: preview.blockers },
+      });
       return { run, blockers: preview.blockers };
     }
 
     authz.assert('research_run:launch');
-    assertTransitionResearchRun(run.status, 'queued');
-    run = await this.deps.runs.updateRun(runId, { status: 'queued' });
+
+    const fixtureLike = input.config.mode === 'fixture' || input.config.mode === 'dry_run';
+    const needsApproval =
+      Boolean(input.requireOperatorApproval) ||
+      (!fixtureLike &&
+        input.sources.some(
+          (s) => s.adapterType === 'archived_web' || s.adapterType === 'organization_website',
+        ));
 
     await this.deps.runs.addTargets(
       bounded.map((t) => ({
@@ -295,7 +348,45 @@ export class ResearchRunService {
         status: 'queued',
       })),
     );
+
+    if (needsApproval && !fixtureLike) {
+      assertTransitionResearchRun(run.status, 'awaiting_approval');
+      run = await this.deps.runs.updateRun(runId, { status: 'awaiting_approval' });
+      await this.deps.runs.addApproval({
+        researchRunId: runId,
+        approvalType: 'operator_confirmation',
+        status: 'pending',
+        evidence: { mode: input.config.mode, sources: input.config.sourceKeys },
+      });
+      await this.deps.runs.addEvent(runId, 'research_run.awaiting_approval', {});
+      await this.deps.runs.recordMetric(runId, 'launch_gate', {
+        allowed: true,
+        awaitingApproval: true,
+        estimates: preview.estimates,
+      });
+      return { run, blockers: [] };
+    }
+
+    await this.deps.runs.addApproval({
+      researchRunId: runId,
+      approvalType: fixtureLike ? 'fixture_exempt' : 'operator_confirmation',
+      status: 'approved',
+      evidence: {
+        mode: input.config.mode,
+        role: input.role,
+        note: fixtureLike
+          ? 'Fixture/dry_run uses not_required_for_fixture reviews; not a legal approval'
+          : 'Operator launch confirmation',
+      },
+    });
+
+    assertTransitionResearchRun(run.status, 'queued');
+    run = await this.deps.runs.updateRun(runId, { status: 'queued' });
     await this.deps.runs.addEvent(runId, 'research_run.queued', { targets: bounded.length });
+    await this.deps.runs.recordMetric(runId, 'launch_gate', {
+      allowed: true,
+      estimates: preview.estimates,
+    });
 
     await this.deps.jobs.enqueue({
       name: 'research.run.execute',
@@ -305,6 +396,28 @@ export class ResearchRunService {
     });
 
     return { run: (await this.deps.runs.getRun(runId))!, blockers: [] };
+  }
+
+  /** Promote awaiting_approval → queued after operator confirmation. */
+  async approveRun(runId: string, role: ResearchRole, evidence: Record<string, unknown> = {}) {
+    new AllowListResearchCapabilityChecker(role).assert('research_run:launch');
+    const run = await this.requireRun(runId);
+    assertTransitionResearchRun(run.status, 'queued');
+    await this.deps.runs.addApproval({
+      researchRunId: runId,
+      approvalType: 'operator_confirmation',
+      status: 'approved',
+      evidence: { ...evidence, role },
+    });
+    const updated = await this.deps.runs.updateRun(runId, { status: 'queued' });
+    await this.deps.runs.addEvent(runId, 'research_run.queued', { via: 'approveRun' });
+    await this.deps.jobs.enqueue({
+      name: 'research.run.execute',
+      idempotencyKey: `research.run.execute:${runId}:approved`,
+      correlationId: run.correlationId,
+      payload: { researchRunId: runId },
+    });
+    return updated;
   }
 
   async pause(runId: string, role: ResearchRole, reason: string) {
@@ -373,6 +486,33 @@ export class ResearchRunService {
     return this.deps.runs.listEvents(runId);
   }
 
+  async listApprovals(runId: string) {
+    return this.deps.runs.listApprovals(runId);
+  }
+
+  async listMetrics(runId: string) {
+    return this.deps.runs.listMetrics(runId);
+  }
+
+  /** Exportable operator report (no secrets; provenance summaries only). */
+  async exportRunReport(runId: string): Promise<Record<string, unknown>> {
+    const run = await this.requireRun(runId);
+    const targets = await this.deps.runs.listTargets(runId);
+    const events = await this.deps.runs.listEvents(runId);
+    const approvals = await this.deps.runs.listApprovals(runId);
+    const metrics = await this.deps.runs.listMetrics(runId);
+    return {
+      run,
+      targets,
+      events,
+      approvals,
+      metrics,
+      policyVersion: 'research-run-policy-v1',
+      liveResearchEnabledDefault: false,
+      exportedAt: new Date().toISOString(),
+    };
+  }
+
   /**
    * Worker entry — idempotent per target checkpoint.
    * Processes at most one pending target per invocation, then re-enqueues when more remain
@@ -414,41 +554,119 @@ export class ResearchRunService {
     const target = pending[0]!;
     run = await this.requireRun(researchRunId);
     if (run.status === 'paused' || run.status === 'pausing' || run.status === 'cancelled') return;
-    if (run.killSwitchActive || this.deps.globalKillSwitchActive) {
-      await this.deps.runs.updateTarget(target.id, { status: 'blocked', lastError: 'kill_switch' });
+
+    const budget = evaluateRequestBudget({
+      requestsConsumed: run.requestsConsumed,
+      maxTotalRequests: config.maxTotalRequests || 0,
+    });
+    if (!budget.allowed) {
+      await this.deps.runs.addEvent(researchRunId, 'research_run.budget_exhausted', {
+        reason: budget.reason,
+      });
+      assertTransitionResearchRun(run.status, 'completed');
+      await this.deps.runs.updateRun(researchRunId, { status: 'completed' });
+      await this.deps.runs.recordMetric(researchRunId, 'circuit_breaker', {
+        open: true,
+        reason: budget.reason,
+      });
+      return;
+    }
+
+    const circuit = this.circuitByRun.get(researchRunId) ?? createCircuitBreakerState();
+    try {
+      assertCircuitClosed(circuit);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.deps.runs.updateTarget(target.id, { status: 'blocked', lastError: message });
       await this.deps.runs.updateRun(researchRunId, {
         targetsBlocked: run.targetsBlocked + 1,
       });
-    } else {
-      const checkpointKey = `target:${target.id}:done`;
-      const existing = await this.deps.runs.getCheckpoint(researchRunId, checkpointKey);
-      if (existing) {
-        await this.deps.runs.updateTarget(target.id, { status: 'succeeded' });
+      await this.deps.runs.addEvent(researchRunId, 'research_run.circuit_open', { message });
+      await this.deps.runs.recordMetric(researchRunId, 'circuit_breaker', {
+        ...circuit,
+        open: true,
+      });
+      // Fall through to completion check below.
+      run = await this.requireRun(researchRunId);
+    }
+
+    if (run.status === 'running' && !circuit.open) {
+      if (run.killSwitchActive || this.deps.globalKillSwitchActive) {
+        await this.deps.runs.updateTarget(target.id, {
+          status: 'blocked',
+          lastError: 'kill_switch',
+        });
+        await this.deps.runs.updateRun(researchRunId, {
+          targetsBlocked: run.targetsBlocked + 1,
+        });
       } else {
-        await this.deps.runs.updateTarget(target.id, { status: 'running' });
-        try {
-          const result = await this.processTarget(run, config, target, dryRun);
-          await this.deps.runs.upsertCheckpoint(researchRunId, checkpointKey, result, target.id);
-          await this.deps.runs.updateTarget(target.id, { status: 'succeeded', checkpoint: result });
-          run = await this.deps.runs.updateRun(researchRunId, {
-            targetsCompleted: run.targetsCompleted + 1,
-            pagesRetrieved: run.pagesRetrieved + Number(result.pagesRetrieved ?? 0),
-            snapshotsCreated: run.snapshotsCreated + Number(result.snapshotsCreated ?? 0),
-            claimsProposed: run.claimsProposed + Number(result.claimsProposed ?? 0),
-            archiveHits: run.archiveHits + Number(result.archiveHits ?? 0),
-            liveFallbacks: run.liveFallbacks + Number(result.liveFallbacks ?? 0),
-            requestsConsumed: run.requestsConsumed + Number(result.requestsConsumed ?? 0),
-          });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          await this.deps.runs.updateTarget(target.id, { status: 'failed', lastError: message });
-          await this.deps.runs.updateRun(researchRunId, {
-            targetsFailed: run.targetsFailed + 1,
-          });
-          await this.deps.runs.addEvent(researchRunId, 'research_run.target_failed', {
-            targetId: target.id,
-            message,
-          });
+        const checkpointKey = `target:${target.id}:done`;
+        const existing = await this.deps.runs.getCheckpoint(researchRunId, checkpointKey);
+        if (existing) {
+          // Worker/web restart recovery: do not repeat successful work.
+          if (target.status !== 'succeeded') {
+            await this.deps.runs.updateTarget(target.id, {
+              status: 'succeeded',
+              checkpoint: existing,
+            });
+            run = await this.deps.runs.updateRun(researchRunId, {
+              targetsCompleted: run.targetsCompleted + 1,
+            });
+          }
+        } else {
+          await this.deps.runs.updateTarget(target.id, { status: 'running' });
+          try {
+            const result = await this.processTarget(run, config, target, dryRun);
+            await this.deps.runs.upsertCheckpoint(researchRunId, checkpointKey, result, target.id);
+            await this.deps.runs.updateTarget(target.id, {
+              status: 'succeeded',
+              checkpoint: result,
+            });
+            run = await this.deps.runs.updateRun(researchRunId, {
+              targetsCompleted: run.targetsCompleted + 1,
+              pagesRetrieved: run.pagesRetrieved + Number(result.pagesRetrieved ?? 0),
+              snapshotsCreated: run.snapshotsCreated + Number(result.snapshotsCreated ?? 0),
+              claimsProposed: run.claimsProposed + Number(result.claimsProposed ?? 0),
+              archiveHits: run.archiveHits + Number(result.archiveHits ?? 0),
+              liveFallbacks: run.liveFallbacks + Number(result.liveFallbacks ?? 0),
+              requestsConsumed: run.requestsConsumed + Number(result.requestsConsumed ?? 0),
+            });
+            const nextCircuit = recordCircuitAttempt(circuit, 'success', {
+              maxConsecutiveFailures: 5,
+              maxFailureRate: 0.8,
+              minAttempts: 5,
+              maxTotalRequests: config.maxTotalRequests,
+            });
+            this.circuitByRun.set(researchRunId, nextCircuit);
+            await this.deps.runs.recordMetric(researchRunId, 'progress', {
+              targetsCompleted: run.targetsCompleted,
+              requestsConsumed: run.requestsConsumed,
+              archiveHits: run.archiveHits,
+              liveFallbacks: run.liveFallbacks,
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            const nextCircuit = recordCircuitAttempt(circuit, 'failure', {
+              maxConsecutiveFailures: 5,
+              maxFailureRate: 0.8,
+              minAttempts: 5,
+              maxTotalRequests: config.maxTotalRequests,
+            });
+            this.circuitByRun.set(researchRunId, nextCircuit);
+            await this.deps.runs.updateTarget(target.id, { status: 'failed', lastError: message });
+            await this.deps.runs.updateRun(researchRunId, {
+              targetsFailed: run.targetsFailed + 1,
+            });
+            await this.deps.runs.addEvent(researchRunId, 'research_run.target_failed', {
+              targetId: target.id,
+              message,
+            });
+            if (nextCircuit.open) {
+              await this.deps.runs.recordMetric(researchRunId, 'circuit_breaker', {
+                ...nextCircuit,
+              });
+            }
+          }
         }
       }
     }
@@ -482,6 +700,90 @@ export class ResearchRunService {
     });
   }
 
+  private resolveSources(config: ResearchRunConfigInput): SourceGateInput[] {
+    const snap = config as ResearchRunConfigInput & { sources?: SourceGateInput[] };
+    if (Array.isArray(snap.sources) && snap.sources.length) return snap.sources;
+    return config.sourceKeys.map((sourceKey) => ({
+      sourceKey,
+      adapterType: sourceKey.includes('archive')
+        ? 'archived_web'
+        : sourceKey.includes('fixture')
+          ? 'fixture'
+          : 'organization_website',
+      lifecycle: 'draft' as const,
+      killSwitchActive: true,
+      termsReviewStatus: 'pending',
+      privacyReviewStatus: 'pending',
+      legalReviewStatus: 'pending',
+      securityReviewStatus: 'pending',
+    }));
+  }
+
+  private async persistRetrievalAsClaims(input: {
+    run: ResearchRunRecord;
+    target: ResearchRunTargetRecord;
+    domain: string;
+    url: string;
+    body: string;
+    contentType: string;
+    httpStatus: number;
+    redirectChain: string[];
+    adapterVersion: string;
+    sourceKey: string;
+    adapterType: string;
+    provenance: Record<string, unknown>;
+  }): Promise<{ snapshotsCreated: number; claimsProposed: number; contentHash: string }> {
+    const hash = contentHash(input.body);
+    const snapshot = await this.deps.snapshots.insert({
+      organizationId: input.target.organizationId,
+      requestedUrl: input.url,
+      finalUrl: input.url,
+      domain: input.domain,
+      httpStatus: input.httpStatus,
+      contentType: input.contentType,
+      contentHash: hash,
+      redirectChain: input.redirectChain,
+      adapterVersion: input.adapterVersion,
+      parserVersion: 'v1',
+      policyVersion: 'research-run-policy-v1',
+      retrievedAt: new Date(),
+    });
+    let claimsProposed = 0;
+    const proposals = extractClaimsFromHtml(input.body);
+    if (proposals.length) {
+      const extraction = await this.deps.extractionRuns.insert({
+        sourceSnapshotId: snapshot.id,
+        extractorVersion: EXTRACTOR_VERSION,
+        mappingVersion: MAPPING_VERSION,
+        status: 'completed',
+        summary: { proposalCount: proposals.length },
+      });
+      const inserted = await this.deps.claims.insertProposals(
+        proposals.map((p) => ({
+          ...p,
+          organizationId: input.target.organizationId,
+          sourceUrl: input.url,
+          sourceSnapshotId: snapshot.id,
+          extractionRunId: extraction.id,
+          extractorVersion: EXTRACTOR_VERSION,
+          mappingVersion: MAPPING_VERSION,
+        })),
+      );
+      claimsProposed = inserted.length;
+    }
+    await this.deps.runs.addSourceAttempt({
+      researchRunId: input.run.id,
+      targetId: input.target.id,
+      sourceKey: input.sourceKey,
+      adapterType: input.adapterType,
+      status: 'succeeded',
+      requestedUrl: input.url,
+      contentHash: hash,
+      provenance: input.provenance,
+    });
+    return { snapshotsCreated: 1, claimsProposed, contentHash: hash };
+  }
+
   private async processTarget(
     run: ResearchRunRecord,
     config: ResearchRunConfigInput,
@@ -496,6 +798,8 @@ export class ResearchRunService {
     let archiveHits = 0;
     let liveFallbacks = 0;
     let requestsConsumed = 0;
+    let internalSnapshotHits = 0;
+    let licensedHits = 0;
 
     if (dryRun) {
       return {
@@ -507,81 +811,49 @@ export class ResearchRunService {
       };
     }
 
-    // Preferred order: internal snapshot reuse is modeled as checkpoint skip above.
-    // Archive before live when mode requests it.
-    if (
-      config.mode === 'archive_only' ||
-      config.mode === 'archive_first_live_fallback' ||
-      (config.archiveFirst &&
-        config.mode !== 'fixture' &&
-        config.mode !== 'live_official_site_only')
-    ) {
-      // Archive path requires enabled source + liveResearchEnabled; fixture tests use recorded bodies
-      // only when mode is not fixture — for fixture mode we skip to fixture retrieval.
-    }
+    const sources = this.resolveSources(config);
 
     if (config.mode === 'fixture') {
+      const fixtureSource =
+        sources.find((s) => s.adapterType === 'fixture') ??
+        ({
+          sourceKey: 'organization_website_fixture',
+          adapterType: 'fixture',
+          lifecycle: 'enabled',
+          killSwitchActive: false,
+          termsReviewStatus: 'not_required_for_fixture',
+          privacyReviewStatus: 'not_required_for_fixture',
+          legalReviewStatus: 'not_required_for_fixture',
+          securityReviewStatus: 'not_required_for_fixture',
+        } satisfies SourceGateInput);
+
       for (const path of pages) {
-        if (run.killSwitchActive) break;
-        const url = `https://${domain}${path === '/' ? '/' : path}`;
-        // Kill switch checked before each retrieval
         if (this.deps.globalKillSwitchActive || run.killSwitchActive) {
           throw new Error('kill_switch_active');
         }
+        const url = `https://${domain}${path === '/' ? '/' : path}`;
         const body =
           this.deps.fixturePages?.[url]?.body ??
           this.deps.fixturePages?.[`https://${domain}/`]?.body ??
           FIXTURE_HTML;
         requestsConsumed += 1;
         pagesRetrieved += 1;
-        const hash = contentHash(body);
-        const snapshot = await this.deps.snapshots.insert({
-          organizationId: target.organizationId,
-          requestedUrl: url,
-          finalUrl: url,
+        const persisted = await this.persistRetrievalAsClaims({
+          run,
+          target,
           domain,
-          httpStatus: 200,
+          url,
+          body,
           contentType: 'text/html',
-          contentHash: hash,
+          httpStatus: 200,
           redirectChain: [],
           adapterVersion: 'fixture-v1',
-          parserVersion: 'v1',
-          policyVersion: 'research-run-policy-v1',
-          retrievedAt: new Date(),
-        });
-        snapshotsCreated += 1;
-        const proposals = extractClaimsFromHtml(body);
-        if (proposals.length) {
-          const extraction = await this.deps.extractionRuns.insert({
-            sourceSnapshotId: snapshot.id,
-            extractorVersion: EXTRACTOR_VERSION,
-            mappingVersion: MAPPING_VERSION,
-            status: 'completed',
-            summary: { proposalCount: proposals.length },
-          });
-          const inserted = await this.deps.claims.insertProposals(
-            proposals.map((p) => ({
-              ...p,
-              organizationId: target.organizationId,
-              sourceUrl: url,
-              sourceSnapshotId: snapshot.id,
-              extractionRunId: extraction.id,
-              extractorVersion: EXTRACTOR_VERSION,
-              mappingVersion: MAPPING_VERSION,
-            })),
-          );
-          claimsProposed += inserted.length;
-        }
-        await this.deps.runs.addSourceAttempt({
-          researchRunId: run.id,
-          targetId: target.id,
-          sourceKey: 'organization_website_fixture',
+          sourceKey: fixtureSource.sourceKey,
           adapterType: 'fixture',
-          status: 'succeeded',
-          requestedUrl: url,
-          contentHash: hash,
           provenance: { network: false, mode: 'fixture' },
         });
+        snapshotsCreated += persisted.snapshotsCreated;
+        claimsProposed += persisted.claimsProposed;
       }
       return {
         pagesRetrieved,
@@ -590,64 +862,159 @@ export class ResearchRunService {
         archiveHits,
         liveFallbacks,
         requestsConsumed,
+        internalSnapshotHits,
+        licensedHits,
       };
     }
 
-    // Non-fixture modes: attempt archive then optional live — both dual-gated.
-    const archiveSource: SourceGateInput = {
-      sourceKey: 'archived_web_fixture',
-      adapterType: 'archived_web',
-      lifecycle: 'draft',
-      killSwitchActive: false,
-      termsReviewStatus: 'pending',
-      privacyReviewStatus: 'pending',
-      legalReviewStatus: 'pending',
-      securityReviewStatus: 'pending',
-    };
-
-    try {
-      const archived = await this.commonCrawl.retrieveSelected({
-        domain,
-        source: archiveSource,
-        mode: run.mode,
-        liveResearchEnabled: this.deps.liveResearchEnabled,
-        globalKillSwitchActive: this.deps.globalKillSwitchActive,
-        runKillSwitchActive: run.killSwitchActive,
+    // Preferred collection order for non-fixture modes:
+    // 1) licensed/structured  2) internal snapshot  3) archive  4) live fallback
+    const licensed = sources.find(
+      (s) => s.adapterType === 'licensed' || s.adapterType === 'structured',
+    );
+    if (licensed) {
+      await this.deps.runs.addSourceAttempt({
+        researchRunId: run.id,
+        targetId: target.id,
+        sourceKey: licensed.sourceKey,
+        adapterType: licensed.adapterType,
+        status: 'skipped',
+        errorCode: 'licensed_source_not_enabled_rb014',
+        provenance: { order: 1, blocker: 'RB-014' },
       });
-      if (archived) {
-        archiveHits += 1;
-        requestsConsumed += 1;
-        if (!dryRun) {
-          const snapshot = await this.deps.snapshots.insert({
-            organizationId: target.organizationId,
-            requestedUrl: archived.finalUrl,
-            finalUrl: archived.finalUrl,
-            domain,
-            httpStatus: archived.status,
-            contentType: archived.contentType,
-            contentHash: String(archived.provenance.contentHash ?? contentHash(archived.body)),
-            redirectChain: archived.redirectChain,
-            adapterVersion: 'archived-web-v1',
-            parserVersion: 'v1',
-            policyVersion: 'research-run-policy-v1',
-            retrievedAt: new Date(),
-          });
-          snapshotsCreated += 1;
-          pagesRetrieved += 1;
-          void snapshot;
-        }
-      } else if (config.mode === 'archive_first_live_fallback' || config.liveFallback) {
-        const liveSource: SourceGateInput = {
-          sourceKey: 'organization_website_live',
-          adapterType: 'organization_website',
-          lifecycle: 'draft',
-          killSwitchActive: true,
-          termsReviewStatus: 'pending',
-          privacyReviewStatus: 'pending',
-          legalReviewStatus: 'pending',
-          securityReviewStatus: 'pending',
+    }
+
+    if (this.deps.findFreshSnapshot) {
+      const fresh = await this.deps.findFreshSnapshot({
+        organizationId: target.organizationId,
+        domain,
+        freshnessThresholdHours: config.freshnessThresholdHours,
+      });
+      if (fresh) {
+        internalSnapshotHits += 1;
+        await this.deps.runs.addSourceAttempt({
+          researchRunId: run.id,
+          targetId: target.id,
+          sourceKey: 'internal_snapshot',
+          adapterType: 'internal_snapshot',
+          status: 'succeeded',
+          contentHash: fresh.contentHash,
+          provenance: {
+            order: 2,
+            snapshotId: fresh.id,
+            retrievedAt: fresh.retrievedAt.toISOString(),
+            reused: true,
+          },
+        });
+        return {
+          pagesRetrieved: 0,
+          snapshotsCreated: 0,
+          claimsProposed: 0,
+          archiveHits: 0,
+          liveFallbacks: 0,
+          requestsConsumed: 0,
+          internalSnapshotHits,
+          licensedHits,
+          reusedSnapshotId: fresh.id,
         };
-        await this.officialWebsite.retrievePage({
+      }
+    }
+
+    const wantsArchive =
+      config.mode === 'archive_only' ||
+      config.mode === 'archive_first_live_fallback' ||
+      (config.archiveFirst && config.mode !== 'live_official_site_only');
+    const wantsLive =
+      config.mode === 'live_official_site_only' ||
+      config.mode === 'archive_first_live_fallback' ||
+      config.liveFallback;
+
+    const archiveSource = sources.find((s) => s.adapterType === 'archived_web');
+    const liveSource = sources.find((s) => s.adapterType === 'organization_website');
+
+    let archiveMiss = false;
+    if (wantsArchive && archiveSource) {
+      try {
+        if (this.deps.globalKillSwitchActive || run.killSwitchActive) {
+          throw new Error('kill_switch_active');
+        }
+        const archived = await this.commonCrawl.retrieveSelected({
+          domain,
+          source: archiveSource,
+          mode: run.mode,
+          liveResearchEnabled: this.deps.liveResearchEnabled,
+          globalKillSwitchActive: this.deps.globalKillSwitchActive,
+          runKillSwitchActive: run.killSwitchActive,
+        });
+        if (archived) {
+          archiveHits += 1;
+          requestsConsumed += 1;
+          pagesRetrieved += 1;
+          const persisted = await this.persistRetrievalAsClaims({
+            run,
+            target,
+            domain,
+            url: archived.finalUrl,
+            body: archived.body,
+            contentType: archived.contentType ?? 'text/html',
+            httpStatus: archived.status,
+            redirectChain: archived.redirectChain ?? [],
+            adapterVersion: 'archived-web-v1',
+            sourceKey: archiveSource.sourceKey,
+            adapterType: 'archived_web',
+            provenance: { ...archived.provenance, order: 3 },
+          });
+          snapshotsCreated += persisted.snapshotsCreated;
+          claimsProposed += persisted.claimsProposed;
+          return {
+            pagesRetrieved,
+            snapshotsCreated,
+            claimsProposed,
+            archiveHits,
+            liveFallbacks,
+            requestsConsumed,
+            internalSnapshotHits,
+            licensedHits,
+          };
+        }
+        archiveMiss = true;
+        await this.deps.runs.addSourceAttempt({
+          researchRunId: run.id,
+          targetId: target.id,
+          sourceKey: archiveSource.sourceKey,
+          adapterType: 'archived_web',
+          status: 'miss',
+          provenance: { order: 3, domain },
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await this.deps.runs.addSourceAttempt({
+          researchRunId: run.id,
+          targetId: target.id,
+          sourceKey: archiveSource.sourceKey,
+          adapterType: 'archived_web',
+          status: 'blocked',
+          errorCode: message,
+          provenance: { order: 3 },
+        });
+        if (!wantsLive || config.mode === 'archive_only') throw error;
+        archiveMiss = true;
+      }
+    } else if (wantsArchive && !archiveSource) {
+      archiveMiss = true;
+    }
+
+    const mayLive =
+      wantsLive &&
+      (config.mode === 'live_official_site_only' || archiveMiss || !wantsArchive) &&
+      liveSource;
+
+    if (mayLive && liveSource) {
+      try {
+        if (this.deps.globalKillSwitchActive || run.killSwitchActive) {
+          throw new Error('kill_switch_active');
+        }
+        const live = await this.officialWebsite.retrievePage({
           url: `https://${domain}/`,
           domain,
           source: liveSource,
@@ -659,18 +1026,37 @@ export class ResearchRunService {
           maxBytes: 1_048_576,
         });
         liveFallbacks += 1;
+        requestsConsumed += 1;
+        pagesRetrieved += 1;
+        const persisted = await this.persistRetrievalAsClaims({
+          run,
+          target,
+          domain,
+          url: live.finalUrl,
+          body: live.body,
+          contentType: live.contentType ?? 'text/html',
+          httpStatus: live.status,
+          redirectChain: live.redirectChain ?? [],
+          adapterVersion: 'organization-website-v1',
+          sourceKey: liveSource.sourceKey,
+          adapterType: 'organization_website',
+          provenance: { ...live.provenance, order: 4 },
+        });
+        snapshotsCreated += persisted.snapshotsCreated;
+        claimsProposed += persisted.claimsProposed;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await this.deps.runs.addSourceAttempt({
+          researchRunId: run.id,
+          targetId: target.id,
+          sourceKey: liveSource.sourceKey,
+          adapterType: 'organization_website',
+          status: 'blocked',
+          errorCode: message,
+          provenance: { order: 4 },
+        });
+        throw error;
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await this.deps.runs.addSourceAttempt({
-        researchRunId: run.id,
-        targetId: target.id,
-        sourceKey: 'gated',
-        adapterType: 'gated',
-        status: 'blocked',
-        errorCode: message,
-      });
-      throw error;
     }
 
     return {
@@ -680,6 +1066,8 @@ export class ResearchRunService {
       archiveHits,
       liveFallbacks,
       requestsConsumed,
+      internalSnapshotHits,
+      licensedHits,
     };
   }
 

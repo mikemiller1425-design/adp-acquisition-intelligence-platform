@@ -1,7 +1,8 @@
 # Live Research Run Architecture (Phase 1.2)
 
 **Status:** Implemented for **fixture pilot** orchestration; live egress **DISABLED** by default  
-**Date:** 2026-07-23  
+**Date:** 2026-07-24  
+**Branch:** `cursor/phase-1-2-live-research-orchestration-fb9d`  
 **Related:** [Research Run Safety Controls](RESEARCH_RUN_SAFETY_CONTROLS.md), [Operator Guide](RESEARCH_RUN_OPERATOR_GUIDE.md), [Phase 1.2 Completion](../release/PHASE_1_2_RESEARCH_RUN_COMPLETION.md)
 
 ## Maturity matrix
@@ -34,11 +35,13 @@ UI /research/runs/new
         ▼
 ResearchRunService.preview / createAndLaunch
         │ launch gates (authz, segment, limits, source, kill switch, ADP_LIVE_RESEARCH_ENABLED)
+        │ approvals + metrics rows; awaiting_approval for non-fixture when required
         ▼
 research_run_definitions + research_runs + targets
-        │ enqueue research.run.execute (deferred in web memory)
+        │ enqueue research.run.execute (deferred in web memory; durable when ADP_JOB_QUEUE=durable)
         ▼
-executeRun (one target / invocation, checkpointed)
+executeRun (one target / invocation, checkpointed; circuit breakers)
+        │ preferred order: licensed → internal snapshot → archive → live
         │ fixture | dry_run | archive_* | live_* (gated)
         ▼
 snapshots → extraction → proposed claims → extraction review

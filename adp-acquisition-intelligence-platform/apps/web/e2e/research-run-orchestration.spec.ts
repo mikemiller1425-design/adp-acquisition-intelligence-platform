@@ -32,6 +32,7 @@ test.describe('Phase 1.2 research run orchestration (memory / fixture)', () => {
     await expect(page.getByTestId('live-research-enabled')).toHaveText('false');
     await expect(page.getByTestId('launch-research-run')).toBeEnabled();
 
+    await page.getByTestId('run-operator-confirm').check();
     await page.getByTestId('launch-research-run').click();
     await expect(page.getByTestId('research-run-detail')).toBeVisible();
     await expect(page.getByTestId('research-run-status')).toHaveText('queued');

@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
 import {
+  researchRunApprovals,
   researchRunCheckpoints,
   researchRunDefinitions,
   researchRunEvents,
+  researchRunMetrics,
   researchRuns,
   researchRunSourceAttempts,
   researchRunTargets,
@@ -68,6 +70,17 @@ export class InMemoryResearchRunRepository implements ResearchRunRepository {
   }> = [];
   checkpoints = new Map<string, Record<string, unknown>>();
   sourceAttempts: Array<Record<string, unknown>> = [];
+  approvals: Array<{
+    researchRunId: string;
+    approvalType: string;
+    status: string;
+    evidence: Record<string, unknown>;
+  }> = [];
+  metrics: Array<{
+    researchRunId: string;
+    metricKey: string;
+    metricValue: Record<string, unknown>;
+  }> = [];
 
   private checkpointId(runId: string, key: string): string {
     return `${runId}::${key}`;
@@ -227,6 +240,48 @@ export class InMemoryResearchRunRepository implements ResearchRunRepository {
     errorCode?: string;
   }): Promise<void> {
     this.sourceAttempts.push({ id: randomUUID(), ...input });
+  }
+
+  async addApproval(input: {
+    researchRunId: string;
+    approvalType: string;
+    status: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<void> {
+    this.approvals.push({
+      researchRunId: input.researchRunId,
+      approvalType: input.approvalType,
+      status: input.status,
+      evidence: { ...(input.evidence ?? {}) },
+    });
+  }
+
+  async listApprovals(
+    runId: string,
+  ): Promise<Array<{ approvalType: string; status: string; evidence: Record<string, unknown> }>> {
+    return this.approvals
+      .filter((a) => a.researchRunId === runId)
+      .map((a) => ({
+        approvalType: a.approvalType,
+        status: a.status,
+        evidence: { ...a.evidence },
+      }));
+  }
+
+  async recordMetric(
+    runId: string,
+    metricKey: string,
+    metricValue: Record<string, unknown>,
+  ): Promise<void> {
+    this.metrics.push({ researchRunId: runId, metricKey, metricValue: { ...metricValue } });
+  }
+
+  async listMetrics(
+    runId: string,
+  ): Promise<Array<{ metricKey: string; metricValue: Record<string, unknown> }>> {
+    return this.metrics
+      .filter((m) => m.researchRunId === runId)
+      .map((m) => ({ metricKey: m.metricKey, metricValue: { ...m.metricValue } }));
   }
 }
 
@@ -494,5 +549,61 @@ export class PostgresResearchRunRepository implements ResearchRunRepository {
       startedAt: new Date(),
       completedAt: new Date(),
     });
+  }
+
+  async addApproval(input: {
+    researchRunId: string;
+    approvalType: string;
+    status: string;
+    evidence?: Record<string, unknown>;
+  }): Promise<void> {
+    await this.db.insert(researchRunApprovals).values({
+      researchRunId: input.researchRunId,
+      approvalType: input.approvalType,
+      status: input.status,
+      evidence: input.evidence ?? {},
+      decidedAt: input.status === 'pending' ? null : new Date(),
+    });
+  }
+
+  async listApprovals(
+    runId: string,
+  ): Promise<Array<{ approvalType: string; status: string; evidence: Record<string, unknown> }>> {
+    const rows = await this.db
+      .select()
+      .from(researchRunApprovals)
+      .where(eq(researchRunApprovals.researchRunId, runId))
+      .orderBy(asc(researchRunApprovals.createdAt));
+    return rows.map((r) => ({
+      approvalType: r.approvalType,
+      status: r.status,
+      evidence: (r.evidence ?? {}) as Record<string, unknown>,
+    }));
+  }
+
+  async recordMetric(
+    runId: string,
+    metricKey: string,
+    metricValue: Record<string, unknown>,
+  ): Promise<void> {
+    await this.db.insert(researchRunMetrics).values({
+      researchRunId: runId,
+      metricKey,
+      metricValue,
+    });
+  }
+
+  async listMetrics(
+    runId: string,
+  ): Promise<Array<{ metricKey: string; metricValue: Record<string, unknown> }>> {
+    const rows = await this.db
+      .select()
+      .from(researchRunMetrics)
+      .where(eq(researchRunMetrics.researchRunId, runId))
+      .orderBy(asc(researchRunMetrics.recordedAt));
+    return rows.map((r) => ({
+      metricKey: r.metricKey,
+      metricValue: (r.metricValue ?? {}) as Record<string, unknown>,
+    }));
   }
 }

@@ -11,11 +11,19 @@ import {
   evaluateLaunchGates,
   type SourceGateInput,
 } from '../domain/research-run-gates.js';
+import {
+  assertCircuitClosed,
+  createCircuitBreakerState,
+  evaluateRequestBudget,
+  recordCircuitAttempt,
+} from '../domain/circuit-breaker.js';
 import { ResearchRunService } from '../application/research-run-service.js';
 import { registerResearchJobHandlers } from '../application/job-handlers.js';
 import { createResearchRuntime } from '../application/research-runtime.js';
-import { OfficialWebsiteAdapter } from '../infrastructure/adapters/archive-and-live.js';
-import type { CommonCrawlArchiveAdapter } from '../infrastructure/adapters/archive-and-live.js';
+import {
+  CommonCrawlArchiveAdapter,
+  OfficialWebsiteAdapter,
+} from '../infrastructure/adapters/archive-and-live.js';
 import { InMemoryDurableJobStore } from '../infrastructure/durable-job-store.js';
 import { InMemoryResearchRunRepository } from '../infrastructure/research-run-store.js';
 import { createInMemoryResearchUnitOfWork } from '../infrastructure/in-memory.js';
@@ -41,6 +49,28 @@ const LIVE_SOURCE: SourceGateInput = {
   privacyReviewStatus: 'pending',
   legalReviewStatus: 'pending',
   securityReviewStatus: 'pending',
+};
+
+const ARCHIVE_SOURCE: SourceGateInput = {
+  sourceKey: 'archived_web_fixture',
+  adapterType: 'archived_web',
+  lifecycle: 'enabled',
+  killSwitchActive: false,
+  termsReviewStatus: 'approved',
+  privacyReviewStatus: 'approved',
+  legalReviewStatus: 'approved',
+  securityReviewStatus: 'approved',
+};
+
+const APPROVED_LIVE_SOURCE: SourceGateInput = {
+  sourceKey: 'organization_website_live',
+  adapterType: 'organization_website',
+  lifecycle: 'enabled',
+  killSwitchActive: false,
+  termsReviewStatus: 'approved',
+  privacyReviewStatus: 'approved',
+  legalReviewStatus: 'approved',
+  securityReviewStatus: 'approved',
 };
 
 function fixtureConfig(overrides: Partial<ResearchRunConfigInput> = {}): ResearchRunConfigInput {
@@ -71,6 +101,19 @@ function buildService(
     fixturePages?: Record<string, { body: string }>;
     officialWebsite?: OfficialWebsiteAdapter;
     commonCrawl?: CommonCrawlArchiveAdapter;
+    archiveRecords?: Array<{
+      domain: string;
+      originalUrl: string;
+      crawlId: string;
+      indexRecord: Record<string, unknown>;
+      warcLocation: string;
+      body?: string;
+    }>;
+    findFreshSnapshot?: (input: {
+      organizationId: string;
+      domain: string;
+      freshnessThresholdHours: number;
+    }) => Promise<{ id: string; contentHash: string; retrievedAt: Date } | null>;
   } = {},
 ) {
   const concurrency = new InProcessConcurrencyGate();
@@ -88,6 +131,8 @@ function buildService(
     fixturePages: opts.fixturePages,
     officialWebsite: opts.officialWebsite,
     commonCrawl: opts.commonCrawl,
+    archiveRecords: opts.archiveRecords,
+    findFreshSnapshot: opts.findFreshSnapshot,
   });
   return { service, runs, jobs, uow };
 }
@@ -385,5 +430,301 @@ describe('research.run.execute job handler', () => {
     const after = await runs.getRun(run.id);
     expect(after?.status).toBe('completed');
     expect(after?.snapshotsCreated).toBeGreaterThan(0);
+  });
+});
+
+describe('source-registry authorization', () => {
+  it('denies launch for viewer lacking research_run:launch', () => {
+    const result = evaluateLaunchGates({
+      role: 'viewer',
+      config: fixtureConfig(),
+      sources: [FIXTURE_SOURCE],
+      liveResearchEnabled: false,
+      globalKillSwitchActive: false,
+    });
+    expect(result.allowed).toBe(false);
+    expect(result.blockers.some((b) => b.code === 'capability_denied')).toBe(true);
+    expect(result.blockers.find((b) => b.code === 'capability_denied')?.href).toBeTruthy();
+  });
+});
+
+describe('circuit breaker', () => {
+  it('opens on consecutive failures and request budget', () => {
+    let state = createCircuitBreakerState();
+    const cfg = {
+      maxConsecutiveFailures: 3,
+      maxFailureRate: 0.9,
+      minAttempts: 10,
+      maxTotalRequests: 5,
+    };
+    state = recordCircuitAttempt(state, 'failure', cfg);
+    state = recordCircuitAttempt(state, 'failure', cfg);
+    expect(state.open).toBe(false);
+    state = recordCircuitAttempt(state, 'failure', cfg);
+    expect(state.open).toBe(true);
+    expect(state.reason).toBe('consecutive_failures');
+    expect(() => assertCircuitClosed(state)).toThrow(/circuit_open/);
+
+    expect(evaluateRequestBudget({ requestsConsumed: 5, maxTotalRequests: 5 }).allowed).toBe(false);
+    expect(evaluateRequestBudget({ requestsConsumed: 2, maxTotalRequests: 5 }).allowed).toBe(true);
+  });
+});
+
+describe('archive hit / miss and live fallback gating', () => {
+  it('records archive hit with snapshot + claims when dual gates permit recorded body', async () => {
+    const html = `<!doctype html><html><body>
+<script type="application/ld+json">{"@type":"Organization","name":"Archive Co"}</script>
+<p>We offer payroll and bookkeeping services.</p>
+</body></html>`;
+    const { service, runs, uow } = buildService({
+      liveResearchEnabled: true,
+      archiveRecords: [
+        {
+          domain: 'archive-hit.test',
+          originalUrl: 'https://archive-hit.test/',
+          crawlId: 'CC-MAIN-TEST',
+          indexRecord: { urlkey: 'test' },
+          warcLocation: 'warc://test',
+          body: html,
+        },
+      ],
+    });
+    service.setJobDispatcher({ enqueue: async () => ({ jobId: 'noop' }) });
+
+    const { run, blockers } = await service.createAndLaunch({
+      role: 'ops',
+      config: fixtureConfig({
+        mode: 'archive_only',
+        sourceKeys: ['archived_web_fixture'],
+        archiveFirst: true,
+        maxOrganizations: 1,
+        maxPagesPerOrganization: 1,
+      }),
+      sources: [ARCHIVE_SOURCE],
+      targets: [{ organizationId: crypto.randomUUID(), canonicalDomain: 'archive-hit.test' }],
+      idempotencyKey: 'archive-hit-1',
+      requireOperatorApproval: false,
+    });
+    // Live dual-gate + enabled archive source: may still await approval for non-fixture.
+    expect(blockers).toEqual([]);
+    if (run.status === 'awaiting_approval') {
+      await service.approveRun(run.id, 'ops');
+    }
+    const enqueueQueue: Array<{ researchRunId: string }> = [{ researchRunId: run.id }];
+    service.setJobDispatcher({
+      enqueue: async (job) => {
+        const researchRunId = String(job.payload.researchRunId ?? '');
+        if (researchRunId) enqueueQueue.push({ researchRunId });
+        return { jobId: `noop-${enqueueQueue.length}` };
+      },
+    });
+    while (enqueueQueue.length) {
+      await service.executeRun(enqueueQueue.shift()!.researchRunId);
+    }
+
+    const completed = await runs.getRun(run.id);
+    expect(completed?.status).toBe('completed');
+    expect(completed?.archiveHits).toBeGreaterThanOrEqual(1);
+    expect(completed?.snapshotsCreated).toBeGreaterThanOrEqual(1);
+    expect(completed?.claimsProposed).toBeGreaterThanOrEqual(1);
+    expect(
+      [...(uow.snapshots as { snapshots: Map<string, unknown> }).snapshots.values()].length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('archive miss + live fallback produces zero outbound when live is unapproved', async () => {
+    const probeRetrieval = {
+      outbound: 0,
+      async retrieve() {
+        this.outbound += 1;
+        return {
+          status: 200,
+          finalUrl: 'https://miss.test/',
+          body: '<html></html>',
+          contentType: 'text/html',
+          etag: null,
+          lastModified: null,
+          redirectChain: [],
+        };
+      },
+    };
+    const official = new OfficialWebsiteAdapter({
+      retrieval: probeRetrieval,
+      resolveAddresses: async () => ['203.0.113.10'],
+    });
+    const { service } = buildService({
+      liveResearchEnabled: false,
+      officialWebsite: official,
+      archiveRecords: [],
+    });
+
+    // Launch itself should be blocked for live fallback mode.
+    const preview = service.preview({
+      role: 'ops',
+      config: fixtureConfig({
+        mode: 'archive_first_live_fallback',
+        sourceKeys: ['archived_web_fixture', 'organization_website_live'],
+        liveFallback: true,
+      }),
+      sources: [
+        { ...ARCHIVE_SOURCE, lifecycle: 'draft', termsReviewStatus: 'pending' },
+        LIVE_SOURCE,
+      ],
+    });
+    expect(preview.allowed).toBe(false);
+    expect(official.getRequestProbe().outboundRequests).toBe(0);
+    expect(probeRetrieval.outbound).toBe(0);
+  });
+});
+
+describe('official website DNS safety', () => {
+  it('blocks private resolved IPs before transport', async () => {
+    const probeRetrieval = {
+      outbound: 0,
+      async retrieve() {
+        this.outbound += 1;
+        return {
+          status: 200,
+          finalUrl: 'https://rebind.test/',
+          body: '<html></html>',
+          contentType: 'text/html',
+          etag: null,
+          lastModified: null,
+          redirectChain: [],
+        };
+      },
+    };
+    const adapter = new OfficialWebsiteAdapter({
+      retrieval: probeRetrieval,
+      resolveAddresses: async () => ['127.0.0.1'],
+    });
+
+    await expect(
+      adapter.retrievePage({
+        url: 'https://rebind.test/',
+        domain: 'rebind.test',
+        source: APPROVED_LIVE_SOURCE,
+        mode: 'live_official_site_only',
+        liveResearchEnabled: true,
+        globalKillSwitchActive: false,
+        runKillSwitchActive: false,
+        timeoutMs: 5_000,
+        maxBytes: 100_000,
+      }),
+    ).rejects.toThrow(/private_network|blocked|dns_rebinding/);
+
+    expect(adapter.getRequestProbe().outboundRequests).toBe(0);
+    expect(probeRetrieval.outbound).toBe(0);
+  });
+});
+
+describe('worker restart checkpoint recovery', () => {
+  it('skips re-processing targets that already have checkpoints', async () => {
+    const html = `<html><body><p>payroll services</p></body></html>`;
+    const { service, runs } = buildService({
+      fixturePages: { 'https://restart.test/': { body: html } },
+    });
+    service.setJobDispatcher({ enqueue: async () => ({ jobId: 'noop' }) });
+
+    const orgId = crypto.randomUUID();
+    const { run } = await service.createAndLaunch({
+      role: 'ops',
+      config: fixtureConfig({ maxOrganizations: 1, maxPagesPerOrganization: 1 }),
+      sources: [FIXTURE_SOURCE],
+      targets: [{ organizationId: orgId, canonicalDomain: 'restart.test' }],
+      idempotencyKey: 'restart-1',
+    });
+
+    const targets = await runs.listTargets(run.id);
+    const target = targets[0]!;
+    await runs.upsertCheckpoint(run.id, `target:${target.id}:done`, {
+      pagesRetrieved: 1,
+      snapshotsCreated: 1,
+      claimsProposed: 0,
+    });
+    await runs.updateRun(run.id, { status: 'running', targetsCompleted: 0 });
+
+    await service.executeRun(run.id);
+    const after = await runs.getRun(run.id);
+    expect(after?.status).toBe('completed');
+    expect(after?.targetsCompleted).toBe(1);
+    // No new snapshot side effects beyond checkpoint recovery path.
+    expect(after?.snapshotsCreated ?? 0).toBe(0);
+  });
+});
+
+describe('approvals and metrics persistence', () => {
+  it('writes fixture_exempt approval and launch_gate metric on fixture launch', async () => {
+    const { service, runs } = buildService();
+    service.setJobDispatcher({ enqueue: async () => ({ jobId: 'noop' }) });
+    const { run } = await service.createAndLaunch({
+      role: 'ops',
+      config: fixtureConfig({ dryRun: true, mode: 'dry_run' }),
+      sources: [FIXTURE_SOURCE],
+      targets: [{ organizationId: crypto.randomUUID(), canonicalDomain: 'metrics.test' }],
+      idempotencyKey: 'metrics-1',
+    });
+    const approvals = await runs.listApprovals(run.id);
+    expect(approvals.some((a) => a.approvalType === 'fixture_exempt')).toBe(true);
+    const metrics = await runs.listMetrics(run.id);
+    expect(metrics.some((m) => m.metricKey === 'launch_gate')).toBe(true);
+  });
+});
+
+describe('internal snapshot reuse', () => {
+  it('prefers fresh internal snapshot over archive/live', async () => {
+    const snapshotId = crypto.randomUUID();
+    const { service, runs } = buildService({
+      liveResearchEnabled: true,
+      findFreshSnapshot: async () => ({
+        id: snapshotId,
+        contentHash: 'abc',
+        retrievedAt: new Date(),
+      }),
+      archiveRecords: [
+        {
+          domain: 'reuse.test',
+          originalUrl: 'https://reuse.test/',
+          crawlId: 'CC',
+          indexRecord: {},
+          warcLocation: 'warc://x',
+          body: '<html><body>payroll</body></html>',
+        },
+      ],
+    });
+    service.setJobDispatcher({ enqueue: async () => ({ jobId: 'noop' }) });
+
+    const { run } = await service.createAndLaunch({
+      role: 'ops',
+      config: fixtureConfig({
+        mode: 'archive_only',
+        sourceKeys: ['archived_web_fixture'],
+        maxOrganizations: 1,
+        maxPagesPerOrganization: 1,
+      }),
+      sources: [ARCHIVE_SOURCE],
+      targets: [{ organizationId: crypto.randomUUID(), canonicalDomain: 'reuse.test' }],
+      idempotencyKey: 'reuse-1',
+      requireOperatorApproval: false,
+    });
+    if (run.status === 'awaiting_approval') {
+      await service.approveRun(run.id, 'ops');
+    }
+    const enqueueQueue: Array<{ researchRunId: string }> = [{ researchRunId: run.id }];
+    service.setJobDispatcher({
+      enqueue: async (job) => {
+        const researchRunId = String(job.payload.researchRunId ?? '');
+        if (researchRunId) enqueueQueue.push({ researchRunId });
+        return { jobId: `noop-${enqueueQueue.length}` };
+      },
+    });
+    while (enqueueQueue.length) {
+      await service.executeRun(enqueueQueue.shift()!.researchRunId);
+    }
+    const completed = await runs.getRun(run.id);
+    expect(completed?.status).toBe('completed');
+    expect(completed?.archiveHits).toBe(0);
+    expect(completed?.pagesRetrieved).toBe(0);
+    expect(runs.sourceAttempts.some((a) => a.adapterType === 'internal_snapshot')).toBe(true);
   });
 });

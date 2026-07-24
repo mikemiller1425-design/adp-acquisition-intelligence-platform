@@ -10,7 +10,13 @@ function first(value: string | string[] | undefined): string | undefined {
   return typeof value === 'string' ? value : Array.isArray(value) ? value[0] : undefined;
 }
 
-type Blocker = { code: string; message: string; blockerRecord?: string; sourceKey?: string };
+type Blocker = {
+  code: string;
+  message: string;
+  blockerRecord?: string;
+  href?: string;
+  sourceKey?: string;
+};
 
 export default async function NewResearchRunPage({ searchParams }: PageProps) {
   await getWebResearchRuntime();
@@ -139,10 +145,14 @@ export default async function NewResearchRunPage({ searchParams }: PageProps) {
             Source selection
             <select name="sourceKeys" defaultValue={defaults.sourceKeys} data-testid="run-source">
               <option value="organization_website_fixture">
-                organization_website_fixture (fixture — default)
+                organization_website_fixture (fixture — pilot default)
               </option>
-              <option value="archived_web_common_crawl">archived_web_common_crawl (gated)</option>
-              <option value="organization_website_live">organization_website_live (gated)</option>
+              <option value="archived_web_fixture">
+                archived_web_fixture (Common Crawl seam — gated / draft)
+              </option>
+              <option value="organization_website_live">
+                organization_website_live (gated / kill-switch active)
+              </option>
             </select>
           </label>
           <label>
@@ -243,6 +253,17 @@ export default async function NewResearchRunPage({ searchParams }: PageProps) {
                 ? `Confirm: “${defaults.name}” in mode ${defaults.mode} against ${defaults.sourceKeys} (segment ${defaults.savedTargetSegment || 'none'}). Live egress default is DISABLED.`
                 : 'Confirmation summary appears after preview.'}
             </p>
+            <label>
+              <span>
+                <input
+                  name="operatorConfirmed"
+                  type="checkbox"
+                  defaultChecked={first(query.operatorConfirmed) === '1'}
+                  data-testid="run-operator-confirm"
+                />{' '}
+                I confirm this bounded run configuration (no safety override)
+              </span>
+            </label>
           </section>
 
           {previewed && blockers.length > 0 ? (
@@ -250,7 +271,24 @@ export default async function NewResearchRunPage({ searchParams }: PageProps) {
               {blockers.map((b) => (
                 <li key={`${b.code}:${b.sourceKey ?? ''}:${b.message}`}>
                   [{b.code}] {b.message}
-                  {b.blockerRecord ? ` (${b.blockerRecord})` : ''}
+                  {b.blockerRecord ? (
+                    <>
+                      {' '}
+                      (
+                      <a
+                        href={
+                          b.href ??
+                          (b.blockerRecord.startsWith('RB-')
+                            ? `/research/sources?blocker=${encodeURIComponent(b.blockerRecord)}`
+                            : `#${b.blockerRecord}`)
+                        }
+                        data-testid={`blocker-link-${b.code}`}
+                      >
+                        {b.blockerRecord}
+                      </a>
+                      )
+                    </>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -259,6 +297,13 @@ export default async function NewResearchRunPage({ searchParams }: PageProps) {
           ) : (
             <p data-testid="launch-blockers">Preview required before launch.</p>
           )}
+
+          {launchDisabled ? (
+            <p data-testid="launch-disabled-reason">
+              Launch is disabled until all gates pass. Open the linked blocker record above for
+              owner approval status (RB-015 remains OPEN for live/archive egress).
+            </p>
+          ) : null}
 
           <div className="stub-actions">
             <button type="submit" name="intent" value="preview" data-testid="preview-research-run">

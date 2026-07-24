@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto';
+import { lookup } from 'node:dns/promises';
 
-import { validateRetrievalUrl, validateRedirectTarget } from '../../domain/network-security.js';
+import {
+  validateRetrievalUrl,
+  validateRedirectTarget,
+  validateResolvedDestination,
+} from '../../domain/network-security.js';
 import { evaluateRobotsPolicy } from '../../domain/robots.js';
 import {
   assertNetworkRetrievalPermitted,
@@ -144,11 +149,26 @@ export class OfficialWebsiteAdapter {
       userAgent?: string;
       operatorContact?: string;
       redirectPolicy?: 'same_host' | 'same_registrable_domain' | 'https_only_upgrade';
+      /** Injected resolver for tests; defaults to dns.lookup. */
+      resolveAddresses?: (hostname: string) => Promise<string[]>;
     } = {},
   ) {}
 
   getRequestProbe(): NetworkRequestProbe {
     return { ...this.probe, urls: [...this.probe.urls] };
+  }
+
+  private async resolveAndValidateHostname(hostname: string): Promise<string[]> {
+    const resolve =
+      this.options.resolveAddresses ??
+      (async (host: string) => {
+        const results = await lookup(host, { all: true });
+        return results.map((r) => r.address);
+      });
+    const addresses = await resolve(hostname);
+    const dest = validateResolvedDestination(hostname, addresses);
+    if (!dest.ok) throw new Error(dest.code);
+    return addresses;
   }
 
   async retrievePage(input: {
@@ -172,6 +192,9 @@ export class OfficialWebsiteAdapter {
 
     const urlCheck = validateRetrievalUrl(input.url);
     if (!urlCheck.ok) throw new Error(urlCheck.code);
+
+    // DNS/IP validation before any outbound request (anti-rebinding baseline).
+    await this.resolveAndValidateHostname(urlCheck.hostname);
 
     const ua =
       this.options.userAgent ??
@@ -204,6 +227,9 @@ export class OfficialWebsiteAdapter {
         this.options.redirectPolicy ?? 'same_registrable_domain',
       );
       if (!redirect.ok) throw new Error(redirect.code);
+      const hopCheck = validateRetrievalUrl(hop);
+      if (!hopCheck.ok) throw new Error(hopCheck.code);
+      await this.resolveAndValidateHostname(hopCheck.hostname);
     }
 
     const hash = createHash('sha256').update(response.body).digest('hex');

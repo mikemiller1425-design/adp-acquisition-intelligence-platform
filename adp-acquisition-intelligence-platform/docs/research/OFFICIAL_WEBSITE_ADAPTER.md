@@ -9,6 +9,7 @@
 | Aspect | State |
 |---|---|
 | URL validation / SSRF / robots / redirect policy hooks | **Implemented** (shared security helpers) |
+| DNS/IP validation before transport (anti-rebinding) | **Implemented** (`validateResolvedDestination` on each hop) |
 | Dual gate before any network call | **Implemented** |
 | Request probe for unauthorized-zero-request tests | **Implemented** |
 | Live HTTP retrieval in default deployments | **Disabled** (`ADP_LIVE_RESEARCH_ENABLED=false`) |

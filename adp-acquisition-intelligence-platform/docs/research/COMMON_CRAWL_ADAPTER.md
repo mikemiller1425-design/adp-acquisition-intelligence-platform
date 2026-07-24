@@ -23,4 +23,4 @@
 
 ## Operator note
 
-Do not enable archived-web sources in the approved registry without RB-015 evidence. Fixture pilot should keep mode=`fixture` and source=`organization_website_fixture`.
+Do not enable archived-web sources in the approved registry without RB-015 evidence. Fixture pilot should keep mode=`fixture` and source=`organization_website_fixture`. Registry key is `archived_web_fixture` (UI label: Common Crawl seam).

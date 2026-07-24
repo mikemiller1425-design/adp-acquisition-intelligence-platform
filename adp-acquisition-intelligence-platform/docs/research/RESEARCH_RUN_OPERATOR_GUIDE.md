@@ -9,10 +9,11 @@
 2. Keep **Mode = fixture** and **Source = organization_website_fixture**.
 3. Set segment, territory, org type, and limits (max orgs / pages / requests).
 4. Click **Preview** — confirm estimates, policy version, kill-switch **off**, live research **false**, and **No launch blockers**.
-5. Click **Launch research run**.
-6. On the detail page, use **Process next target** to advance the deferred execute queue (memory web runtime).
-7. Use **Pause** / **Resume** / **Cancel** as needed (authorized roles: admin, sales).
-8. When **completed**, open **Extraction review** — collectors never confirm variables.
+5. Check **I confirm this bounded run configuration** (acknowledgment only — cannot override safety gates).
+6. Click **Launch research run**.
+7. On the detail page, use **Process next target** to advance the deferred execute queue (memory web runtime).
+8. Use **Pause** / **Resume** / **Cancel** / **Activate kill switch** (admin) as needed.
+9. When **completed**, open **Extraction review** — collectors never confirm variables. Export run report when needed.
 
 ## Screens
 

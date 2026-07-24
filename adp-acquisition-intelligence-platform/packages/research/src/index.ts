@@ -15,6 +15,7 @@ export * from './domain/ports.js';
 export * from './domain/persistence-ports.js';
 export * from './domain/research-run.js';
 export * from './domain/research-run-gates.js';
+export * from './domain/circuit-breaker.js';
 export * from './application/population-service.js';
 export * from './application/collection-service.js';
 export * from './application/claim-review-service.js';
