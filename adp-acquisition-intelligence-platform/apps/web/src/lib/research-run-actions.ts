@@ -6,11 +6,11 @@ import { redirect } from 'next/navigation';
 import { getWebSession, roleCanAccess } from '@/lib/auth';
 import { getResearchWorkflowSnapshot, getWebResearchRuntime } from '@/lib/research-runtime';
 import {
-  getFixtureApprovedSource,
+  resolveOrganizationsForSegment,
+  sourcePolicySnapshot,
   type ResearchRole,
   type ResearchRunConfigInput,
   type ResearchRunMode,
-  type SourceGateInput,
 } from '@adp/research';
 
 function primaryResearchRole(): ResearchRole {
@@ -53,7 +53,8 @@ function parseConfig(formData: FormData): ResearchRunConfigInput {
   const sourceKeys = sourceKeysRaw
     .split(',')
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((k) => (k === 'archived_web_common_crawl' ? 'archived_web_fixture' : k));
   return {
     name: String(formData.get('name') ?? '').trim() || 'Untitled research run',
     objective: String(formData.get('objective') ?? '').trim() || 'Fixture pilot collection',
@@ -70,60 +71,6 @@ function parseConfig(formData: FormData): ResearchRunConfigInput {
     dryRun: formData.get('dryRun') === 'on' || formData.get('dryRun') === 'true',
     freshnessThresholdHours: parseIntField(formData, 'freshnessThresholdHours', 168),
   };
-}
-
-/** Registry-aligned source gates. Non-fixture entries stay fail-closed (draft / pending). */
-function registrySourcesFor(config: ResearchRunConfigInput): SourceGateInput[] {
-  const fixture = getFixtureApprovedSource();
-  return config.sourceKeys.map((sourceKey) => {
-    if (sourceKey === fixture.sourceKey || sourceKey === 'organization_website_fixture') {
-      return {
-        sourceKey: fixture.sourceKey,
-        adapterType: fixture.adapterType,
-        lifecycle: fixture.lifecycle,
-        killSwitchActive: fixture.killSwitchActive,
-        termsReviewStatus: fixture.termsReviewStatus,
-        privacyReviewStatus: fixture.privacyReviewStatus,
-        legalReviewStatus: fixture.legalReviewStatus,
-        securityReviewStatus: fixture.securityReviewStatus,
-      };
-    }
-    if (sourceKey === 'archived_web_fixture' || sourceKey === 'archived_web_common_crawl') {
-      // Alias archived_web_common_crawl → archived_web_fixture (registry key).
-      return {
-        sourceKey: 'archived_web_fixture',
-        adapterType: 'archived_web',
-        lifecycle: 'draft',
-        killSwitchActive: false,
-        termsReviewStatus: 'pending',
-        privacyReviewStatus: 'pending',
-        legalReviewStatus: 'pending',
-        securityReviewStatus: 'pending',
-      };
-    }
-    if (sourceKey === 'organization_website_live') {
-      return {
-        sourceKey: 'organization_website_live',
-        adapterType: 'organization_website',
-        lifecycle: 'draft',
-        killSwitchActive: true,
-        termsReviewStatus: 'pending',
-        privacyReviewStatus: 'pending',
-        legalReviewStatus: 'pending',
-        securityReviewStatus: 'pending',
-      };
-    }
-    return {
-      sourceKey,
-      adapterType: sourceKey.includes('archive') ? 'archived_web' : 'organization_website',
-      lifecycle: 'draft',
-      killSwitchActive: true,
-      termsReviewStatus: 'pending',
-      privacyReviewStatus: 'pending',
-      legalReviewStatus: 'pending',
-      securityReviewStatus: 'pending',
-    };
-  });
 }
 
 function configQueryParams(
@@ -149,40 +96,110 @@ function configQueryParams(
   });
 }
 
-async function resolveLaunchTargets(maxOrganizations: number) {
-  const snapshot = await getResearchWorkflowSnapshot();
-  const fromSnapshot = snapshot.organizations.slice(0, maxOrganizations).map((o) => ({
+/**
+ * Resolve launch targets from canonical organizations.
+ * PostgreSQL: saved segment → real org UUIDs only (no synthetic IDs).
+ * Memory: workflow snapshot orgs (test-seeded), never invent non-UUID placeholders for PG.
+ */
+async function resolveLaunchTargets(
+  config: ResearchRunConfigInput,
+): Promise<
+  | { ok: true; targets: Array<{ organizationId: string; canonicalDomain: string | null }> }
+  | { ok: false; code: string; message: string }
+> {
+  const runtime = await getWebResearchRuntime();
+  const segment = config.savedTargetSegment;
+  if (!segment) {
+    return { ok: false, code: 'target_segment_required', message: 'A saved target segment must be selected' };
+  }
+
+  if (runtime.provider === 'postgres' && runtime.database) {
+    const resolved = await resolveOrganizationsForSegment(runtime.database.db, {
+      segmentKey: segment,
+      maxOrganizations: config.maxOrganizations,
+      organizationType: config.organizationType,
+      territory: config.territory,
+    });
+    if (!resolved.ok) {
+      return { ok: false, code: resolved.code, message: resolved.message };
+    }
+    return {
+      ok: true,
+      targets: resolved.targets.map((t) => ({
+        organizationId: t.organizationId,
+        canonicalDomain: t.canonicalDomain,
+      })),
+    };
+  }
+
+  // Memory fixture path: use snapshot orgs; seed explicit UUID orgs when empty.
+  const snapshot = await getResearchWorkflowSnapshot(runtime);
+  let fromSnapshot = snapshot.organizations.slice(0, config.maxOrganizations).map((o) => ({
     organizationId: o.organizationId,
     canonicalDomain: (o.domain ?? 'acme-advisory.test').replace(/^www\./, ''),
   }));
-  if (fromSnapshot.length >= Math.min(2, maxOrganizations)) return fromSnapshot;
-
-  const defaults = [
-    { organizationId: 'org-fixture-acme', canonicalDomain: 'acme-advisory.test' },
-    { organizationId: 'org-fixture-beta', canonicalDomain: 'beta-advisory.test' },
-  ];
-  return defaults.slice(0, Math.max(1, maxOrganizations));
+  if (!fromSnapshot.length) {
+    const seeded: Array<{ organizationId: string; canonicalDomain: string | null }> = [];
+    const fixtures = [
+      { displayName: 'Acme Advisory', domain: 'acme-advisory.test' },
+      { displayName: 'Beta Advisory', domain: 'beta-advisory.test' },
+    ].slice(0, Math.max(1, config.maxOrganizations));
+    for (const f of fixtures) {
+      const created = await runtime.uow.organizations.createOrganization({
+        displayName: f.displayName,
+        domain: f.domain,
+      });
+      seeded.push({ organizationId: created.id, canonicalDomain: f.domain });
+    }
+    fromSnapshot = seeded;
+  }
+  if (!fromSnapshot.length) {
+    return {
+      ok: false,
+      code: 'target_segment_empty',
+      message: `Segment “${segment}” resolved to zero organizations in memory runtime`,
+    };
+  }
+  return { ok: true, targets: fromSnapshot };
 }
 
 /**
  * Preview (intent=preview) or launch (intent=launch) a research run.
+ * Sources load from canonical SourceRegistryPort (approved_sources).
  * Never enables live network — gates enforce ADP_LIVE_RESEARCH_ENABLED.
  */
 export async function previewOrLaunchResearchRunAction(formData: FormData) {
   assertRoles(['admin', 'sales']);
   const intent = String(formData.get('intent') ?? 'preview');
   const config = parseConfig(formData);
-  // Normalize alias to registry key before gating / persistence.
-  config.sourceKeys = config.sourceKeys.map((k) =>
-    k === 'archived_web_common_crawl' ? 'archived_web_fixture' : k,
-  );
   const runtime = await getWebResearchRuntime();
   const role = primaryResearchRole();
-  const sources = registrySourcesFor(config);
   const operatorConfirmed =
     formData.get('operatorConfirmed') === 'on' || formData.get('operatorConfirmed') === 'true';
 
+  const loaded = await runtime.sourceRegistry.loadGates(config.sourceKeys);
+  const sources = loaded.gates;
+
   const preview = runtime.researchRuns.preview({ role, config, sources });
+  // Surface registry missing/denied as launch blockers.
+  for (const key of loaded.missing) {
+    preview.blockers.push({
+      code: 'source_not_found',
+      message: `Source ${key} is not in the approved registry`,
+      sourceKey: key,
+      blockerRecord: 'docs/research/APPROVED_SOURCE_REGISTRY.md',
+    });
+    preview.allowed = false;
+  }
+  for (const d of loaded.denied) {
+    preview.blockers.push({
+      code: d.code,
+      message: `${d.sourceKey}: ${d.message}`,
+      sourceKey: d.sourceKey,
+      blockerRecord: 'RB-015',
+    });
+    preview.allowed = false;
+  }
 
   if (intent === 'preview') {
     const params = configQueryParams(config, {
@@ -195,6 +212,7 @@ export async function previewOrLaunchResearchRunAction(formData: FormData) {
       liveResearchEnabled: preview.liveResearchEnabled ? '1' : '0',
       blockers: JSON.stringify(preview.blockers),
       operatorConfirmed: operatorConfirmed ? '1' : '0',
+      jobMode: runtime.jobMode,
     });
     redirect(`/research/runs/new?${params.toString()}`);
   }
@@ -211,6 +229,7 @@ export async function previewOrLaunchResearchRunAction(formData: FormData) {
       blockers: JSON.stringify(preview.blockers),
       launchBlocked: '1',
       operatorConfirmed: operatorConfirmed ? '1' : '0',
+      jobMode: runtime.jobMode,
     });
     redirect(`/research/runs/new?${params.toString()}`);
   }
@@ -232,16 +251,46 @@ export async function previewOrLaunchResearchRunAction(formData: FormData) {
       ]),
       launchBlocked: '1',
       operatorConfirmed: '0',
+      jobMode: runtime.jobMode,
     });
     redirect(`/research/runs/new?${params.toString()}`);
   }
 
-  const targets = await resolveLaunchTargets(config.maxOrganizations);
+  const targetResolution = await resolveLaunchTargets(config);
+  if (!targetResolution.ok) {
+    const params = configQueryParams(config, {
+      preview: '1',
+      allowed: '0',
+      estimatedRequests: String(preview.estimates.estimatedRequests),
+      estimatedRuntimeMinutes: String(preview.estimates.estimatedRuntimeMinutes),
+      policyVersion: preview.policyVersion,
+      killSwitchStatus: preview.killSwitchStatus,
+      liveResearchEnabled: preview.liveResearchEnabled ? '1' : '0',
+      blockers: JSON.stringify([
+        { code: targetResolution.code, message: targetResolution.message },
+      ]),
+      launchBlocked: '1',
+      operatorConfirmed: '1',
+      jobMode: runtime.jobMode,
+    });
+    redirect(`/research/runs/new?${params.toString()}`);
+  }
+
+  // Persist exact effective source/policy snapshot into config for immutable run history.
+  const configWithSnapshot: ResearchRunConfigInput & {
+    sources: typeof sources;
+    sourcePolicySnapshot: Record<string, unknown>;
+  } = {
+    ...config,
+    sources,
+    sourcePolicySnapshot: sourcePolicySnapshot(loaded.records),
+  };
+
   const { run } = await runtime.researchRuns.createAndLaunch({
     role,
-    config,
+    config: configWithSnapshot,
     sources,
-    targets,
+    targets: targetResolution.targets,
     idempotencyKey: `web-research-run:${crypto.randomUUID()}`,
   });
 
@@ -255,7 +304,15 @@ export async function advanceResearchRunAction(formData: FormData) {
   const runId = String(formData.get('runId') ?? '');
   if (!runId) throw new Error('runId required');
   const runtime = await getWebResearchRuntime();
-  await runtime.jobs.processNextResearchExecute();
+  if (runtime.jobMode === 'durable_postgres') {
+    // Worker owns execution — web must not claim/process durable jobs.
+    revalidatePath(`/research/runs/${runId}`);
+    redirect(`/research/runs/${runId}?workerOwned=1`);
+  }
+  if (!runtime.deferred) {
+    throw new Error('deferred_dispatcher_unavailable');
+  }
+  await runtime.deferred.processNextResearchExecute();
   revalidatePath(`/research/runs/${runId}`);
   revalidatePath('/research/runs');
   redirect(`/research/runs/${runId}`);

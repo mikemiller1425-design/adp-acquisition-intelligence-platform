@@ -72,6 +72,11 @@ export type DurableJobStore = {
   depth(): Promise<number>;
   heartbeat(workerId: string, metadata?: Record<string, unknown>): Promise<void>;
   latestHeartbeat(): Promise<{ workerId: string; lastSeenAt: Date } | null>;
+  /**
+   * Requeue running jobs whose lease expired (abandoned worker).
+   * Returns number of jobs reclaimed.
+   */
+  reclaimExpiredLeases?(input: { leaseMs: number }): Promise<number>;
 };
 
 /**
@@ -84,7 +89,12 @@ export class DurableJobDispatcher implements JobDispatcherPort, JobHandlerRegist
 
   constructor(
     private readonly store: DurableJobStore,
-    private readonly options: { processInline?: boolean; workerId?: string } = {},
+    private readonly options: {
+      processInline?: boolean;
+      workerId?: string;
+      /** Visibility/lease timeout for reclaiming abandoned running jobs. */
+      leaseMs?: number;
+    } = {},
   ) {}
 
   register(name: string, handler: JobHandler): void {
@@ -113,6 +123,11 @@ export class DurableJobDispatcher implements JobDispatcherPort, JobHandlerRegist
   async processOne(): Promise<boolean> {
     const workerId = this.options.workerId ?? 'inline-worker';
     await this.store.heartbeat(workerId, { inline: Boolean(this.options.processInline) });
+    if (typeof this.store.reclaimExpiredLeases === 'function') {
+      await this.store.reclaimExpiredLeases({
+        leaseMs: this.options.leaseMs ?? 60_000,
+      });
+    }
     const claimed = await this.store.claim(workerId);
     if (!claimed) return false;
     const handler = this.handlers.get(claimed.name);
@@ -137,7 +152,9 @@ export class DurableJobDispatcher implements JobDispatcherPort, JobHandlerRegist
         message.includes('lifecycle_not_enabled') ||
         message.includes('robots_disallow') ||
         message.includes('ssrf') ||
-        message.includes('private_network');
+        message.includes('private_network') ||
+        message.includes('target_segment') ||
+        message.includes('durable_queue');
       await this.store.fail(
         claimed.id,
         message,

@@ -137,6 +137,28 @@ export class PostgresDurableJobStore implements DurableJobStore {
     if (!row) return null;
     return { workerId: row.workerId, lastSeenAt: row.lastSeenAt };
   }
+
+  async reclaimExpiredLeases(input: { leaseMs: number }): Promise<number> {
+    const cutoff = new Date(Date.now() - Math.max(1_000, input.leaseMs));
+    const now = new Date();
+    const rows = await this.db.execute(sql`
+      UPDATE durable_jobs
+      SET status = 'queued',
+          locked_at = NULL,
+          locked_by = NULL,
+          available_at = ${now},
+          updated_at = ${now},
+          last_error = coalesce(last_error, 'lease_expired')
+      WHERE status = 'running'
+        AND locked_at IS NOT NULL
+        AND locked_at < ${cutoff}
+      RETURNING id
+    `);
+    const returned =
+      (rows as unknown as { rows?: unknown[] }).rows ??
+      (Array.isArray(rows) ? (rows as unknown[]) : []);
+    return returned.length;
+  }
 }
 
 /** In-memory durable store for unit tests (survives dispatcher rebuild within process). */
@@ -183,6 +205,7 @@ export class InMemoryDurableJobStore implements DurableJobStore {
       if (job.status === 'queued' && job.availableAt <= now) {
         job.status = 'running';
         job.attempts += 1;
+        (job as { lockedAtMs?: number }).lockedAtMs = now;
         return { ...job };
       }
     }
@@ -221,6 +244,21 @@ export class InMemoryDurableJobStore implements DurableJobStore {
     entries.sort((a, b) => b[1].getTime() - a[1].getTime());
     const [workerId, lastSeenAt] = entries[0]!;
     return { workerId, lastSeenAt };
+  }
+
+  async reclaimExpiredLeases(input: { leaseMs: number }): Promise<number> {
+    const cutoff = Date.now() - Math.max(1_000, input.leaseMs);
+    let n = 0;
+    for (const job of this.jobs.values()) {
+      const lockedAt = (job as { lockedAtMs?: number }).lockedAtMs;
+      if (job.status === 'running' && typeof lockedAt === 'number' && lockedAt < cutoff) {
+        job.status = 'queued';
+        job.availableAt = Date.now();
+        job.lastError = job.lastError ?? 'lease_expired';
+        n += 1;
+      }
+    }
+    return n;
   }
 }
 

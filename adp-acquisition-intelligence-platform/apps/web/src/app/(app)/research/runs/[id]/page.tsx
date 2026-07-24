@@ -31,18 +31,28 @@ export default async function ResearchRunDetailPage({ params, searchParams }: Pa
   const approvals = run ? await runtime.researchRuns.listApprovals(id) : [];
   const metrics = run ? await runtime.researchRuns.listMetrics(id) : [];
   const report = showExport && run ? await runtime.researchRuns.exportRunReport(id) : null;
-  const pendingJobs = runtime.jobs.pendingResearchExecuteCount();
+  const pendingJobs =
+    runtime.jobMode === 'durable_postgres' && runtime.durableStore
+      ? await runtime.durableStore.depth()
+      : (runtime.deferred?.pendingResearchExecuteCount() ?? 0);
   const blockedTargets = targets.filter((t) => t.status === 'blocked');
   const config = (run?.configSnapshot ?? {}) as Record<string, unknown>;
   const maxRequests = Number(config.maxTotalRequests ?? 0);
   const requestBudgetRemaining = Math.max(0, maxRequests - (run?.requestsConsumed ?? 0));
+  const workerHeartbeat =
+    runtime.jobMode === 'durable_postgres' && runtime.durableStore
+      ? await runtime.durableStore.latestHeartbeat()
+      : null;
 
   const canPause = run?.status === 'running';
   const canResume = run?.status === 'paused';
   const canCancel =
     run != null && !['completed', 'cancelled', 'blocked', 'failed'].includes(run.status);
   const canAdvance =
-    run != null && (run.status === 'queued' || run.status === 'running') && pendingJobs > 0;
+    runtime.jobMode === 'deferred_memory' &&
+    run != null &&
+    (run.status === 'queued' || run.status === 'running') &&
+    pendingJobs > 0;
   const canKill =
     run != null &&
     !run.killSwitchActive &&
@@ -118,8 +128,20 @@ export default async function ResearchRunDetailPage({ params, searchParams }: Pa
                 <dd data-testid="research-run-claims">{run.claimsProposed}</dd>
               </div>
               <div>
-                <dt>Queue depth (deferred execute)</dt>
+                <dt>Queue depth</dt>
                 <dd data-testid="research-run-pending-jobs">{pendingJobs}</dd>
+              </div>
+              <div>
+                <dt>Job mode</dt>
+                <dd data-testid="research-run-job-mode">{runtime.jobMode}</dd>
+              </div>
+              <div>
+                <dt>Worker heartbeat</dt>
+                <dd data-testid="research-run-worker-heartbeat">
+                  {workerHeartbeat
+                    ? `${workerHeartbeat.workerId} @ ${workerHeartbeat.lastSeenAt.toISOString()}`
+                    : '—'}
+                </dd>
               </div>
               <div>
                 <dt>Kill switch</dt>

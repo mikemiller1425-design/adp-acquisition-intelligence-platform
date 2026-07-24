@@ -726,3 +726,203 @@ describe('internal snapshot reuse', () => {
     expect(runs.sourceAttempts.some((a) => a.adapterType === 'internal_snapshot')).toBe(true);
   });
 });
+
+describe('zero-egress probes', () => {
+  const cases: Array<{
+    name: string;
+    liveResearchEnabled: boolean;
+    globalKillSwitchActive: boolean;
+    runKillSwitchActive: boolean;
+    source: SourceGateInput;
+    mode: ResearchRunConfigInput['mode'];
+  }> = [
+    {
+      name: 'ADP_LIVE_RESEARCH_ENABLED false',
+      liveResearchEnabled: false,
+      globalKillSwitchActive: false,
+      runKillSwitchActive: false,
+      source: APPROVED_LIVE_SOURCE,
+      mode: 'live_official_site_only',
+    },
+    {
+      name: 'source draft',
+      liveResearchEnabled: true,
+      globalKillSwitchActive: false,
+      runKillSwitchActive: false,
+      source: { ...APPROVED_LIVE_SOURCE, lifecycle: 'draft' },
+      mode: 'live_official_site_only',
+    },
+    {
+      name: 'owner review pending',
+      liveResearchEnabled: true,
+      globalKillSwitchActive: false,
+      runKillSwitchActive: false,
+      source: { ...APPROVED_LIVE_SOURCE, legalReviewStatus: 'pending' },
+      mode: 'live_official_site_only',
+    },
+    {
+      name: 'global kill switch',
+      liveResearchEnabled: true,
+      globalKillSwitchActive: true,
+      runKillSwitchActive: false,
+      source: APPROVED_LIVE_SOURCE,
+      mode: 'live_official_site_only',
+    },
+    {
+      name: 'source kill switch',
+      liveResearchEnabled: true,
+      globalKillSwitchActive: false,
+      runKillSwitchActive: false,
+      source: { ...APPROVED_LIVE_SOURCE, killSwitchActive: true },
+      mode: 'live_official_site_only',
+    },
+    {
+      name: 'run kill switch',
+      liveResearchEnabled: true,
+      globalKillSwitchActive: false,
+      runKillSwitchActive: true,
+      source: APPROVED_LIVE_SOURCE,
+      mode: 'live_official_site_only',
+    },
+    {
+      name: 'fixture mode forbids network',
+      liveResearchEnabled: true,
+      globalKillSwitchActive: false,
+      runKillSwitchActive: false,
+      source: APPROVED_LIVE_SOURCE,
+      mode: 'fixture',
+    },
+  ];
+
+  for (const c of cases) {
+    it(`produces zero outbound when ${c.name}`, async () => {
+      const probeRetrieval = {
+        outbound: 0,
+        async retrieve() {
+          this.outbound += 1;
+          return {
+            status: 200,
+            finalUrl: 'https://zero.test/',
+            body: '<html></html>',
+            contentType: 'text/html',
+            etag: null,
+            lastModified: null,
+            redirectChain: [],
+          };
+        },
+      };
+      const adapter = new OfficialWebsiteAdapter({
+        retrieval: probeRetrieval,
+        resolveAddresses: async () => ['203.0.113.50'],
+      });
+      await expect(
+        adapter.retrievePage({
+          url: 'https://zero.test/',
+          domain: 'zero.test',
+          source: c.source,
+          mode: c.mode,
+          liveResearchEnabled: c.liveResearchEnabled,
+          globalKillSwitchActive: c.globalKillSwitchActive,
+          runKillSwitchActive: c.runKillSwitchActive,
+          timeoutMs: 5_000,
+          maxBytes: 100_000,
+        }),
+      ).rejects.toThrow();
+      expect(adapter.getRequestProbe().outboundRequests).toBe(0);
+      expect(probeRetrieval.outbound).toBe(0);
+    });
+  }
+
+  it('launch gates deny when source is absent', () => {
+    const result = evaluateLaunchGates({
+      role: 'ops',
+      config: fixtureConfig({
+        mode: 'live_official_site_only',
+        sourceKeys: ['missing_source'],
+      }),
+      sources: [],
+      liveResearchEnabled: true,
+      globalKillSwitchActive: false,
+    });
+    expect(result.allowed).toBe(false);
+    expect(result.blockers.some((b) => b.code === 'source_not_found')).toBe(true);
+  });
+});
+
+describe('durable lease reclaim', () => {
+  it('requeues abandoned running jobs after lease expiry', async () => {
+    const store = new InMemoryDurableJobStore();
+    const dispatcher = new DurableJobDispatcher(store, {
+      processInline: false,
+      workerId: 'w1',
+      leaseMs: 10,
+    });
+    let executions = 0;
+    dispatcher.register('research.run.execute', async () => {
+      executions += 1;
+    });
+
+    await dispatcher.enqueue({
+      name: 'research.run.execute',
+      idempotencyKey: 'lease-1',
+      payload: { researchRunId: 'run-lease' },
+    });
+
+    // Simulate abandoned claim without complete.
+    const claimed = await store.claim('dead-worker');
+    expect(claimed?.status).toBe('running');
+    (claimed as { lockedAtMs?: number } | null);
+    const job = [...store.jobs.values()][0]!;
+    (job as { lockedAtMs?: number }).lockedAtMs = Date.now() - 60_000;
+
+    const reclaimed = await store.reclaimExpiredLeases({ leaseMs: 1_000 });
+    expect(reclaimed).toBe(1);
+    expect(job.status).toBe('queued');
+
+    await dispatcher.processOne();
+    expect(executions).toBe(1);
+  });
+});
+
+describe('source registry port', () => {
+  it('fail-closes on missing source and maps enabled fixture', async () => {
+    const { createSourceRegistry } = await import('../domain/source-registry.js');
+    const repo = {
+      async getByKey(sourceKey: string) {
+        if (sourceKey !== FIXTURE_SOURCE.sourceKey) return null;
+        return {
+          id: '00000000-0000-4000-8000-0000000000a1',
+          ...FIXTURE_SOURCE,
+          displayName: 'Fixture',
+          domains: ['*'],
+          classification: 'live_simulated',
+          businessPurpose: 'pilot',
+          permittedOrganizationTypes: ['accounting'],
+          permittedFields: ['services'],
+          prohibitedFields: ['personal_email'],
+          robotsBehavior: 'respect',
+          rateLimitPerMinute: 60,
+          concurrencyLimit: 2,
+          pageLimit: 3,
+          responseSizeLimitBytes: 1_048_576,
+          timeoutMs: 5_000,
+          redirectPolicy: 'same_registrable_domain',
+          refreshIntervalHours: 168,
+          snapshotRetentionDays: 90,
+          parserVersion: 'v1',
+          owner: 'research_eng',
+          approvalEvidence: {},
+        };
+      },
+      async setKillSwitch() {},
+      async getKillSwitch() {
+        return false;
+      },
+    };
+    const registry = createSourceRegistry(repo);
+    const missing = await registry.requireGate('nope');
+    expect(missing.ok).toBe(false);
+    const ok = await registry.requireGate(FIXTURE_SOURCE.sourceKey);
+    expect(ok.ok).toBe(true);
+  });
+});

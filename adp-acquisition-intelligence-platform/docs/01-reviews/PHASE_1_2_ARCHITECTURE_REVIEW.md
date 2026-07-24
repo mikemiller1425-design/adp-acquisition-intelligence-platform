@@ -3,12 +3,13 @@
 **Date:** 2026-07-24  
 **Review level:** Prompt / milestone (Phase 1.2 research-run orchestration)  
 **Checklist:** `docs/11-implementation/16_ARCHITECTURE_REVIEW_CHECKLIST.md`  
-**Branch:** `cursor/phase-1-2-live-research-orchestration-fb9d`
+**Branch:** `cursor/phase-1-2-live-research-orchestration-fb9d`  
+**Canonical PR:** [#22](https://github.com/mikemiller1425-design/adp-acquisition-intelligence-platform/pull/22) (supersedes [#21](https://github.com/mikemiller1425-design/adp-acquisition-intelligence-platform/pull/21))  
+**Integration gate:** Cleared after PR #20 merge — see [PHASE_1_2_INTEGRATION_GATE_BLOCKED.md](PHASE_1_2_INTEGRATION_GATE_BLOCKED.md)
 
 ## Verdict
 
-**Acceptable for fixture pilot** of Start Research Run orchestration.  
-**No unaccepted high-severity engineering finding** for fixture-only operation.  
+**Acceptable for persistent fixture pilot** of Start Research Run orchestration once PostgreSQL durable worker E2E evidence is recorded in the test report.  
 **Not acceptable** to claim controlled-external or production live research readiness while RB-015 (and related) remain OPEN and `ADP_LIVE_RESEARCH_ENABLED` defaults false.
 
 ## Scope reviewed
@@ -16,12 +17,41 @@
 - Research run domain (modes, transitions, estimates, gates, circuit breakers)
 - Application service + job handler `research.run.execute`
 - Preferred collection order + approvals/metrics persistence
-- Web composition (deferred execute dispatcher for pause/resume interleaving)
+- Web composition: deferred dispatcher (memory) vs `DurableJobDispatcher` + `PostgresDurableJobStore` (durable)
+- Canonical `SourceRegistryPort` over `approved_sources`
+- Target-segment resolution to real organization UUIDs (no synthetic PG org IDs)
+- Worker lease reclaim / heartbeat / checkpoint idempotency
 - UI routes under `/research/runs*`
 - Draft archive/live adapters fail-closed with DNS/IP validation before transport
 - Documentation maturity labels
 
-## Findings
+## Integration-gate findings (from PR #21) — remediated on #22
+
+```yaml
+id: AR-P12-INT-001
+review_scope: phase-1-2-integration-gate
+severity: high
+category: architecture
+status: remediated
+finding: Next.js launch path previously used DeferredResearchExecuteDispatcher even for postgres+durable.
+required_action: Compose DurableJobDispatcher (processInline false) and fail closed if durable cannot initialize.
+verification: apps/web/e2e/research-run-postgres-durable-orchestration.spec.ts
+owner: research_eng
+```
+
+```yaml
+id: AR-P12-INT-002
+review_scope: phase-1-2-integration-gate
+severity: high
+category: security
+status: remediated
+finding: Web launch previously synthesized source gates instead of canonical approved_sources.
+required_action: SourceRegistryPort; validate at preview/launch; snapshot effective source/policy versions.
+verification: Unit source-registry tests + PG durable E2E
+owner: research_eng
+```
+
+## Findings (ongoing)
 
 ```yaml
 id: AR-P12-001
@@ -33,9 +63,9 @@ requirement_source: docs/research/LIVE_RESEARCH_RUN_ARCHITECTURE.md
 affected_files:
   - apps/web/src/lib/research-runtime.ts
 finding: Web memory runtime defers research.run.execute for UI pause/resume; durable worker uses Postgres SKIP LOCKED when ADP_JOB_QUEUE=durable.
-impact: Behavior differs slightly between web memory UI and inline unit dispatcher, but checkpoints keep both correct.
-required_action: Documented in operator guide / test report.
-verification: Playwright orchestration E2E + checkpoint recovery unit test
+impact: Behavior differs between memory UI and durable worker paths; checkpoints keep both correct.
+required_action: Keep memory deferred path for deterministic tests; durable path uses Postgres job store.
+verification: Playwright memory + postgres durable orchestration E2Es
 owner: research_eng
 ```
 
@@ -60,12 +90,11 @@ id: AR-P12-003
 review_scope: phase-1-2
 severity: medium
 category: testing
-status: accepted_risk
+status: remediated
 requirement_source: docs/research/RESEARCH_RUN_TEST_REPORT.md
-finding: Full postgres research-run durable-queue process-restart E2E is not yet a dedicated Playwright suite.
-impact: Restart safety is covered by unit checkpoint recovery + Phase 1.1 postgres persistence E2E for related tables.
-required_action: Follow-up PG research-run orchestration E2E when promoting beyond fixture pilot.
-verification: research-run.unit.test.ts worker restart checkpoint case
+finding: Dedicated PostgreSQL research-run durable-queue process-restart E2E was missing.
+required_action: Add Next + worker + PG Playwright suite (`test:e2e:research-run-postgres`).
+verification: research-run-postgres-durable-orchestration.spec.ts
 owner: research_eng
 ```
 
@@ -77,13 +106,17 @@ owner: research_eng
 - [x] Blockers RB-014–017 not closed by this change
 - [x] Preferred collection order enforced in orchestrator
 - [x] Dual gates enforced server-side and again before network access
-- [ ] Independent security/privacy sign-off (RB-001/002) — out of scope / still OPEN
+- [x] Durable web→worker queue boundary (implementation; evidence in test report)
+- [x] Canonical SourceRegistryPort for PG launches
+- [ ] Independent security/privacy sign-off (RB-001/002) — still OPEN
 
 ## Recommendation
 
 ```yaml
-recommendation: READY_FOR_FIXTURE_PILOT
+recommendation: READY_FOR_PERSISTENT_FIXTURE_PILOT
+# only after RESEARCH_RUN_TEST_REPORT records passing PG durable E2E
+memory_fixture_ui: available
+durable_queue_claim: claimed_when_e2e_green
 live_egress: NOT_READY
-blocking_engineering_findings: 0
-unaccepted_high_severity: 0
+rb_001_through_017: OPEN
 ```

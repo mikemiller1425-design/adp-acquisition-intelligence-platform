@@ -45,8 +45,10 @@ export default async function NewResearchRunPage({ searchParams }: PageProps) {
     objective: first(query.objective) ?? 'Bounded fixture retrieval for pilot verification',
     mode: first(query.mode) ?? 'fixture',
     savedTargetSegment: first(query.savedTargetSegment) ?? 'pilot-accounting-segment',
-    territory: first(query.territory) ?? 'territory-east',
-    organizationType: first(query.organizationType) ?? 'accounting',
+    // Leave territory / organizationType blank so known segments resolve from seeds
+    // (NE/SE codes, ria/broker_dealer/wealth_manager). Optional filters narrow further.
+    territory: first(query.territory) ?? '',
+    organizationType: first(query.organizationType) ?? '',
     maxOrganizations: first(query.maxOrganizations) ?? '2',
     maxPagesPerOrganization: first(query.maxPagesPerOrganization) ?? '3',
     maxTotalRequests: first(query.maxTotalRequests) ?? '20',

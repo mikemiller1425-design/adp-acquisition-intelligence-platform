@@ -11,8 +11,8 @@ import { registerWorkerConsumers } from './consumers/index.js';
 
 /**
  * Phase 1.2 worker:
- * - Default: InMemoryJobDispatcher (local/dev without durable queue)
- * - When ADP_JOB_QUEUE=durable and postgres runtime: PostgresDurableJobStore + poll loop
+ * - ADP_JOB_QUEUE=durable + postgres: PostgresDurableJobStore + poll (fail closed if misconfigured)
+ * - Otherwise: InMemoryJobDispatcher (local/dev)
  * ADP_LIVE_RESEARCH_ENABLED defaults false — adapters remain gated.
  */
 async function main() {
@@ -22,19 +22,21 @@ async function main() {
     level: config.logLevel,
     nodeEnv: config.nodeEnv,
   });
+  const queueRaw = (process.env.ADP_JOB_QUEUE ?? 'memory').trim().toLowerCase();
   const research = createResearchRuntime(process.env);
-  const useDurable =
-    (process.env.ADP_JOB_QUEUE ?? '').trim().toLowerCase() === 'durable' &&
-    research.provider === 'postgres' &&
-    research.database;
 
-  let stopPolling: (() => void) | undefined;
-
-  if (useDurable && research.database) {
+  if (queueRaw === 'durable') {
+    if (research.provider !== 'postgres' || !research.database) {
+      throw new Error(
+        'durable_queue_invalid_config: ADP_JOB_QUEUE=durable requires ADP_RESEARCH_PROVIDER=postgres and DATABASE_URL',
+      );
+    }
     const store = new PostgresDurableJobStore(research.database.db);
+    const leaseMs = Number(process.env.ADP_JOB_LEASE_MS ?? 60_000);
     const jobs = new DurableJobDispatcher(store, {
       workerId: process.env.ADP_WORKER_ID ?? `worker-${process.pid}`,
       processInline: false,
+      leaseMs,
     });
     registerWorkerConsumers(jobs, research);
     const app = await buildWorkerServer({ config, logger, jobs });
@@ -44,18 +46,20 @@ async function main() {
         port: config.workerHealthPort,
         researchProvider: research.provider,
         jobQueue: 'durable',
+        leaseMs,
         liveResearchEnabled: process.env.ADP_LIVE_RESEARCH_ENABLED ?? 'false',
       },
       'Worker health listening (durable queue)',
     );
 
     let active = true;
-    stopPolling = () => {
+    const stopPolling = () => {
       active = false;
     };
     const poll = async () => {
       while (active) {
         try {
+          await store.reclaimExpiredLeases({ leaseMs });
           const worked = await jobs.processOne();
           if (!worked) await new Promise((r) => setTimeout(r, 500));
         } catch (error) {
@@ -65,9 +69,13 @@ async function main() {
       }
     };
     void poll();
-    process.on('SIGTERM', () => stopPolling?.());
-    process.on('SIGINT', () => stopPolling?.());
+    process.on('SIGTERM', () => stopPolling());
+    process.on('SIGINT', () => stopPolling());
     return;
+  }
+
+  if (queueRaw !== '' && queueRaw !== 'memory') {
+    throw new Error(`durable_queue_invalid_config: unknown ADP_JOB_QUEUE=${queueRaw}`);
   }
 
   const jobs = registerWorkerConsumers(new InMemoryJobDispatcher(), research);
