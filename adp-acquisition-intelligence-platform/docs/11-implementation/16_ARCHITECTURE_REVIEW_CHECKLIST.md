@@ -244,6 +244,6 @@ After remediation, rerun affected automated checks and the relevant checklist se
 
 ## Phase 1.2 pointer
 
-Phase 1.2 research-run orchestration reviews are recorded in [PHASE_1_2_ARCHITECTURE_REVIEW.md](../01-reviews/PHASE_1_2_ARCHITECTURE_REVIEW.md). Fixture-pilot orchestration is in scope; enabling live/archive egress or closing RB-014–017 is not.
+Phase 1.2 research-run orchestration reviews are recorded in [PHASE_1_2_ARCHITECTURE_REVIEW.md](../01-reviews/PHASE_1_2_ARCHITECTURE_REVIEW.md). Integration-gate repair is **BLOCKED** until PR #20 merges — see [PHASE_1_2_INTEGRATION_GATE_BLOCKED.md](../01-reviews/PHASE_1_2_INTEGRATION_GATE_BLOCKED.md). Memory fixture UI is in scope; durable queue claims, live/archive egress enablement, and closing RB-014–017 are not.
 
 
