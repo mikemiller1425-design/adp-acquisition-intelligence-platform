@@ -3,16 +3,36 @@ import { NextResponse } from 'next/server';
 import { getWebResearchRuntime } from '@/lib/research-runtime';
 
 /**
- * Test/ops probe for durable queue depth and research-run tables.
+ * Test/ops probe for durable queue depth and optional research-run rows.
  * Never enables live egress.
  */
-export async function GET() {
+export async function GET(request: Request) {
   const runtime = await getWebResearchRuntime();
   if (runtime.provider !== 'postgres' || !runtime.database || !runtime.durableStore) {
     return NextResponse.json({ error: 'postgres_durable_required' }, { status: 400 });
   }
   const durableJobs = await runtime.durableStore.statusCounts();
   const heartbeat = await runtime.durableStore.latestHeartbeat();
+  const url = new URL(request.url);
+  const runId = url.searchParams.get('runId');
+
+  let researchRun: Record<string, unknown> | null = null;
+  if (runId) {
+    const run = await runtime.researchRuns.getRun(runId);
+    const targets = run ? await runtime.researchRuns.listTargets(runId) : [];
+    researchRun = run
+      ? {
+          id: run.id,
+          status: run.status,
+          snapshotsCreated: run.snapshotsCreated,
+          targetsCompleted: run.targetsCompleted,
+          targets: targets.map((t) => ({
+            organizationId: t.organizationId,
+            status: t.status,
+          })),
+        }
+      : null;
+  }
 
   return NextResponse.json({
     jobMode: runtime.jobMode,
@@ -22,5 +42,6 @@ export async function GET() {
     workerHeartbeat: heartbeat
       ? { workerId: heartbeat.workerId, lastSeenAt: heartbeat.lastSeenAt.toISOString() }
       : null,
+    researchRun,
   });
 }

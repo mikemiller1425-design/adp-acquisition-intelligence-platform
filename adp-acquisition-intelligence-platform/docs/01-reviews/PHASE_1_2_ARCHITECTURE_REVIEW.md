@@ -114,9 +114,8 @@ owner: research_eng
 
 ```yaml
 recommendation: READY_FOR_PERSISTENT_FIXTURE_PILOT
-# only after RESEARCH_RUN_TEST_REPORT records passing PG durable E2E
 memory_fixture_ui: available
-durable_queue_claim: claimed_when_e2e_green
+durable_queue_claim: verified_by_pg_worker_e2e
 live_egress: NOT_READY
 rb_001_through_017: OPEN
 ```

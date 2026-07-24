@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { getWebSession, roleCanAccess } from '@/lib/auth';
-import { getResearchWorkflowSnapshot, getWebResearchRuntime } from '@/lib/research-runtime';
+import { getWebResearchRuntime } from '@/lib/research-runtime';
 import {
   resolveOrganizationsForSegment,
   sourcePolicySnapshot,
@@ -99,7 +99,7 @@ function configQueryParams(
 /**
  * Resolve launch targets from canonical organizations.
  * PostgreSQL: saved segment → real org UUIDs only (no synthetic IDs).
- * Memory: workflow snapshot orgs (test-seeded), never invent non-UUID placeholders for PG.
+ * Memory: seed deterministic UUID orgs for the requested maxOrganizations bound.
  */
 async function resolveLaunchTargets(
   config: ResearchRunConfigInput,
@@ -136,35 +136,29 @@ async function resolveLaunchTargets(
     };
   }
 
-  // Memory fixture path: use snapshot orgs; seed explicit UUID orgs when empty.
-  const snapshot = await getResearchWorkflowSnapshot(runtime);
-  let fromSnapshot = snapshot.organizations.slice(0, config.maxOrganizations).map((o) => ({
-    organizationId: o.organizationId,
-    canonicalDomain: (o.domain ?? 'acme-advisory.test').replace(/^www\./, ''),
-  }));
-  if (!fromSnapshot.length) {
-    const seeded: Array<{ organizationId: string; canonicalDomain: string }> = [];
-    const fixtures = [
-      { displayName: 'Acme Advisory', domain: 'acme-advisory.test' },
-      { displayName: 'Beta Advisory', domain: 'beta-advisory.test' },
-    ].slice(0, Math.max(1, config.maxOrganizations));
-    for (const f of fixtures) {
-      const created = await runtime.uow.organizations.createOrganization({
-        displayName: f.displayName,
-        domain: f.domain,
-      });
-      seeded.push({ organizationId: created.id, canonicalDomain: f.domain });
-    }
-    fromSnapshot = seeded;
+  // Memory fixture path: seed deterministic UUID orgs for the requested bound.
+  // Do not depend on leftover Phase 1.1 snapshot org counts (pause/resume needs ≥2).
+  const fixtures = [
+    { displayName: 'Acme Advisory', domain: 'acme-advisory.test' },
+    { displayName: 'Beta Advisory', domain: 'beta-advisory.test' },
+    { displayName: 'Gamma Advisory', domain: 'gamma-advisory.test' },
+  ].slice(0, Math.max(1, config.maxOrganizations));
+  const seeded: Array<{ organizationId: string; canonicalDomain: string }> = [];
+  for (const f of fixtures) {
+    const created = await runtime.uow.organizations.createOrganization({
+      displayName: f.displayName,
+      domain: f.domain,
+    });
+    seeded.push({ organizationId: created.id, canonicalDomain: f.domain });
   }
-  if (!fromSnapshot.length) {
+  if (!seeded.length) {
     return {
       ok: false,
       code: 'target_segment_empty',
       message: `Segment “${segment}” resolved to zero organizations in memory runtime`,
     };
   }
-  return { ok: true, targets: fromSnapshot };
+  return { ok: true, targets: seeded };
 }
 
 /**

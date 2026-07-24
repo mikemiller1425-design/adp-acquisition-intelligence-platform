@@ -7,13 +7,10 @@
  *
  * Live egress remains disabled. Does not replace Phase 1.1 persistent workflow.
  */
-import { spawn, type ChildProcess } from 'node:child_process';
+import { execSync, spawn, type ChildProcess } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 
 import { expect, test } from '@playwright/test';
-import { createTestDatabaseClient } from '@adp/database/testing';
-import { durableJobs, researchRuns, researchRunTargets, sourceSnapshots } from '@adp/database';
-import { count, eq } from 'drizzle-orm';
 
 const PORT = Number(process.env.ADP_WEB_E2E_PORT ?? 3102);
 const WORKER_HEALTH = Number(process.env.ADP_WORKER_HEALTH_PORT ?? 3103);
@@ -26,6 +23,20 @@ const databaseUrl =
 let web: ChildProcess | null = null;
 let worker: ChildProcess | null = null;
 let bootLog = '';
+
+function freePort(port: number) {
+  try {
+    // fuser is unavailable in some cloud images; use lsof.
+    execSync(
+      `bash -lc 'pids=$(lsof -tiTCP:${port} -sTCP:LISTEN 2>/dev/null || true); if [ -n "$pids" ]; then kill -9 $pids || true; fi'`,
+      {
+        stdio: 'ignore',
+      },
+    );
+  } catch {
+    // best-effort
+  }
+}
 
 function attachLogs(proc: ChildProcess, label: string) {
   proc.stdout?.on('data', (chunk) => {
@@ -52,6 +63,8 @@ async function waitUrl(url: string, timeoutMs = 120_000) {
 
 async function startWeb() {
   if (web) return;
+  freePort(PORT);
+  await delay(300);
   web = spawn('pnpm', ['exec', 'next', 'dev', '--hostname', '127.0.0.1', '--port', String(PORT)], {
     cwd: process.cwd(),
     env: {
@@ -88,6 +101,8 @@ async function stopWeb() {
 
 async function startWorker() {
   if (worker) return;
+  freePort(WORKER_HEALTH);
+  await delay(300);
   const workerEnv = {
     ...process.env,
     DATABASE_URL: databaseUrl,
@@ -134,14 +149,24 @@ async function stopWorker() {
   await delay(500);
 }
 
-async function probeQueue() {
-  const res = await fetch(`${BASE_URL}/api/research/durable-queue-probe`);
+type Probe = {
+  jobMode: string;
+  durableJobs: { queued: number; running: number; completed: number; dead: number };
+  workerHeartbeat: { workerId: string; lastSeenAt: string } | null;
+  researchRun: {
+    id: string;
+    status: string;
+    snapshotsCreated: number;
+    targetsCompleted: number;
+    targets: Array<{ organizationId: string; status: string }>;
+  } | null;
+};
+
+async function probeQueue(runId?: string): Promise<Probe> {
+  const qs = runId ? `?runId=${encodeURIComponent(runId)}` : '';
+  const res = await fetch(`${BASE_URL}/api/research/durable-queue-probe${qs}`);
   expect(res.ok).toBeTruthy();
-  return res.json() as Promise<{
-    jobMode: string;
-    durableJobs: { queued: number; running: number; completed: number; dead: number };
-    workerHeartbeat: { workerId: string; lastSeenAt: string } | null;
-  }>;
+  return res.json() as Promise<Probe>;
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -149,6 +174,19 @@ test.describe.configure({ mode: 'serial' });
 test.beforeAll(async () => {
   await startWeb();
   await startWorker();
+  // Fail fast if health answered from a stale process that is not polling.
+  let sawHeartbeat = false;
+  for (let i = 0; i < 40; i += 1) {
+    const probe = await probeQueue();
+    if (probe.workerHeartbeat?.workerId) {
+      sawHeartbeat = true;
+      break;
+    }
+    await delay(250);
+  }
+  if (!sawHeartbeat) {
+    throw new Error(`Worker started but never heartbeated\n${bootLog}`);
+  }
 });
 
 test.afterAll(async () => {
@@ -195,7 +233,7 @@ test.describe('Phase 1.2 PostgreSQL durable research-run orchestration', () => {
     // Durable job should appear (queued or already claimed/completed by worker).
     let sawDurableActivity = false;
     for (let i = 0; i < 40; i += 1) {
-      const probe = await probeQueue();
+      const probe = await probeQueue(runId);
       if (probe.durableJobs.queued + probe.durableJobs.running + probe.durableJobs.completed > 0) {
         sawDurableActivity = true;
         break;
@@ -251,38 +289,19 @@ test.describe('Phase 1.2 PostgreSQL durable research-run orchestration', () => {
     await expect(page.getByTestId('research-run-status')).toHaveText('completed');
     await expect(page.getByTestId('research-run-snapshots')).toHaveText(snapshotsBefore ?? '');
 
-    // Direct PostgreSQL probe.
-    const client = createTestDatabaseClient(databaseUrl);
-    try {
-      const [runRow] = await client.db
-        .select()
-        .from(researchRuns)
-        .where(eq(researchRuns.id, runId))
-        .limit(1);
-      expect(runRow?.status).toBe('completed');
-      expect(runRow?.snapshotsCreated ?? 0).toBeGreaterThan(0);
-
-      const targets = await client.db
-        .select()
-        .from(researchRunTargets)
-        .where(eq(researchRunTargets.researchRunId, runId));
-      expect(targets.length).toBeGreaterThan(0);
-      expect(targets.every((t) => t.status === 'succeeded' || t.status === 'blocked')).toBe(true);
-      // No synthetic org-fixture-* IDs
-      for (const t of targets) {
-        expect(t.organizationId).not.toMatch(/^org-fixture-/);
-      }
-
-      const [jobCompleted] = await client.db
-        .select({ value: count() })
-        .from(durableJobs)
-        .where(eq(durableJobs.status, 'completed'));
-      expect(Number(jobCompleted?.value ?? 0)).toBeGreaterThan(0);
-
-      const [snapCount] = await client.db.select({ value: count() }).from(sourceSnapshots);
-      expect(Number(snapCount?.value ?? 0)).toBeGreaterThan(0);
-    } finally {
-      await client.close();
+    const finalProbe = await probeQueue(runId);
+    expect(finalProbe.jobMode).toBe('durable_postgres');
+    expect(finalProbe.researchRun?.status).toBe('completed');
+    expect(finalProbe.researchRun?.snapshotsCreated ?? 0).toBeGreaterThan(0);
+    expect(finalProbe.researchRun?.targets.length ?? 0).toBeGreaterThan(0);
+    expect(
+      finalProbe.researchRun?.targets.every(
+        (t) => t.status === 'succeeded' || t.status === 'blocked',
+      ),
+    ).toBe(true);
+    for (const t of finalProbe.researchRun?.targets ?? []) {
+      expect(t.organizationId).not.toMatch(/^org-fixture-/);
     }
+    expect(finalProbe.durableJobs.completed).toBeGreaterThan(0);
   });
 });

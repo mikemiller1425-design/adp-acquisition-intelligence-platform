@@ -34,17 +34,17 @@ export class PostgresDurableJobStore implements DurableJobStore {
   }
 
   async claim(workerId: string): Promise<DurableJobRecord | null> {
-    const now = new Date();
+    const nowIso = new Date().toISOString();
     const rows = await this.db.execute(sql`
       UPDATE durable_jobs
       SET status = 'running',
           attempts = attempts + 1,
-          locked_at = ${now},
+          locked_at = ${nowIso}::timestamptz,
           locked_by = ${workerId},
-          updated_at = ${now}
+          updated_at = ${nowIso}::timestamptz
       WHERE id = (
         SELECT id FROM durable_jobs
-        WHERE status = 'queued' AND available_at <= ${now}
+        WHERE status = 'queued' AND available_at <= ${nowIso}::timestamptz
         ORDER BY created_at ASC
         FOR UPDATE SKIP LOCKED
         LIMIT 1
@@ -157,19 +157,19 @@ export class PostgresDurableJobStore implements DurableJobStore {
   }
 
   async reclaimExpiredLeases(input: { leaseMs: number }): Promise<number> {
-    const cutoff = new Date(Date.now() - Math.max(1_000, input.leaseMs));
-    const now = new Date();
+    const cutoffIso = new Date(Date.now() - Math.max(1_000, input.leaseMs)).toISOString();
+    const nowIso = new Date().toISOString();
     const rows = await this.db.execute(sql`
       UPDATE durable_jobs
       SET status = 'queued',
           locked_at = NULL,
           locked_by = NULL,
-          available_at = ${now},
-          updated_at = ${now},
+          available_at = ${nowIso}::timestamptz,
+          updated_at = ${nowIso}::timestamptz,
           last_error = coalesce(last_error, 'lease_expired')
       WHERE status = 'running'
         AND locked_at IS NOT NULL
-        AND locked_at < ${cutoff}
+        AND locked_at < ${cutoffIso}::timestamptz
       RETURNING id
     `);
     const returned =

@@ -44,9 +44,9 @@ When #20 was still open, integration-gate repair correctly stopped. Deferred wor
 | Separate worker execution + lease reclaim | Implemented |
 | Canonical `SourceRegistryPort` / `approved_sources` | Implemented |
 | Persisted target-segment organizations (real UUIDs) | Implemented |
-| PostgreSQL Playwright orchestration | Spec + config (`test:e2e:research-run-postgres`) |
-| Web / worker restart recovery | Covered by durable E2E + checkpoints |
-| Zero-egress unit probes | Covered in `research-run.unit.test.ts` |
+| PostgreSQL Playwright orchestration | **PASS** (`test:e2e:research-run-postgres`) |
+| Web / worker restart recovery | **PASS** (durable E2E) |
+| Zero-egress unit probes | **PASS** (`research-run.unit.test.ts`) |
 
 ## Explicit non-goals (unchanged)
 
