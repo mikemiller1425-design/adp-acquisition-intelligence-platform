@@ -45,6 +45,14 @@ pnpm --filter @adp/web test:e2e:postgres  # separate; unchanged ignore/match con
 pnpm validate
 ```
 
+## Executed in this agent run
+
+| Command | Result |
+|---|---|
+| `pnpm validate` | **PASS** |
+| `pnpm --filter @adp/research test` (with local PostgreSQL) | **38 passed** |
+| `playwright test e2e/research-run-orchestration.spec.ts` | **PASS** |
+
 ## Residual gaps (explicit)
 
 - Full PG-backed research-run durable queue E2E across process restart: follow-up
