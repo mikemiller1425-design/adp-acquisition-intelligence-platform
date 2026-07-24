@@ -799,7 +799,7 @@ export class ResearchRunService {
     let liveFallbacks = 0;
     let requestsConsumed = 0;
     let internalSnapshotHits = 0;
-    let licensedHits = 0;
+    const licensedHits = 0;
 
     if (dryRun) {
       return {

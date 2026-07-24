@@ -20,10 +20,8 @@ import {
 import { ResearchRunService } from '../application/research-run-service.js';
 import { registerResearchJobHandlers } from '../application/job-handlers.js';
 import { createResearchRuntime } from '../application/research-runtime.js';
-import {
-  CommonCrawlArchiveAdapter,
-  OfficialWebsiteAdapter,
-} from '../infrastructure/adapters/archive-and-live.js';
+import { OfficialWebsiteAdapter } from '../infrastructure/adapters/archive-and-live.js';
+import type { CommonCrawlArchiveAdapter } from '../infrastructure/adapters/archive-and-live.js';
 import { InMemoryDurableJobStore } from '../infrastructure/durable-job-store.js';
 import { InMemoryResearchRunRepository } from '../infrastructure/research-run-store.js';
 import { createInMemoryResearchUnitOfWork } from '../infrastructure/in-memory.js';
