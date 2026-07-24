@@ -2,7 +2,7 @@ node_modules
 .turbo
 dist
 .next
-coverage
+/coverage
 .env
 .env.local
 *.log

@@ -1,0 +1,81 @@
+version: approved-sources-v1
+# Only fixture adapters are enabled for CI/pilot. Live public sources remain draft until owner approvals.
+sources:
+  - source_key: organization_website_fixture
+    display_name: Organization Website (Fixture)
+    domains: ['*']
+    adapter_type: fixture
+    classification: live_simulated
+    business_purpose: controlled_pilot_collection
+    permitted_organization_types: [accounting, advisory]
+    permitted_fields: [services, locations, public_leadership_roles, hiring_signals]
+    prohibited_fields: [personal_email, personal_phone]
+    terms_review_status: not_required_for_fixture
+    robots_behavior: respect
+    privacy_review_status: not_required_for_fixture
+    legal_review_status: not_required_for_fixture
+    security_review_status: not_required_for_fixture
+    rate_limit_per_minute: 30
+    concurrency_limit: 2
+    page_limit: 8
+    response_size_limit_bytes: 1048576
+    timeout_ms: 10000
+    redirect_policy: same_registrable_domain
+    refresh_interval_hours: 168
+    snapshot_retention_days: 90
+    parser_version: v1
+    owner: research_eng
+    lifecycle: enabled
+    kill_switch_active: false
+  - source_key: archived_web_fixture
+    display_name: Archived Web (Fixture / Common Crawl seam)
+    domains: ['*']
+    adapter_type: archived_web
+    classification: archive
+    business_purpose: bulk_enrichment_before_live
+    permitted_organization_types: [accounting, advisory]
+    permitted_fields: [services, locations]
+    prohibited_fields: [personal_email, personal_phone]
+    terms_review_status: pending
+    robots_behavior: respect
+    privacy_review_status: pending
+    legal_review_status: pending
+    security_review_status: pending
+    rate_limit_per_minute: 60
+    concurrency_limit: 4
+    page_limit: 5
+    response_size_limit_bytes: 1048576
+    timeout_ms: 15000
+    redirect_policy: same_registrable_domain
+    refresh_interval_hours: 720
+    snapshot_retention_days: 180
+    parser_version: v1
+    owner: research_eng
+    lifecycle: draft
+    kill_switch_active: false
+  - source_key: organization_website_live
+    display_name: Organization Website (Live)
+    domains: []
+    adapter_type: organization_website
+    classification: live
+    business_purpose: targeted_public_collection
+    permitted_organization_types: [accounting, advisory]
+    permitted_fields: [services, locations, public_leadership_roles, hiring_signals]
+    prohibited_fields: [personal_email, personal_phone]
+    terms_review_status: pending
+    robots_behavior: respect
+    privacy_review_status: pending
+    legal_review_status: pending
+    security_review_status: pending
+    rate_limit_per_minute: 10
+    concurrency_limit: 2
+    page_limit: 8
+    response_size_limit_bytes: 1048576
+    timeout_ms: 10000
+    redirect_policy: same_registrable_domain
+    refresh_interval_hours: 168
+    snapshot_retention_days: 90
+    parser_version: v1
+    owner: research_eng
+    lifecycle: draft
+    kill_switch_active: true

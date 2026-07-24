@@ -1,0 +1,17 @@
+version: research-priority-draft-v1
+production_activation_gated: true
+formula_status: draft_not_approved
+conceptual_policy: |
+  Research priority ≈ expected commercial value × expected information gain × source availability ÷ expected collection cost
+  Numeric weights are NOT approved for production activation.
+tiers:
+  A: Deep research now
+  B: Standard enrichment
+  C: Bulk enrichment only
+  D: Do not research or defer
+high_impact_variables:
+  - services.payroll_offered
+  - services.bookkeeping_offered
+  - services.cas_offered
+  - services.fractional_cfo_offered
+  - organization.locations_count

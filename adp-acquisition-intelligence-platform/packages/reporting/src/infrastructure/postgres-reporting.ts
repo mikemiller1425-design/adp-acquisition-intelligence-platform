@@ -12,6 +12,9 @@ import {
   outreachRecipients,
   outreachResponses,
   outboxEvents,
+  rawCandidates,
+  extractedClaims,
+  collectionRuns,
   responseClassifications,
   savedViews,
   scoreResults,
@@ -364,7 +367,25 @@ export class PostgresDashboardQueryRepository implements DashboardQueryRepositor
       { ...command.filters, researchStatus: ['gaps_open', 'blocked_conflict'] },
       command.scope,
     );
-    return [metricCount('research_queue_count', total, 'table_collection_research')];
+    const candidates = first(await this.db.select({ value: count() }).from(rawCandidates)).value;
+    const awaiting = first(
+      await this.db
+        .select({ value: count() })
+        .from(extractedClaims)
+        .where(eq(extractedClaims.reviewStatus, 'proposed')),
+    ).value;
+    const activeRuns = first(
+      await this.db
+        .select({ value: count() })
+        .from(collectionRuns)
+        .where(inArray(collectionRuns.status, ['queued', 'running'])),
+    ).value;
+    return [
+      metricCount('research_queue_count', total, 'table_collection_research'),
+      metricCount('population_raw_candidates', candidates, 'table_collection_research'),
+      metricCount('claims_awaiting_review', awaiting, 'table_collection_research'),
+      metricCount('collection_runs_active', activeRuns, 'table_collection_research'),
+    ];
   }
 
   private async metricsD4(command: {

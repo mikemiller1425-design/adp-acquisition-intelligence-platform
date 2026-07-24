@@ -23,6 +23,10 @@
 | RB-011 | Medium | Architecture | Drizzle meta snapshots missing for migrations `0001`, `0004`, `0005` | Eng | Snapshots added or waived with migrate-test proof | NO | NO | OPEN |
 | RB-012 | Medium | Operations | Production observability (alerts, dashboards, on-call) beyond app logs | Ops | Runbook + alert hooks configured | YES (ops maturity) | NO* | OPEN |
 | RB-013 | Low | Testing | Live external provider contract tests not in CI (mocks only) | Eng | Sandbox contract suite or waiver | NO | NO | OPEN |
+| RB-014 | High | Legal / Data | Licensing approval for bulk population datasets before enablement beyond internal/fixture sources | Legal / Data steward | Written license approval + `population_sources.approval_status`/`license_status` evidence | YES (licensed bulk enablement) | NO* | OPEN |
+| RB-015 | Critical | Legal / Privacy / Security | Live public-source and archived-web legal + privacy + security approval before network egress | Legal / Privacy / Security | Signed reviews on `approved_sources` terms/privacy/legal/security + kill-switch-off change control | YES (live/archive egress) | NO* | OPEN |
+| RB-016 | High | Operations | Production object-storage backup and retention for `source_snapshots` bodies (`storage_key`) | Ops | Object-store config + backup/retention proof aligned with ADR backup/retention | YES (prod snapshot durability) | NO* | OPEN |
+| RB-017 | High | Product / Security | Extraction provider / AI extraction approval (deterministic seam only today; auto-accept remains off) | Product / Security | Provider approval + mapping/version policy; no silent auto-confirm | YES (AI extraction enablement) | NO* | OPEN |
 
 \* **Blocking Phase 2** column: Per acceptance-gate policy, Phase 2 **product development** may begin **YES WITH CONDITIONS** while these remain OPEN, provided owners **explicitly accept** residual risk and **do not** enable live outreach / production cutover until Release-blocking items for that capability are closed. Items marked Blocking Release = YES still block **production release** and capability claims.
 
@@ -40,6 +44,10 @@
 | Encrypted backup restore | OPEN (RB-007) |
 | Browser E2E (QAR-005) | OPEN (RB-006) |
 | Production deployment | OPEN (RB-009) |
+| Bulk population licensing | OPEN (RB-014) |
+| Live / archived-web public-source approvals | OPEN (RB-015) — live egress **NOT READY** |
+| Snapshot object-storage backup/retention | OPEN (RB-016) |
+| AI / extraction provider approval | OPEN (RB-017) |
 
 ---
 
@@ -54,6 +62,6 @@
 
 ## Owner acceptance statement (template)
 
-> We accept that Phase 2 engineering may begin while RB-001…RB-009 remain OPEN for **production release**. We will not enable live outreach send until RB-003 is CLOSED. We will not claim 100k-org or production readiness until RB-005/RB-007/RB-009 are CLOSED.
+> We accept that Phase 2 engineering may begin while RB-001…RB-009 remain OPEN for **production release**. We will not enable live outreach send until RB-003 is CLOSED. We will not claim 100k-org or production readiness until RB-005/RB-007/RB-009 are CLOSED. We will not enable licensed bulk population datasets until RB-014 is CLOSED, live/archived public-source egress until RB-015 is CLOSED, production snapshot object-storage claims until RB-016 is CLOSED, or AI extraction until RB-017 is CLOSED.
 
 *(Not signed in this repository — owners must record acceptance externally or by updating Status columns.)*

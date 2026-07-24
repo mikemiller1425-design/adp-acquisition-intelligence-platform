@@ -71,6 +71,20 @@
       "when": 1784772542080,
       "tag": "0009_prompt_10_reporting",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784780000000,
+      "tag": "0010_phase_1_1_population_research",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1784781000000,
+      "tag": "0011_phase_1_1_collection_attempts",
+      "breakpoints": true
     }
   ]
 }

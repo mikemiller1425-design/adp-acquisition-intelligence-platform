@@ -12,6 +12,7 @@ export * from './organizations.js';
 export * from './outreach.js';
 export * from './qualification.js';
 export * from './reporting.js';
+export * from './research.js';
 export * from './scoring.js';
 export * from './territories.js';
 export * from './variables.js';

@@ -1,0 +1,23 @@
+version: claim-variable-mapping-v1
+mappings:
+  - pattern: payroll
+    variable_key: services.payroll_offered
+    value_type: boolean
+  - pattern: bookkeeping
+    variable_key: services.bookkeeping_offered
+    value_type: boolean
+  - pattern: cas
+    variable_key: services.cas_offered
+    value_type: boolean
+  - pattern: fractional cfo
+    variable_key: services.fractional_cfo_offered
+    value_type: boolean
+  - pattern: hr advisory
+    variable_key: services.hr_advisory_offered
+    value_type: boolean
+  - pattern: benefits advisory
+    variable_key: services.benefits_advisory_offered
+    value_type: boolean
+review_policy:
+  initial: require_human_review_for_all
+  auto_accept_enabled: false

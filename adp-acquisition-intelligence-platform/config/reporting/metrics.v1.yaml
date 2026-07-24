@@ -79,6 +79,30 @@ dashboards:
         time_basis: as_of
         excluded_states: [archived]
         drilldown_key: table_collection_research
+      - key: population_raw_candidates
+        display_name: Raw Candidates
+        subject: raw_candidate
+        numerator: raw_candidates rows
+        denominator: null
+        time_basis: as_of
+        excluded_states: []
+        drilldown_key: table_collection_research
+      - key: claims_awaiting_review
+        display_name: Claims Awaiting Review
+        subject: extracted_claim
+        numerator: extracted_claims where review_status = proposed
+        denominator: null
+        time_basis: as_of
+        excluded_states: []
+        drilldown_key: table_collection_research
+      - key: collection_runs_active
+        display_name: Active Collection Runs
+        subject: collection_run
+        numerator: collection_runs in queued or running
+        denominator: null
+        time_basis: as_of
+        excluded_states: []
+        drilldown_key: table_collection_research
   D4:
     display_name: Scoring
     table_key: table_scoring

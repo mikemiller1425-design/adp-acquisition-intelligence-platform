@@ -15,6 +15,7 @@
 11. [Prompt 12 runbooks](14-runbooks/OPS_STARTUP_AND_VALIDATION.md) — startup, health, migrate, seed, validate, consent incidents, export expiry, backup/restore rehearsal.
 12. [Prompt 0 readiness](00-readiness/PROMPT_0_READINESS_REPORT.md), [Prompt 2 implementation](prompts/PROMPT_2_CANONICAL_DATA_MODEL.md), [Prompt 3 implementation](prompts/PROMPT_3_VARIABLES_EVIDENCE_PROVENANCE.md), [Prompt 4 implementation](prompts/PROMPT_4_COLLECTION_AND_IDENTITY_RESOLUTION.md), [Prompt 5 implementation](prompts/PROMPT_5_COMPLETENESS_AND_SCORING.md), [Prompt 6 implementation](prompts/PROMPT_6_QUALIFICATION_AND_WORKFLOW.md), [Prompt 10 reporting](prompts/PROMPT_10_DASHBOARD_BACKEND_AND_REPORTING.md), [Prompt 11 web UX](prompts/PROMPT_11_WEB_UX_AND_DASHBOARDS.md), [Prompt 12 hardening](prompts/PROMPT_12_HARDENING_AND_ACCEPTANCE.md), [Prompt 6 entry gate](01-reviews/PROMPT_6_ENTRY_GATE.md), and [specification reviews](01-reviews/) — readiness and prompt reviews.
 13. [Phase 1 acceptance package](release/PHASE1_CLOSEOUT.md) — repository audit, implementation matrix, integration/database/security/performance/test/documentation reviews, release blockers, acceptance checklist, and [Phase 2 readiness](release/PHASE2_READINESS.md).
+14. [Phase 1.1 population & research docs](research/DATABASE_POPULATION_ARCHITECTURE.md) — universe ingestion, entity resolution, bulk enrichment, research priority, public-source collection/security, approved-source registry, extraction review, ops runbook, and adapter guide; plus [Phase 1.1 architecture review](01-reviews/PHASE_1_1_POPULATION_ENGINE_ARCHITECTURE_REVIEW.md), [baseline gate](01-reviews/PHASE_1_1_BASELINE_GATE.md), and [completion report](release/PHASE_1_1_POPULATION_ENGINE_COMPLETION.md).
 
 ## Conflict policy
 
@@ -54,10 +55,23 @@ docs/
 │   ├── CONSENT_OPT_OUT_INCIDENT.md
 │   ├── EXPORT_EXPIRY.md
 │   └── BACKUP_RESTORE_REHEARSAL.md
+├── research/
+│   ├── DATABASE_POPULATION_ARCHITECTURE.md
+│   ├── TARGET_UNIVERSE_INGESTION.md
+│   ├── ENTITY_RESOLUTION_POLICY.md
+│   ├── BULK_ENRICHMENT_ARCHITECTURE.md
+│   ├── RESEARCH_PRIORITY_POLICY.md
+│   ├── PUBLIC_SOURCE_COLLECTION_ARCHITECTURE.md
+│   ├── APPROVED_SOURCE_REGISTRY.md
+│   ├── PUBLIC_SOURCE_SECURITY_MODEL.md
+│   ├── EXTRACTION_REVIEW_GUIDE.md
+│   ├── POPULATION_OPERATIONS_RUNBOOK.md
+│   └── SOURCE_ADAPTER_DEVELOPMENT_GUIDE.md
 ├── release/
 │   ├── PHASE1_CLOSEOUT.md
 │   ├── PHASE1_ACCEPTANCE_CHECKLIST.md
 │   ├── PHASE1_RELEASE_BLOCKERS.md
+│   ├── PHASE_1_1_POPULATION_ENGINE_COMPLETION.md
 │   ├── PHASE2_READINESS.md
 │   └── PHASE1_*_REVIEW.md / matrices
 ├── development/

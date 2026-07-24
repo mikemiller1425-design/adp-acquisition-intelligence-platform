@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/__tests__/**", "src/**/*.test.ts"],
+  "references": [
+    { "path": "../collection" },
+    { "path": "../contracts" },
+    { "path": "../database" },
+    { "path": "../evidence" },
+    { "path": "../organizations" },
+    { "path": "../platform" },
+    { "path": "../scoring" },
+    { "path": "../variables" }
+  ]
+}

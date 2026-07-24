@@ -1,0 +1,42 @@
+version: population-sources-v1
+sources:
+  - source_key: internal_crm_export
+    display_name: Internal CRM Export
+    provider: internal
+    source_type: crm_export
+    license_status: internal_use
+    permitted_fields:
+      [
+        displayName,
+        legalName,
+        domain,
+        website,
+        phone,
+        addressLine1,
+        city,
+        region,
+        postalCode,
+        externalId,
+      ]
+    prohibited_fields: [personal_email, personal_phone, ssn]
+    geographic_coverage: US
+    organization_coverage: accounting_firms
+    refresh_frequency: quarterly
+    data_owner: growth_ops
+    approval_status: approved
+    retention_requirements: 7y
+    current_version: v1
+  - source_key: licensed_directory_fixture
+    display_name: Licensed Directory Fixture
+    provider: fixture
+    source_type: licensed_directory
+    license_status: pending_owner_approval
+    permitted_fields: [displayName, domain, city, region]
+    prohibited_fields: [personal_email, personal_phone]
+    geographic_coverage: US
+    organization_coverage: professional_services
+    refresh_frequency: annual
+    data_owner: data_steward
+    approval_status: draft
+    retention_requirements: per_license
+    current_version: v1

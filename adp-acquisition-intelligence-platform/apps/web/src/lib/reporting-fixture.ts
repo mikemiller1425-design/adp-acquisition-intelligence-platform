@@ -232,6 +232,9 @@ function dashboardMetrics(dashboardKey: DashboardKey, filters: DashboardFilters)
             .length,
           'table_collection_research',
         ),
+        metricCount('population_raw_candidates', 25, 'table_collection_research'),
+        metricCount('claims_awaiting_review', 4, 'table_collection_research'),
+        metricCount('collection_runs_active', 1, 'table_collection_research'),
       ];
     case 'D4':
       return [
