@@ -55,6 +55,7 @@ function mapTarget(row: typeof researchRunTargets.$inferSelect): ResearchRunTarg
     canonicalDomain: row.canonicalDomain ?? null,
     status: row.status,
     checkpoint: (row.checkpoint ?? {}) as Record<string, unknown>,
+    lastError: row.lastError ?? null,
   };
 }
 

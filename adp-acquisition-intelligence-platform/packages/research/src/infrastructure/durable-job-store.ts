@@ -177,6 +177,35 @@ export class PostgresDurableJobStore implements DurableJobStore {
       (Array.isArray(rows) ? (rows as unknown[]) : []);
     return returned.length;
   }
+
+  async listJobs(limit = 50): Promise<
+    Array<{
+      id: string;
+      name: string;
+      status: string;
+      attempts: number;
+      lockedBy: string | null;
+      lockedAt: string | null;
+      lastError: string | null;
+      payload: Record<string, unknown>;
+    }>
+  > {
+    const rows = await this.db
+      .select()
+      .from(durableJobs)
+      .orderBy(sql`${durableJobs.createdAt} desc`)
+      .limit(limit);
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      status: r.status,
+      attempts: r.attempts,
+      lockedBy: r.lockedBy,
+      lockedAt: r.lockedAt ? r.lockedAt.toISOString() : null,
+      lastError: r.lastError,
+      payload: r.payload ?? {},
+    }));
+  }
 }
 
 /** In-memory durable store for unit tests (survives dispatcher rebuild within process). */

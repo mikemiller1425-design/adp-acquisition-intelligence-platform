@@ -23,9 +23,14 @@ import {
   type SourceGateInput,
 } from '../domain/research-run-gates.js';
 import type { ClaimRepository } from '../domain/ports.js';
-import type { ExtractionRunRepository, SnapshotRepository } from '../domain/persistence-ports.js';
+import type {
+  ApprovedSourceRecord,
+  ExtractionRunRepository,
+  SnapshotRepository,
+} from '../domain/persistence-ports.js';
 import { EXTRACTOR_VERSION, MAPPING_VERSION, extractClaimsFromHtml } from '../domain/extraction.js';
 import { contentHash } from '../domain/snapshot.js';
+import { sourcePolicySnapshot, type SourceRegistryPort } from '../domain/source-registry.js';
 import {
   CommonCrawlArchiveAdapter,
   OfficialWebsiteAdapter,
@@ -63,6 +68,7 @@ export type ResearchRunTargetRecord = {
   canonicalDomain: string | null;
   status: string;
   checkpoint: Record<string, unknown>;
+  lastError?: string | null;
 };
 
 export type ResearchRunRepository = {
@@ -164,12 +170,29 @@ export type ResearchRunOrchestratorDeps = {
   extractionRuns: ExtractionRunRepository;
   liveResearchEnabled: boolean;
   globalKillSwitchActive: boolean;
+  /** Canonical approved_sources port — revalidated before every retrieval. */
+  sourceRegistry: SourceRegistryPort;
   fixturePages?: Record<string, { body: string }>;
   archiveRecords?: ArchiveIndexRecord[];
   commonCrawl?: CommonCrawlArchiveAdapter;
   officialWebsite?: OfficialWebsiteAdapter;
   /** Optional internal-snapshot reuse (preferred order step 2). */
   findFreshSnapshot?: FreshSnapshotLookup;
+  /**
+   * Test barrier: delay (ms) after authorizing a target and before retrieval.
+   * Used to hold durable_jobs in `running` for abandoned-lease proofs.
+   */
+  targetDelayMs?: number;
+};
+
+export type SourceAuthorizationDenied = {
+  ok: false;
+  code: string;
+  message: string;
+  launchPolicyVersion: string | null;
+  currentPolicyVersion: string;
+  launchSourceSnapshot: Record<string, unknown> | null;
+  currentSourceSnapshot: Record<string, unknown> | null;
 };
 
 const FIXTURE_HTML = `<!doctype html><html><body>
@@ -205,6 +228,101 @@ export class ResearchRunService {
 
   getCommonCrawlProbe() {
     return this.commonCrawl.getRequestProbe();
+  }
+
+  /**
+   * Load the *current* approved_sources record and enforce authorization.
+   * Launch snapshot is historical evidence only — revocation/kill switch wins.
+   */
+  async authorizeSourceForRetrieval(input: {
+    sourceKey: string;
+    run: ResearchRunRecord;
+    config: ResearchRunConfigInput;
+  }): Promise<
+    { ok: true; gate: SourceGateInput; record: ApprovedSourceRecord } | SourceAuthorizationDenied
+  > {
+    const launchSnap = (
+      input.run.configSnapshot as { sourcePolicySnapshot?: Record<string, unknown> }
+    ).sourcePolicySnapshot;
+    const launchPolicyVersion =
+      launchSnap && typeof launchSnap.policyVersion === 'string' ? launchSnap.policyVersion : null;
+    const launchSources = Array.isArray(launchSnap?.sources)
+      ? (launchSnap!.sources as Array<Record<string, unknown>>)
+      : [];
+    const launchSource =
+      launchSources.find((s) => s.sourceKey === input.sourceKey) ??
+      (launchSources[0] as Record<string, unknown> | undefined) ??
+      null;
+
+    if (this.deps.globalKillSwitchActive || input.run.killSwitchActive) {
+      return {
+        ok: false,
+        code: 'kill_switch',
+        message: 'Run or global kill switch active',
+        launchPolicyVersion,
+        currentPolicyVersion: 'research-run-policy-v1',
+        launchSourceSnapshot: launchSource,
+        currentSourceSnapshot: null,
+      };
+    }
+
+    const loaded = await this.deps.sourceRegistry.requireGate(input.sourceKey);
+    if (!loaded.ok) {
+      return {
+        ok: false,
+        code: loaded.code,
+        message: loaded.message,
+        launchPolicyVersion,
+        currentPolicyVersion: 'research-run-policy-v1',
+        launchSourceSnapshot: launchSource,
+        currentSourceSnapshot: null,
+      };
+    }
+
+    const record = loaded.source;
+    const currentPolicy = sourcePolicySnapshot([record]);
+    const currentOne = (currentPolicy.sources as Array<Record<string, unknown>>)[0] ?? null;
+
+    if (record.rateLimitPerMinute < 1 || record.concurrencyLimit < 1) {
+      return {
+        ok: false,
+        code: 'source_limits_invalid',
+        message: 'Source rate/concurrency limits are not positive',
+        launchPolicyVersion,
+        currentPolicyVersion: 'research-run-policy-v1',
+        launchSourceSnapshot: launchSource,
+        currentSourceSnapshot: currentOne,
+      };
+    }
+    if (!record.permittedFields.length) {
+      return {
+        ok: false,
+        code: 'permitted_fields_empty',
+        message: 'Source has no permitted fields',
+        launchPolicyVersion,
+        currentPolicyVersion: 'research-run-policy-v1',
+        launchSourceSnapshot: launchSource,
+        currentSourceSnapshot: currentOne,
+      };
+    }
+    const orgType = input.config.organizationType;
+    if (
+      orgType &&
+      record.permittedOrganizationTypes.length > 0 &&
+      !record.permittedOrganizationTypes.includes(orgType)
+    ) {
+      return {
+        ok: false,
+        code: 'organization_type_not_permitted',
+        message: `Organization type ${orgType} is not permitted for ${input.sourceKey}`,
+        launchPolicyVersion,
+        currentPolicyVersion: 'research-run-policy-v1',
+        launchSourceSnapshot: launchSource,
+        currentSourceSnapshot: currentOne,
+      };
+    }
+
+    return { ok: true, gate: loaded.gate, record };
   }
 
   preview(input: {
@@ -646,21 +764,55 @@ export class ResearchRunService {
             });
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            const nextCircuit = recordCircuitAttempt(circuit, 'failure', {
-              maxConsecutiveFailures: 5,
-              maxFailureRate: 0.8,
-              minAttempts: 5,
-              maxTotalRequests: config.maxTotalRequests,
-            });
+            const authzBlocked =
+              message.startsWith('source_authorization_revoked:') ||
+              message.includes('kill_switch') ||
+              message.includes('lifecycle_not_enabled') ||
+              message.includes('terms_not_approved') ||
+              message.includes('privacy_not_approved') ||
+              message.includes('legal_not_approved') ||
+              message.includes('security_not_approved');
+            const nextCircuit = recordCircuitAttempt(
+              circuit,
+              authzBlocked ? 'success' : 'failure',
+              {
+                maxConsecutiveFailures: 5,
+                maxFailureRate: 0.8,
+                minAttempts: 5,
+                maxTotalRequests: config.maxTotalRequests,
+              },
+            );
             this.circuitByRun.set(researchRunId, nextCircuit);
-            await this.deps.runs.updateTarget(target.id, { status: 'failed', lastError: message });
-            await this.deps.runs.updateRun(researchRunId, {
-              targetsFailed: run.targetsFailed + 1,
-            });
-            await this.deps.runs.addEvent(researchRunId, 'research_run.target_failed', {
-              targetId: target.id,
-              message,
-            });
+            if (authzBlocked) {
+              await this.deps.runs.updateTarget(target.id, {
+                status: 'blocked',
+                lastError: message,
+              });
+              await this.deps.runs.updateRun(researchRunId, {
+                targetsBlocked: run.targetsBlocked + 1,
+              });
+              await this.deps.runs.addEvent(researchRunId, 'research_run.target_blocked', {
+                targetId: target.id,
+                message,
+                reason: 'source_authorization',
+              });
+              await this.deps.runs.recordMetric(researchRunId, 'source_authorization', {
+                blocked: true,
+                message,
+              });
+            } else {
+              await this.deps.runs.updateTarget(target.id, {
+                status: 'failed',
+                lastError: message,
+              });
+              await this.deps.runs.updateRun(researchRunId, {
+                targetsFailed: run.targetsFailed + 1,
+              });
+              await this.deps.runs.addEvent(researchRunId, 'research_run.target_failed', {
+                targetId: target.id,
+                message,
+              });
+            }
             if (nextCircuit.open) {
               await this.deps.runs.recordMetric(researchRunId, 'circuit_breaker', {
                 ...nextCircuit,
@@ -812,24 +964,59 @@ export class ResearchRunService {
     }
 
     const sources = this.resolveSources(config);
+    const delayMs =
+      this.deps.targetDelayMs ?? Number(process.env.ADP_RESEARCH_RUN_TARGET_DELAY_MS ?? 0);
 
     if (config.mode === 'fixture') {
-      const fixtureSource =
-        sources.find((s) => s.adapterType === 'fixture') ??
-        ({
-          sourceKey: 'organization_website_fixture',
+      const sourceKey =
+        sources.find((s) => s.adapterType === 'fixture')?.sourceKey ??
+        config.sourceKeys.find((k) => k.includes('fixture')) ??
+        'organization_website_fixture';
+      const authz = await this.authorizeSourceForRetrieval({ sourceKey, run, config });
+      if (!authz.ok) {
+        await this.deps.runs.addSourceAttempt({
+          researchRunId: run.id,
+          targetId: target.id,
+          sourceKey,
           adapterType: 'fixture',
-          lifecycle: 'enabled',
-          killSwitchActive: false,
-          termsReviewStatus: 'not_required_for_fixture',
-          privacyReviewStatus: 'not_required_for_fixture',
-          legalReviewStatus: 'not_required_for_fixture',
-          securityReviewStatus: 'not_required_for_fixture',
-        } satisfies SourceGateInput);
-
+          status: 'blocked',
+          errorCode: authz.code,
+          provenance: {
+            reason: 'source_authorization_revoked',
+            launchPolicyVersion: authz.launchPolicyVersion,
+            currentPolicyVersion: authz.currentPolicyVersion,
+            launchSourceSnapshot: authz.launchSourceSnapshot,
+            currentSourceSnapshot: authz.currentSourceSnapshot,
+            requestsOutbound: 0,
+          },
+        });
+        throw new Error(`source_authorization_revoked:${authz.code}`);
+      }
+      if (Number.isFinite(delayMs) && delayMs > 0) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
       for (const path of pages) {
-        if (this.deps.globalKillSwitchActive || run.killSwitchActive) {
-          throw new Error('kill_switch_active');
+        // Re-check immediately before each retrieval page.
+        const pageAuthz = await this.authorizeSourceForRetrieval({ sourceKey, run, config });
+        if (!pageAuthz.ok) {
+          await this.deps.runs.addSourceAttempt({
+            researchRunId: run.id,
+            targetId: target.id,
+            sourceKey,
+            adapterType: 'fixture',
+            status: 'blocked',
+            errorCode: pageAuthz.code,
+            provenance: {
+              reason: 'source_authorization_revoked',
+              launchPolicyVersion: pageAuthz.launchPolicyVersion,
+              currentPolicyVersion: pageAuthz.currentPolicyVersion,
+              launchSourceSnapshot: pageAuthz.launchSourceSnapshot,
+              currentSourceSnapshot: pageAuthz.currentSourceSnapshot,
+              requestsOutbound: 0,
+              pagesRetrievedSoFar: pagesRetrieved,
+            },
+          });
+          throw new Error(`source_authorization_revoked:${pageAuthz.code}`);
         }
         const url = `https://${domain}${path === '/' ? '/' : path}`;
         const body =
@@ -848,9 +1035,14 @@ export class ResearchRunService {
           httpStatus: 200,
           redirectChain: [],
           adapterVersion: 'fixture-v1',
-          sourceKey: fixtureSource.sourceKey,
+          sourceKey: pageAuthz.gate.sourceKey,
           adapterType: 'fixture',
-          provenance: { network: false, mode: 'fixture' },
+          provenance: {
+            network: false,
+            mode: 'fixture',
+            currentLifecycle: pageAuthz.record.lifecycle,
+            currentKillSwitch: pageAuthz.record.killSwitchActive,
+          },
         });
         snapshotsCreated += persisted.snapshotsCreated;
         claimsProposed += persisted.claimsProposed;
@@ -935,12 +1127,37 @@ export class ResearchRunService {
     let archiveMiss = false;
     if (wantsArchive && archiveSource) {
       try {
-        if (this.deps.globalKillSwitchActive || run.killSwitchActive) {
-          throw new Error('kill_switch_active');
+        const authz = await this.authorizeSourceForRetrieval({
+          sourceKey: archiveSource.sourceKey,
+          run,
+          config,
+        });
+        if (!authz.ok) {
+          await this.deps.runs.addSourceAttempt({
+            researchRunId: run.id,
+            targetId: target.id,
+            sourceKey: archiveSource.sourceKey,
+            adapterType: 'archived_web',
+            status: 'blocked',
+            errorCode: authz.code,
+            provenance: {
+              order: 3,
+              reason: 'source_authorization_revoked',
+              launchPolicyVersion: authz.launchPolicyVersion,
+              currentPolicyVersion: authz.currentPolicyVersion,
+              launchSourceSnapshot: authz.launchSourceSnapshot,
+              currentSourceSnapshot: authz.currentSourceSnapshot,
+              requestsOutbound: 0,
+            },
+          });
+          throw new Error(`source_authorization_revoked:${authz.code}`);
+        }
+        if (Number.isFinite(delayMs) && delayMs > 0) {
+          await new Promise((r) => setTimeout(r, delayMs));
         }
         const archived = await this.commonCrawl.retrieveSelected({
           domain,
-          source: archiveSource,
+          source: authz.gate,
           mode: run.mode,
           liveResearchEnabled: this.deps.liveResearchEnabled,
           globalKillSwitchActive: this.deps.globalKillSwitchActive,
@@ -1011,13 +1228,38 @@ export class ResearchRunService {
 
     if (mayLive && liveSource) {
       try {
-        if (this.deps.globalKillSwitchActive || run.killSwitchActive) {
-          throw new Error('kill_switch_active');
+        const authz = await this.authorizeSourceForRetrieval({
+          sourceKey: liveSource.sourceKey,
+          run,
+          config,
+        });
+        if (!authz.ok) {
+          await this.deps.runs.addSourceAttempt({
+            researchRunId: run.id,
+            targetId: target.id,
+            sourceKey: liveSource.sourceKey,
+            adapterType: 'organization_website',
+            status: 'blocked',
+            errorCode: authz.code,
+            provenance: {
+              order: 4,
+              reason: 'source_authorization_revoked',
+              launchPolicyVersion: authz.launchPolicyVersion,
+              currentPolicyVersion: authz.currentPolicyVersion,
+              launchSourceSnapshot: authz.launchSourceSnapshot,
+              currentSourceSnapshot: authz.currentSourceSnapshot,
+              requestsOutbound: 0,
+            },
+          });
+          throw new Error(`source_authorization_revoked:${authz.code}`);
+        }
+        if (Number.isFinite(delayMs) && delayMs > 0) {
+          await new Promise((r) => setTimeout(r, delayMs));
         }
         const live = await this.officialWebsite.retrievePage({
           url: `https://${domain}/`,
           domain,
-          source: liveSource,
+          source: authz.gate,
           mode: run.mode,
           liveResearchEnabled: this.deps.liveResearchEnabled,
           globalKillSwitchActive: this.deps.globalKillSwitchActive,

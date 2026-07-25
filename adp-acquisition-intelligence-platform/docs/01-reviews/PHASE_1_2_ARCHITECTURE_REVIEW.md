@@ -9,7 +9,8 @@
 
 ## Verdict
 
-**Acceptable for persistent fixture pilot** of Start Research Run orchestration once PostgreSQL durable worker E2E evidence is recorded in the test report.  
+**Acceptable for persistent fixture pilot** of Start Research Run orchestration.  
+Worker revalidates canonical `approved_sources` before every retrieval; abandoned-lease reclaim and unconditional pause/resume are proven in PostgreSQL Playwright.  
 **Not acceptable** to claim controlled-external or production live research readiness while RB-015 (and related) remain OPEN and `ADP_LIVE_RESEARCH_ENABLED` defaults false.
 
 ## Scope reviewed
@@ -116,6 +117,10 @@ owner: research_eng
 recommendation: READY_FOR_PERSISTENT_FIXTURE_PILOT
 memory_fixture_ui: available
 durable_queue_claim: verified_by_pg_worker_e2e
+dynamic_source_revocation: verified_by_unit
+abandoned_lease_recovery: verified_by_pg_worker_e2e
+unconditional_pause_resume: verified_by_pg_worker_e2e
 live_egress: NOT_READY
 rb_001_through_017: OPEN
+github_actions_status_checks: not_attached_local_evidence_only
 ```

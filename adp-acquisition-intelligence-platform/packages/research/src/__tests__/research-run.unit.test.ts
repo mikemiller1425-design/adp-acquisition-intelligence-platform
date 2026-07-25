@@ -20,12 +20,15 @@ import {
 import { ResearchRunService } from '../application/research-run-service.js';
 import { registerResearchJobHandlers } from '../application/job-handlers.js';
 import { createResearchRuntime } from '../application/research-runtime.js';
+import { createSourceRegistry } from '../domain/source-registry.js';
+import { getFixtureApprovedSource } from '../infrastructure/research-queries.js';
 import { OfficialWebsiteAdapter } from '../infrastructure/adapters/archive-and-live.js';
 import type { CommonCrawlArchiveAdapter } from '../infrastructure/adapters/archive-and-live.js';
 import { InMemoryDurableJobStore } from '../infrastructure/durable-job-store.js';
 import { InMemoryResearchRunRepository } from '../infrastructure/research-run-store.js';
 import { createInMemoryResearchUnitOfWork } from '../infrastructure/in-memory.js';
 import { InProcessConcurrencyGate } from '../infrastructure/concurrency-gate.js';
+import type { ApprovedSourceRecord } from '../domain/persistence-ports.js';
 
 const FIXTURE_SOURCE: SourceGateInput = {
   sourceKey: 'organization_website_fixture',
@@ -112,10 +115,17 @@ function buildService(
       domain: string;
       freshnessThresholdHours: number;
     }) => Promise<{ id: string; contentHash: string; retrievedAt: Date } | null>;
+    extraSources?: ApprovedSourceRecord[];
+    targetDelayMs?: number;
   } = {},
 ) {
   const concurrency = new InProcessConcurrencyGate();
   const uow = createInMemoryResearchUnitOfWork(concurrency);
+  const approved = uow.approvedSources as {
+    seed: (source: ApprovedSourceRecord) => void;
+  };
+  approved.seed(getFixtureApprovedSource());
+  for (const extra of opts.extraSources ?? []) approved.seed(extra);
   const runs = new InMemoryResearchRunRepository();
   const jobs = opts.jobs ?? new InMemoryJobDispatcher();
   const service = new ResearchRunService({
@@ -126,11 +136,13 @@ function buildService(
     extractionRuns: uow.extractionRuns,
     liveResearchEnabled: opts.liveResearchEnabled ?? false,
     globalKillSwitchActive: opts.globalKillSwitchActive ?? false,
+    sourceRegistry: createSourceRegistry(uow.approvedSources),
     fixturePages: opts.fixturePages,
     officialWebsite: opts.officialWebsite,
     commonCrawl: opts.commonCrawl,
     archiveRecords: opts.archiveRecords,
     findFreshSnapshot: opts.findFreshSnapshot,
+    targetDelayMs: opts.targetDelayMs,
   });
   return { service, runs, jobs, uow };
 }
@@ -395,6 +407,9 @@ describe('research.run.execute job handler', () => {
 <p>We offer payroll services.</p>
 </body></html>`;
 
+    (runtime.uow.approvedSources as { seed: (s: ApprovedSourceRecord) => void }).seed(
+      getFixtureApprovedSource(),
+    );
     const wired = new ResearchRunService({
       runs,
       jobs,
@@ -403,6 +418,7 @@ describe('research.run.execute job handler', () => {
       extractionRuns: runtime.uow.extractionRuns,
       liveResearchEnabled: false,
       globalKillSwitchActive: false,
+      sourceRegistry: createSourceRegistry(runtime.uow.approvedSources),
       fixturePages: {
         'https://wire.test/': { body: html },
         'https://wire.test/about': { body: html },
@@ -474,8 +490,22 @@ describe('archive hit / miss and live fallback gating', () => {
 <script type="application/ld+json">{"@type":"Organization","name":"Archive Co"}</script>
 <p>We offer payroll and bookkeeping services.</p>
 </body></html>`;
+    const archiveRecord: ApprovedSourceRecord = {
+      ...getFixtureApprovedSource(),
+      id: '00000000-0000-4000-8000-0000000000a2',
+      sourceKey: 'archived_web_fixture',
+      displayName: 'Archived Web Fixture',
+      adapterType: 'archived_web',
+      termsReviewStatus: 'approved',
+      privacyReviewStatus: 'approved',
+      legalReviewStatus: 'approved',
+      securityReviewStatus: 'approved',
+      lifecycle: 'enabled',
+      killSwitchActive: false,
+    };
     const { service, runs, uow } = buildService({
       liveResearchEnabled: true,
+      extraSources: [archiveRecord],
       archiveRecords: [
         {
           domain: 'archive-hit.test',
@@ -923,5 +953,112 @@ describe('source registry port', () => {
     expect(missing.ok).toBe(false);
     const ok = await registry.requireGate(FIXTURE_SOURCE.sourceKey);
     expect(ok.ok).toBe(true);
+  });
+});
+
+describe('dynamic source revocation (worker revalidation)', () => {
+  it('blocks subsequent targets after source kill switch with zero additional retrievals', async () => {
+    const enqueueQueue: Array<{ researchRunId: string }> = [];
+    const html = `<!doctype html><html><body>
+<script type="application/ld+json">{"@type":"Organization","name":"Revoke Co"}</script>
+<p>We offer payroll and bookkeeping services.</p>
+</body></html>`;
+    const { service, runs, uow } = buildService({
+      fixturePages: {
+        'https://alpha.test/': { body: html },
+        'https://alpha.test/about': { body: html },
+        'https://beta.test/': { body: html },
+        'https://beta.test/about': { body: html },
+        'https://gamma.test/': { body: html },
+        'https://gamma.test/about': { body: html },
+      },
+    });
+    service.setJobDispatcher({
+      enqueue: async (job) => {
+        const researchRunId = String(job.payload.researchRunId ?? '');
+        if (researchRunId) enqueueQueue.push({ researchRunId });
+        return { jobId: `noop-${enqueueQueue.length}` };
+      },
+    });
+
+    const { run, blockers } = await service.createAndLaunch({
+      role: 'admin',
+      config: fixtureConfig({
+        maxOrganizations: 3,
+        maxPagesPerOrganization: 1,
+        maxTotalRequests: 20,
+        name: 'revocation-run',
+      }),
+      sources: [FIXTURE_SOURCE],
+      targets: [
+        { organizationId: crypto.randomUUID(), canonicalDomain: 'alpha.test' },
+        { organizationId: crypto.randomUUID(), canonicalDomain: 'beta.test' },
+        { organizationId: crypto.randomUUID(), canonicalDomain: 'gamma.test' },
+      ],
+      idempotencyKey: 'revocation-1',
+    });
+    expect(blockers).toEqual([]);
+    expect(enqueueQueue.length).toBe(1);
+
+    await service.executeRun(enqueueQueue.shift()!.researchRunId);
+    let current = await runs.getRun(run.id);
+    expect(current?.targetsCompleted).toBe(1);
+    const requestsAfterFirst = current?.requestsConsumed ?? 0;
+    expect(requestsAfterFirst).toBeGreaterThan(0);
+    const snapshotsAfterFirst = current?.snapshotsCreated ?? 0;
+    // Continuation enqueued after first target.
+    expect(enqueueQueue.length).toBeGreaterThanOrEqual(1);
+
+    await uow.approvedSources.setKillSwitch('organization_website_fixture', true);
+
+    await service.executeRun(enqueueQueue.shift()!.researchRunId);
+    current = await runs.getRun(run.id);
+    expect(current?.requestsConsumed).toBe(requestsAfterFirst);
+    expect(current?.snapshotsCreated).toBe(snapshotsAfterFirst);
+    expect(current?.targetsBlocked).toBeGreaterThanOrEqual(1);
+
+    const targets = await runs.listTargets(run.id);
+    const blocked = targets.filter((t) => t.status === 'blocked');
+    expect(blocked.length).toBeGreaterThanOrEqual(1);
+    expect(blocked.some((t) => String(t.lastError).includes('kill_switch'))).toBe(true);
+
+    const metrics = await runs.listMetrics(run.id);
+    expect(metrics.some((m) => m.metricKey === 'source_authorization')).toBe(true);
+    const events = await runs.listEvents(run.id);
+    expect(events.some((e) => e.eventType === 'research_run.target_blocked')).toBe(true);
+
+    // Clearing kill switch alone must not bypass still-pending approvals.
+    await uow.approvedSources.setKillSwitch('organization_website_fixture', false);
+    const record = await uow.approvedSources.getByKey('organization_website_fixture');
+    expect(record).toBeTruthy();
+    (uow.approvedSources as { seed: (s: ApprovedSourceRecord) => void }).seed({
+      ...record!,
+      killSwitchActive: false,
+      termsReviewStatus: 'pending',
+      privacyReviewStatus: 'pending',
+      legalReviewStatus: 'pending',
+      securityReviewStatus: 'pending',
+    });
+
+    while (enqueueQueue.length) {
+      await service.executeRun(enqueueQueue.shift()!.researchRunId);
+    }
+    current = await runs.getRun(run.id);
+    expect(current?.requestsConsumed).toBe(requestsAfterFirst);
+    expect(current?.snapshotsCreated).toBe(snapshotsAfterFirst);
+    const finalTargets = await runs.listTargets(run.id);
+    const succeeded = finalTargets.filter((t) => t.status === 'succeeded');
+    expect(succeeded.length).toBe(1);
+    expect(finalTargets.every((t) => t.status === 'succeeded' || t.status === 'blocked')).toBe(
+      true,
+    );
+    expect(
+      finalTargets.some(
+        (t) =>
+          t.status === 'blocked' &&
+          (String(t.lastError).includes('terms_not_approved') ||
+            String(t.lastError).includes('source_authorization_revoked')),
+      ),
+    ).toBe(true);
   });
 });

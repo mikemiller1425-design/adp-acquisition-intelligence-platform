@@ -56,11 +56,17 @@ test.describe('Phase 1.2 research run orchestration (memory / fixture)', () => {
       const status = await page.getByTestId('research-run-status').textContent();
       if (status === 'completed') break;
       const advance = page.getByTestId('advance-research-run');
-      if (await advance.count()) {
-        await advance.click();
-      } else {
-        break;
-      }
+      if ((await advance.count()) === 0) break;
+      const completedBefore = await page.getByTestId('research-run-targets-completed').textContent();
+      await advance.click({ noWaitAfter: true });
+      // Same-URL server-action redirect; wait for counter/status movement then settle.
+      await page.waitForTimeout(300);
+      await page.reload();
+      await expect(page.getByTestId('research-run-detail')).toBeVisible();
+      const statusAfter = await page.getByTestId('research-run-status').textContent();
+      const completedAfter = await page.getByTestId('research-run-targets-completed').textContent();
+      if (statusAfter === 'completed') break;
+      if (completedAfter === completedBefore && statusAfter === status) break;
     }
 
     await expect(page.getByTestId('research-run-status')).toHaveText('completed');

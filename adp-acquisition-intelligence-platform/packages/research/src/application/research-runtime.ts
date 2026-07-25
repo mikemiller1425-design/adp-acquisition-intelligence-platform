@@ -9,6 +9,7 @@ import {
   isLiveResearchEnabled,
   ResearchRunService,
 } from './research-run-service.js';
+import { createSourceRegistry } from '../domain/source-registry.js';
 import { FixtureRetrievalPort } from '../infrastructure/fixture-retrieval.js';
 import {
   createInMemoryResearchUnitOfWork,
@@ -81,6 +82,7 @@ function buildResearchRuns(
   jobs: JobDispatcherPort,
   env: NodeJS.ProcessEnv,
 ): ResearchRunService {
+  const delayRaw = Number(env.ADP_RESEARCH_RUN_TARGET_DELAY_MS ?? 0);
   return new ResearchRunService({
     runs: runsRepo,
     jobs,
@@ -89,6 +91,8 @@ function buildResearchRuns(
     extractionRuns: uow.extractionRuns,
     liveResearchEnabled: isLiveResearchEnabled(env),
     globalKillSwitchActive: isGlobalKillSwitchActive(env),
+    sourceRegistry: createSourceRegistry(uow.approvedSources),
+    ...(Number.isFinite(delayRaw) && delayRaw > 0 ? { targetDelayMs: delayRaw } : {}),
   });
 }
 

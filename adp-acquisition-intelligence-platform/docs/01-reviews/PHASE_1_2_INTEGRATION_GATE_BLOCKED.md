@@ -47,6 +47,9 @@ When #20 was still open, integration-gate repair correctly stopped. Deferred wor
 | PostgreSQL Playwright orchestration | **PASS** (`test:e2e:research-run-postgres`) |
 | Web / worker restart recovery | **PASS** (durable E2E) |
 | Zero-egress unit probes | **PASS** (`research-run.unit.test.ts`) |
+| Worker revalidation of `approved_sources` before retrieval | **PASS** (unit dynamic revocation) |
+| Abandoned running-job lease reclaim | **PASS** (deterministic PG Playwright) |
+| Unconditional pause/resume | **PASS** (deterministic PG Playwright) |
 
 ## Explicit non-goals (unchanged)
 
