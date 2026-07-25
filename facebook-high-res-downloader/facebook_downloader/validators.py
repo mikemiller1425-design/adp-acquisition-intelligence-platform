@@ -47,9 +47,10 @@ _BLOCKED_FIRST_SEGMENTS = {
 def normalize_url(raw: str) -> str:
     """Strip whitespace and trailing punctuation commonly pasted from chat."""
     url = (raw or "").strip()
+    # Remove messenger/markdown junk, then any leftover trailing whitespace.
     while url and url[-1] in ".,);]>\"'":
         url = url[:-1]
-    return url
+    return url.rstrip()
 
 
 def is_valid_facebook_url(raw: str) -> bool:

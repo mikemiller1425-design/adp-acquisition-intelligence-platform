@@ -1,0 +1,27 @@
+# VSCO High-Res Downloader
+#
+# Clean, modern desktop GUI for downloading original-quality VSCO media
+# via gallery-dl.
+
+[project]
+name = "vsco-high-res-downloader"
+version = "1.0.0"
+description = "Desktop GUI to download high-resolution VSCO media with gallery-dl"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "customtkinter>=5.2.2",
+    "tkinterdnd2>=0.3.0",
+    "gallery-dl>=1.27.0",
+    "Pillow>=10.0.0",
+]
+
+[project.scripts]
+vsco-downloader = "vsco_downloader.app:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["vsco_downloader*"]
