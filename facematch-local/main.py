@@ -19,6 +19,7 @@ import customtkinter as ctk
 import numpy as np
 from PIL import Image, ImageTk
 
+from app_logic import format_match_list_text, largest_face, should_reuse_detections
 from face_engine import DetectedFace, FaceEngine, MatchResult
 from gallery_manager import GalleryManager
 
@@ -233,7 +234,7 @@ class FaceMatchApp(ctk.CTk):
 
         self._latest_frame = frame
         self._frame_count += 1
-        reuse = (self._frame_count % DETECT_EVERY_N_FRAMES) != 0
+        reuse = should_reuse_detections(self._frame_count, DETECT_EVERY_N_FRAMES)
 
         try:
             faces = self.engine.detect_faces(frame, reuse_last=reuse)
@@ -274,23 +275,13 @@ class FaceMatchApp(ctk.CTk):
         self.video_label.configure(image=self._photo, text="")
 
     def _update_match_list(self, faces: List[DetectedFace], matches: List[MatchResult]) -> None:
-        lines: List[str] = []
-        if not faces:
-            lines.append("No face detected in frame.")
-        elif self.gallery.is_empty:
-            lines.append("Gallery empty — nothing to match against.")
-        elif not matches:
-            lines.append(
-                f"{len(faces)} face(s) detected; no gallery hits ≥ "
-                f"{float(self._threshold_var.get()):.2f}."
-            )
-        else:
-            lines.append(f"{'Score':>6}  {'Live face':<10}  Gallery file")
-            lines.append("-" * 48)
-            for m in matches:
-                lines.append(f"{m.score:6.3f}  {m.face_label:<10}  {m.filename}")
-
-        self._write_matches_text("\n".join(lines))
+        text = format_match_list_text(
+            faces,
+            matches,
+            gallery_empty=self.gallery.is_empty,
+            threshold=float(self._threshold_var.get()),
+        )
+        self._write_matches_text(text)
 
     def _write_matches_text(self, text: str) -> None:
         self.match_box.configure(state="normal")
@@ -322,13 +313,8 @@ class FaceMatchApp(ctk.CTk):
             return
 
         # Prefer the largest currently detected face encoding for consistency.
-        encoding = None
-        if self._latest_faces:
-            def area(f: DetectedFace) -> int:
-                t, r, b, l = f.location
-                return max(0, b - t) * max(0, r - l)
-
-            encoding = max(self._latest_faces, key=area).encoding
+        biggest = largest_face(self._latest_faces)
+        encoding = biggest.encoding if biggest is not None else None
 
         filename, msg = self.gallery.save_face_image(self._latest_frame, encoding=encoding)
         self._set_status(msg)

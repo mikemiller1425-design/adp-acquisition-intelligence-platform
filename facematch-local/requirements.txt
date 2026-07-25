@@ -13,3 +13,6 @@ insightface>=0.7.3
 # Pulled in by insightface; pinned loosely for clearer installs
 scipy>=1.10
 tqdm>=4.65
+
+# Tests
+pytest>=7.4

@@ -145,6 +145,17 @@ cd facematch-local
 python main.py
 ```
 
+## Tests
+
+```bash
+cd facematch-local
+pip install -r requirements.txt
+pytest -v
+```
+
+Unit tests use a fake face engine (no camera). Integration tests load InsightFace
+models and the bundled sample image; mark filter: `pytest -m "not integration"`.
+
 On first launch:
 
 1. InsightFace may download `buffalo_sc` into `~/.insightface/models/` (~16MB).

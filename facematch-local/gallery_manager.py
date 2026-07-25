@@ -9,7 +9,6 @@ startup / refresh is fast when files have not changed.
 from __future__ import annotations
 
 import hashlib
-import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +17,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 from PIL import Image
 
+from app_logic import sanitize_basename
 from face_engine import FaceEngine
 
 
@@ -250,9 +250,7 @@ class GalleryManager:
             return None, "No face found in the current frame. Look at the camera and try again."
 
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        stem = basename.strip() if basename else f"capture_{stamp}"
-        # Sanitize stem to a simple filename
-        safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in stem) or f"capture_{stamp}"
+        safe = sanitize_basename(basename, fallback=f"capture_{stamp}")
         filename = f"{safe}.jpg"
         dest = self.gallery_dir / filename
         # Avoid overwrite
@@ -270,7 +268,8 @@ class GalleryManager:
         self.entries.append(
             GalleryEntry(filename=filename, encoding=np.asarray(encoding), path=str(dest))
         )
-        # Rewrite cache for the new folder state
+        # Drop stale entries whose files were removed from disk, then rewrite cache.
+        self._sync_entries_to_disk()
         paths = self.list_image_files()
         fingerprint = self._file_fingerprint(paths)
         if self.entries:
@@ -281,3 +280,8 @@ class GalleryManager:
             )
 
         return filename, f"Saved {filename} to gallery ({len(self.entries)} face(s) total)."
+
+    def _sync_entries_to_disk(self) -> None:
+        """Keep in-memory entries aligned with image files still on disk."""
+        existing = {p.name for p in self.list_image_files()}
+        self.entries = [e for e in self.entries if e.filename in existing]
