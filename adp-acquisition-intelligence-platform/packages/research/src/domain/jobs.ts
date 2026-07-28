@@ -12,6 +12,8 @@ export const RESEARCH_JOB_TYPES = [
   'collection.extraction.requested',
   'collection.coverage.recalculate',
   'intelligence.recalculation.requested',
+  'research.run.execute',
+  'research.run.pause',
 ] as const;
 
 export type ResearchJobType = (typeof RESEARCH_JOB_TYPES)[number];
@@ -43,6 +45,17 @@ export const RESEARCH_EVENTS = [
   'research.collection_run_cancelled',
   'research.kill_switch_activated',
   'intelligence.recalculation_requested',
+  'research_run.validating',
+  'research_run.blocked',
+  'research_run.queued',
+  'research_run.started',
+  'research_run.paused',
+  'research_run.resumed',
+  'research_run.cancelled',
+  'research_run.completed',
+  'research_run.kill_switch',
+  'research_run.target_failed',
+  'research_run.budget_exhausted',
 ] as const;
 
 export type ResearchEventType = (typeof RESEARCH_EVENTS)[number];

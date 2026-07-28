@@ -11,6 +11,7 @@ const LINKS = [
   { href: '/research/population-imports', label: 'Population Imports' },
   { href: '/research/entity-resolution', label: 'Entity Resolution' },
   { href: '/research/priorities', label: 'Research Priorities' },
+  { href: '/research/runs', label: 'Research Runs' },
   { href: '/research/collection-jobs', label: 'Collection Jobs' },
   { href: '/research/extraction-review', label: 'Extraction Review' },
   { href: '/research/coverage', label: 'Source Coverage / Dashboard' },
@@ -18,8 +19,9 @@ const LINKS = [
 ] as const;
 
 export default async function ResearchHubPage({ searchParams }: PageProps) {
-  await getWebResearchRuntime();
-  const snapshot = await getResearchWorkflowSnapshot();
+  const runtime = await getWebResearchRuntime();
+  const snapshot = await getResearchWorkflowSnapshot(runtime);
+  const researchRuns = await runtime.researchRuns.listRuns();
   const query = await searchParams;
 
   return (
@@ -28,12 +30,22 @@ export default async function ResearchHubPage({ searchParams }: PageProps) {
         screenId: 'UI-08',
         title: 'Research',
         description:
-          'Population, enrichment, prioritized collection, and extraction review. Collectors never confirm variables. Fixture-only retrieval — no live network.',
+          'Population, enrichment, prioritized collection, research runs, and extraction review. Collectors never confirm variables. Live network retrieval defaults OFF.',
         requiredRoles: ['admin', 'sales', 'reviewer'],
       }}
       searchParams={query}
     >
       <div className="detail-panel" data-testid="research-hub">
+        <p>
+          <Link href="/research/runs/new" data-testid="start-research-run">
+            Start Research Run
+          </Link>
+          {' · '}
+          <Link href="/research/runs" data-testid="research-runs-link">
+            View research runs
+          </Link>
+        </p>
+
         <dl className="detail-grid" data-testid="research-metrics">
           <div>
             <dt>Raw candidates</dt>
@@ -50,6 +62,10 @@ export default async function ResearchHubPage({ searchParams }: PageProps) {
           <div>
             <dt>Collection runs</dt>
             <dd data-testid="metric-collection-runs">{snapshot.metrics.collectionRunsTotal}</dd>
+          </div>
+          <div>
+            <dt>Research runs</dt>
+            <dd data-testid="metric-research-runs">{researchRuns.length}</dd>
           </div>
           <div>
             <dt>Score recalcs</dt>

@@ -5,7 +5,10 @@ const baseURL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: ['**/research-postgres-persistent-workflow.spec.ts'],
+  testIgnore: [
+    '**/research-postgres-persistent-workflow.spec.ts',
+    '**/research-run-postgres-durable-orchestration.spec.ts',
+  ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,

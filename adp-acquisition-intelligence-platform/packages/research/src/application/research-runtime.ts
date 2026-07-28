@@ -1,8 +1,15 @@
 import { createDatabaseClient, type DatabaseClient } from '@adp/database';
+import { InMemoryJobDispatcher, type JobDispatcherPort } from '@adp/platform';
 import { PopulationImportService } from './population-service.js';
 import { TargetedCollectionService } from './collection-service.js';
 import { ExtractionReviewService } from './claim-review-service.js';
 import { ResearchPriorityService } from './priority-service.js';
+import {
+  isGlobalKillSwitchActive,
+  isLiveResearchEnabled,
+  ResearchRunService,
+} from './research-run-service.js';
+import { createSourceRegistry } from '../domain/source-registry.js';
 import { FixtureRetrievalPort } from '../infrastructure/fixture-retrieval.js';
 import {
   createInMemoryResearchUnitOfWork,
@@ -13,6 +20,10 @@ import {
   createPostgresResearchUnitOfWork,
   PostgresTransactionRunner,
 } from '../infrastructure/postgres-repositories.js';
+import {
+  InMemoryResearchRunRepository,
+  PostgresResearchRunRepository,
+} from '../infrastructure/research-run-store.js';
 import { InProcessConcurrencyGate } from '../infrastructure/concurrency-gate.js';
 import type { ResearchUnitOfWork, TransactionRunner } from '../domain/persistence-ports.js';
 import type { RetrievalPort, ScoreRecalcPort } from '../domain/ports.js';
@@ -28,12 +39,18 @@ export type ResearchRuntime = {
   collection: TargetedCollectionService;
   priority: ResearchPriorityService;
   claimReview: ExtractionReviewService;
+  researchRuns: ResearchRunService;
   /** Post-outbox consumer only — never invoked inside claim-accept transaction. */
   scores: ScoreRecalcPort;
   database: DatabaseClient | null;
   defaultPageLimit: number;
   maxTargetsPerRun: number;
   maxRowsPerImport: number;
+};
+
+export type CreateResearchRuntimeOptions = {
+  /** Optional job dispatcher; defaults to in-memory placeholder. Call setJobDispatcher later to replace. */
+  jobs?: JobDispatcherPort;
 };
 
 function resolveProvider(env: NodeJS.ProcessEnv): ResearchProvider {
@@ -59,17 +76,42 @@ function buildCollection(
   );
 }
 
+function buildResearchRuns(
+  uow: ResearchUnitOfWork,
+  runsRepo: InMemoryResearchRunRepository | PostgresResearchRunRepository,
+  jobs: JobDispatcherPort,
+  env: NodeJS.ProcessEnv,
+): ResearchRunService {
+  const delayRaw = Number(env.ADP_RESEARCH_RUN_TARGET_DELAY_MS ?? 0);
+  return new ResearchRunService({
+    runs: runsRepo,
+    jobs,
+    claims: uow.claims,
+    snapshots: uow.snapshots,
+    extractionRuns: uow.extractionRuns,
+    liveResearchEnabled: isLiveResearchEnabled(env),
+    globalKillSwitchActive: isGlobalKillSwitchActive(env),
+    sourceRegistry: createSourceRegistry(uow.approvedSources),
+    ...(Number.isFinite(delayRaw) && delayRaw > 0 ? { targetDelayMs: delayRaw } : {}),
+  });
+}
+
 /**
  * Builds research worker/web runtime.
  * Default provider is `memory` (fixture-safe). Postgres requires DATABASE_URL.
  * Live network retrieval is never enabled here.
  * Claim accept uses UoW evidence/variables + outbox only; score recalc is outbox-driven.
+ * Research runs use a placeholder job dispatcher until `setJobDispatcher` / registerResearchJobHandlers.
  */
-export function createResearchRuntime(env: NodeJS.ProcessEnv = process.env): ResearchRuntime {
+export function createResearchRuntime(
+  env: NodeJS.ProcessEnv = process.env,
+  options: CreateResearchRuntimeOptions = {},
+): ResearchRuntime {
   const provider = resolveProvider(env);
   const concurrency = new InProcessConcurrencyGate();
   const retrieval = new FixtureRetrievalPort({});
   const scores = new InMemoryScoreRecalc();
+  const jobs = options.jobs ?? new InMemoryJobDispatcher();
 
   if (provider === 'postgres') {
     const databaseUrl = env.DATABASE_URL;
@@ -82,6 +124,7 @@ export function createResearchRuntime(env: NodeJS.ProcessEnv = process.env): Res
       (work) => database.withTransaction(work),
       concurrency,
     );
+    const runsRepo = new PostgresResearchRunRepository(database.db);
     return {
       provider,
       uow,
@@ -91,6 +134,7 @@ export function createResearchRuntime(env: NodeJS.ProcessEnv = process.env): Res
       collection: buildCollection(retrieval, uow),
       priority: new ResearchPriorityService(uow.priority, uow.outbox),
       claimReview: new ExtractionReviewService(transactions),
+      researchRuns: buildResearchRuns(uow, runsRepo, jobs, env),
       scores,
       database,
       defaultPageLimit: 8,
@@ -101,6 +145,7 @@ export function createResearchRuntime(env: NodeJS.ProcessEnv = process.env): Res
 
   const uow = createInMemoryResearchUnitOfWork(concurrency);
   const transactions = new InMemoryTransactionRunner(uow);
+  const runsRepo = new InMemoryResearchRunRepository();
   return {
     provider: 'memory',
     uow,
@@ -110,6 +155,7 @@ export function createResearchRuntime(env: NodeJS.ProcessEnv = process.env): Res
     collection: buildCollection(retrieval, uow),
     priority: new ResearchPriorityService(uow.priority, uow.outbox),
     claimReview: new ExtractionReviewService(transactions),
+    researchRuns: buildResearchRuns(uow, runsRepo, jobs, env),
     scores,
     database: null,
     defaultPageLimit: 8,

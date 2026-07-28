@@ -12,6 +12,7 @@
     "smoke:health": "tsx src/smoke-health.ts",
     "test:e2e": "playwright test",
     "test:e2e:postgres": "pnpm --filter @adp/research build && playwright test --config=playwright.postgres.config.ts",
+    "test:e2e:research-run-postgres": "pnpm --filter @adp/research build && pnpm --filter @adp/platform build && playwright test --config=playwright.research-run.postgres.config.ts",
     "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
