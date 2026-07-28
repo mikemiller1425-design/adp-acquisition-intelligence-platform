@@ -1,0 +1,18 @@
+# FaceMatch Local — runtime dependencies
+# Python 3.9+ recommended (3.10–3.12 work well)
+
+numpy>=1.23,<3
+opencv-python>=4.8
+Pillow>=10.0
+customtkinter>=5.2
+
+# Face detection + embeddings (ONNX Runtime — no dlib/C++ build required)
+onnxruntime>=1.16
+insightface>=0.7.3
+
+# Pulled in by insightface; pinned loosely for clearer installs
+scipy>=1.10
+tqdm>=4.65
+
+# Tests
+pytest>=7.4

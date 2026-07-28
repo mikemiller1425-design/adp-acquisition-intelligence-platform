@@ -1,0 +1,20 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.npz
+.DS_Store
+
+# Local gallery cache + user captures (keep README.txt)
+gallery/embeddings_cache.npz
+gallery/*.jpg
+gallery/*.jpeg
+gallery/*.png
+gallery/*.bmp
+gallery/*.webp
+!gallery/README.txt
