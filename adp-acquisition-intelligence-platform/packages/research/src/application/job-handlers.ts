@@ -1,5 +1,6 @@
 import {
   InMemoryJobDispatcher,
+  type JobDispatcherPort,
   type JobEnvelope,
   type JobHandlerRegistryPort,
 } from '@adp/platform';
@@ -610,14 +611,30 @@ async function handleIntelligenceRecalc(runtime: ResearchRuntime, job: JobEnvelo
   });
 }
 
+async function handleResearchRunExecute(runtime: ResearchRuntime, job: JobEnvelope): Promise<void> {
+  const researchRunId = requireString(job.payload, 'researchRunId');
+  await runtime.researchRuns.executeRun(researchRunId);
+}
+
+async function handleResearchRunPause(runtime: ResearchRuntime, job: JobEnvelope): Promise<void> {
+  const researchRunId = requireString(job.payload, 'researchRunId');
+  const reason = optionalString(job.payload, 'reason') ?? 'paused_via_job';
+  await runtime.researchRuns.pause(researchRunId, asRole(job.payload.role), reason);
+}
+
 /**
- * Registers bounded Phase 1.1 research job handlers shared by worker and web demo runtime.
+ * Registers bounded Phase 1.1 / 1.2 research job handlers shared by worker and web demo runtime.
  * Live network retrieval is never enabled — handlers use FixtureRetrievalPort only.
+ * When `jobs` also implements JobDispatcherPort, attaches it to ResearchRunService.
  */
 export function registerResearchJobHandlers(
   jobs: JobHandlerRegistryPort = new InMemoryJobDispatcher(),
   runtime: ResearchRuntime = createResearchRuntime(),
 ) {
+  if ('enqueue' in jobs && typeof (jobs as JobDispatcherPort).enqueue === 'function') {
+    runtime.researchRuns.setJobDispatcher(jobs as JobDispatcherPort);
+  }
+
   jobs.register('heartbeat', async () => {
     // Prompt 1 scaffold only: proves handler registration is idempotent-ready.
   });
@@ -637,6 +654,8 @@ export function registerResearchJobHandlers(
       'collection.extraction.requested': (job) => handleCollectionExtraction(runtime, job),
       'collection.coverage.recalculate': (job) => handleCoverageRecalculate(runtime, job),
       'intelligence.recalculation.requested': (job) => handleIntelligenceRecalc(runtime, job),
+      'research.run.execute': (job) => handleResearchRunExecute(runtime, job),
+      'research.run.pause': (job) => handleResearchRunPause(runtime, job),
     };
 
   for (const jobType of RESEARCH_JOB_TYPES) {

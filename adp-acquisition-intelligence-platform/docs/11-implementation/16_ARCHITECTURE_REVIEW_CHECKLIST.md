@@ -242,3 +242,8 @@ After remediation, rerun affected automated checks and the relevant checklist se
 - The [Testing Master Plan](../12-testing/TESTING_MASTER_PLAN.md) defines test strategy and release quality gates.
 - The [Phase 1 Exit Contract](../13-exit-contract/PHASE_1_EXIT_CONTRACT.md) determines whether the complete product may be released.
 
+## Phase 1.2 pointer
+
+Phase 1.2 research-run orchestration reviews are recorded in [PHASE_1_2_ARCHITECTURE_REVIEW.md](../01-reviews/PHASE_1_2_ARCHITECTURE_REVIEW.md). Integration-gate repair is **BLOCKED** until PR #20 merges — see [PHASE_1_2_INTEGRATION_GATE_BLOCKED.md](../01-reviews/PHASE_1_2_INTEGRATION_GATE_BLOCKED.md). Memory fixture UI is in scope; durable queue claims, live/archive egress enablement, and closing RB-014–017 are not.
+
+

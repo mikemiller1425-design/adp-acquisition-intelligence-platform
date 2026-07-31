@@ -11,7 +11,7 @@ export type JobHandler = (job: JobEnvelope) => Promise<void>;
 
 export type JobDispatcherPort = {
   /**
-   * Durable job dispatch seam. Prompt 1 selects pg-boss (ADR-006) without wiring production queues yet.
+   * Durable job dispatch seam. ADR-006: PostgreSQL-backed queue with transactional-outbox compatibility.
    */
   enqueue(job: JobEnvelope): Promise<{ jobId: string }>;
 };
@@ -43,5 +43,113 @@ export class InMemoryJobDispatcher implements JobDispatcherPort, JobHandlerRegis
       await handler(job);
     }
     return { jobId };
+  }
+}
+
+export type DurableJobRecord = {
+  id: string;
+  name: string;
+  payload: Record<string, unknown>;
+  idempotencyKey: string | null;
+  correlationId: string | null;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'dead' | 'cancelled';
+  attempts: number;
+  maxAttempts: number;
+  lastError: string | null;
+};
+
+export type DurableJobStore = {
+  enqueue(job: {
+    id: string;
+    name: string;
+    payload: Record<string, unknown>;
+    idempotencyKey?: string;
+    correlationId?: string;
+  }): Promise<{ jobId: string; replayed: boolean }>;
+  claim(workerId: string): Promise<DurableJobRecord | null>;
+  complete(jobId: string): Promise<void>;
+  fail(jobId: string, error: string, retryDelayMs?: number): Promise<void>;
+  depth(): Promise<number>;
+  heartbeat(workerId: string, metadata?: Record<string, unknown>): Promise<void>;
+  latestHeartbeat(): Promise<{ workerId: string; lastSeenAt: Date } | null>;
+};
+
+/**
+ * ADR-006 durable queue: enqueue persists first; workers claim with SKIP LOCKED.
+ * processInline drains after enqueue (fixture tests only) — state still survives restart.
+ */
+export class DurableJobDispatcher implements JobDispatcherPort, JobHandlerRegistryPort {
+  private readonly handlers = new Map<string, JobHandler>();
+  readonly processed: string[] = [];
+
+  constructor(
+    private readonly store: DurableJobStore,
+    private readonly options: { processInline?: boolean; workerId?: string } = {},
+  ) {}
+
+  register(name: string, handler: JobHandler): void {
+    this.handlers.set(name, handler);
+  }
+
+  get(name: string): JobHandler | undefined {
+    return this.handlers.get(name);
+  }
+
+  async enqueue(job: JobEnvelope): Promise<{ jobId: string }> {
+    const id = crypto.randomUUID();
+    const result = await this.store.enqueue({
+      id,
+      name: job.name,
+      payload: job.payload,
+      ...(job.idempotencyKey !== undefined ? { idempotencyKey: job.idempotencyKey } : {}),
+      ...(job.correlationId !== undefined ? { correlationId: job.correlationId } : {}),
+    });
+    if (this.options.processInline && !result.replayed) {
+      await this.processOne();
+    }
+    return { jobId: result.jobId };
+  }
+
+  async processOne(): Promise<boolean> {
+    const workerId = this.options.workerId ?? 'inline-worker';
+    await this.store.heartbeat(workerId, { inline: Boolean(this.options.processInline) });
+    const claimed = await this.store.claim(workerId);
+    if (!claimed) return false;
+    const handler = this.handlers.get(claimed.name);
+    if (!handler) {
+      await this.store.fail(claimed.id, `no_handler:${claimed.name}`);
+      return true;
+    }
+    try {
+      await handler({
+        name: claimed.name,
+        payload: claimed.payload,
+        ...(claimed.idempotencyKey != null ? { idempotencyKey: claimed.idempotencyKey } : {}),
+        ...(claimed.correlationId != null ? { correlationId: claimed.correlationId } : {}),
+      });
+      await this.store.complete(claimed.id);
+      this.processed.push(claimed.id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const permanent =
+        message.includes('kill_switch') ||
+        message.includes('live_research_disabled') ||
+        message.includes('lifecycle_not_enabled') ||
+        message.includes('robots_disallow') ||
+        message.includes('ssrf') ||
+        message.includes('private_network');
+      await this.store.fail(
+        claimed.id,
+        message,
+        permanent ? undefined : 1_000 * (claimed.attempts + 1),
+      );
+    }
+    return true;
+  }
+
+  async drain(max = 100): Promise<number> {
+    let n = 0;
+    while (n < max && (await this.processOne())) n += 1;
+    return n;
   }
 }

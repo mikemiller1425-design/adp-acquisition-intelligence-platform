@@ -103,7 +103,7 @@ describe.sequential('database integration tooling', () => {
         await readFile(new URL('../../migrations/meta/_journal.json', import.meta.url), 'utf8'),
       ) as { entries: Array<{ tag: string }> };
 
-      expect(journalCount).toBe(12);
+      expect(journalCount).toBe(13);
       expect(journal.entries.map((row) => row.tag)).toEqual([
         '0000_parched_electro',
         '0001_integrity_guards',
@@ -117,6 +117,7 @@ describe.sequential('database integration tooling', () => {
         '0009_prompt_10_reporting',
         '0010_phase_1_1_population_research',
         '0011_phase_1_1_collection_attempts',
+        '0012_phase_1_2_research_runs',
       ]);
 
       const researchCore = await client.sql<{ table_name: string }[]>`
@@ -130,7 +131,10 @@ describe.sequential('database integration tooling', () => {
             'collection_runs',
             'source_snapshots',
             'extracted_claims',
-            'collection_coverage'
+            'collection_coverage',
+            'research_runs',
+            'research_run_definitions',
+            'durable_jobs'
           )
         order by table_name
       `;
@@ -138,9 +142,12 @@ describe.sequential('database integration tooling', () => {
         'approved_sources',
         'collection_coverage',
         'collection_runs',
+        'durable_jobs',
         'extracted_claims',
         'population_sources',
         'raw_candidates',
+        'research_run_definitions',
+        'research_runs',
         'source_snapshots',
       ]);
 

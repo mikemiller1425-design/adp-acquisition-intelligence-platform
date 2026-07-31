@@ -7,6 +7,11 @@ export type ResearchCapability =
   | 'collection_run:create'
   | 'collection_run:cancel'
   | 'collection_job:retry'
+  | 'research_run:view'
+  | 'research_run:create'
+  | 'research_run:launch'
+  | 'research_run:pause'
+  | 'research_run:cancel'
   | 'snapshot:view'
   | 'claim:view'
   | 'claim:accept'
@@ -29,6 +34,11 @@ const ROLE_CAPS: Record<ResearchRole, readonly ResearchCapability[]> = {
     'collection_run:create',
     'collection_run:cancel',
     'collection_job:retry',
+    'research_run:view',
+    'research_run:create',
+    'research_run:launch',
+    'research_run:pause',
+    'research_run:cancel',
     'snapshot:view',
     'claim:view',
     'claim:accept',
@@ -47,6 +57,11 @@ const ROLE_CAPS: Record<ResearchRole, readonly ResearchCapability[]> = {
     'collection_run:create',
     'collection_run:cancel',
     'collection_job:retry',
+    'research_run:view',
+    'research_run:create',
+    'research_run:launch',
+    'research_run:pause',
+    'research_run:cancel',
     'snapshot:view',
     'claim:view',
     'approved_source:enable_suspend',
@@ -57,6 +72,7 @@ const ROLE_CAPS: Record<ResearchRole, readonly ResearchCapability[]> = {
     'population_source:view',
     'entity_resolution:review',
     'research_priority:view',
+    'research_run:view',
     'snapshot:view',
     'claim:view',
     'claim:accept',
@@ -68,10 +84,21 @@ const ROLE_CAPS: Record<ResearchRole, readonly ResearchCapability[]> = {
     'population_source:view',
     'research_priority:view',
     'collection_run:create',
+    'research_run:view',
+    'research_run:create',
+    'research_run:launch',
+    'research_run:pause',
+    'research_run:cancel',
     'claim:view',
     'snapshot:view',
   ],
-  viewer: ['population_source:view', 'research_priority:view', 'claim:view', 'source_policy:view'],
+  viewer: [
+    'population_source:view',
+    'research_priority:view',
+    'research_run:view',
+    'claim:view',
+    'source_policy:view',
+  ],
 };
 
 export class AllowListResearchCapabilityChecker {
